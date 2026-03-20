@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!-- ── Habit Grid Widget (2×2 → 4×3, per-habit heatmap) ─────────────── -->
+        <receiver
+            android:name=".HabitGridWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_grid_widget_info" />
+        </receiver>
+
+        <!-- ── Checklist Widget (4×2, today's habits with toggles) ──────────── -->
+        <receiver
+            android:name=".ChecklistWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/checklist_widget_info" />
+        </receiver>
+
+        <!-- ── Summary Widget (2×2, circular ring of overall completion) ────── -->
+        <receiver
+            android:name=".SummaryWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/summary_widget_info" />
+        </receiver>
+
+        <!-- ── Bar Chart Widget (4×2, 7-day completion bars) ─────────────────── -->
+        <receiver
+            android:name=".BarChartWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/bar_chart_widget_info" />
+        </receiver>
+
+        <!-- ── Radial Ring Widget (2×2, concentric arcs per habit) ──────────── -->
+        <receiver
+            android:name=".RadialRingWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/radial_ring_widget_info" />
+        </receiver>
+
+        <!-- ── Mini Heatmap + Stats Widget (4×2, per-habit) ─────────────────── -->
+        <receiver
+            android:name=".MiniHeatmapWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/mini_heatmap_widget_info" />
+        </receiver>
+
+        <!-- ── Streak Widget (2×2, top active streaks) ───────────────────────── -->
+        <receiver
+            android:name=".StreakWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/streak_widget_info" />
+        </receiver>
+
+        <!-- ── Quote Widget (2×2, daily motivational quote) ─────────────────── -->
+        <receiver
+            android:name=".QuoteWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quote_widget_info" />
+        </receiver>
+
+        <!-- Quick binary-log broadcast receiver (from HabitGrid + MiniHeatmap) -->
+        <receiver
+            android:name=".QuickCheckReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.verdant.widget.ACTION_QUICK_CHECK" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Checklist item toggle broadcast receiver -->
+        <receiver
+            android:name=".ChecklistToggleReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.verdant.widget.ACTION_TOGGLE_CHECKLIST" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Widget configuration activity (used by all widget types) -->
+        <activity
+            android:name=".WidgetConfigActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

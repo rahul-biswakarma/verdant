@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Habit contribution grid — track your streaks at a glance</string>
+    <string name="widget_checklist_description">Today\'s habit checklist — check off habits right from your home screen</string>
+    <string name="widget_summary_description">Daily summary ring — see your overall habit completion at a glance</string>
+    <string name="widget_bar_chart_description">Weekly bar chart — visualize your habit completion over the past 7 days</string>
+    <string name="widget_radial_ring_description">Radial progress rings — concentric arcs for each of your top habits</string>
+    <string name="widget_mini_heatmap_description">Mini heatmap + stats — 8-week grid with streak and completion stats</string>
+    <string name="widget_streak_description">Streak tracker — see your top active streaks and all-time best</string>
+    <string name="widget_quote_description">Daily motivation — a fresh quote every day to keep you going</string>
+    <string name="widget_config_title">Choose a Habit</string>
+    <string name="widget_add_button">Add Widget</string>
+</resources>
