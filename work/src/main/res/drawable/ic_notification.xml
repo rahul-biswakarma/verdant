@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Simple leaf/plant icon used as the small notification icon for all Verdant
+    notification types. Must be a flat, single-colour vector for Android's
+    notification system (alpha-only, white on transparent).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+
+    <!-- Simple seedling / leaf shape -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M17,8C8,10 5.9,16.17 3.82,21L5.71,21C6.66,18.65 7,16 7,16C9.1,17.5 11.37,17.96 13.4,17.43C15.74,16.82 17.5,14.79 18,12L20,12C18.68,9.75 17,8 17,8ZM12,14.31C10.41,14.31 9.12,13.02 9.12,11.43C9.12,10.07 10.11,8.9 11.5,8.6L11.5,7.09C9.32,7.42 7.62,9.27 7.62,11.43C7.62,14.23 9.9,15.81 12,15.81L12,14.31Z" />
+</vector>
