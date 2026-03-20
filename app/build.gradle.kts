@@ -1,0 +1,95 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.google.services) // Firebase — requires google-services.json in app/
+}
+
+android {
+    namespace = "com.verdant.app"
+    compileSdk = libs.versions.compileSdk.get().toInt()
+
+    defaultConfig {
+        applicationId = "com.verdant.app"
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    buildFeatures {
+        compose = true
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    // Feature modules
+    implementation(project(":feature:home"))
+    implementation(project(":feature:habits"))
+    implementation(project(":feature:analytics"))
+    implementation(project(":feature:insights"))
+    implementation(project(":feature:settings"))
+
+    // Widget + background work modules
+    implementation(project(":widget"))
+    implementation(project(":work"))
+
+    // Core modules
+    implementation(project(":core:designsystem"))
+    implementation(project(":core:datastore"))
+    implementation(project(":core:common"))
+
+    // AndroidX
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+
+    // Compose
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.extended)
+    debugImplementation(libs.compose.ui.tooling)
+
+    // Navigation
+    implementation(libs.navigation.compose)
+
+    // Hilt
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    ksp(libs.hilt.compiler.ext)   // needed for @HiltWorker in :widget
+    implementation(libs.hilt.navigation.compose)
+
+    // WorkManager (for HiltWorkerFactory setup)
+    implementation(libs.workmanager)
+    implementation(libs.hilt.work)
+
+    // Firebase (BOM manages all Firebase library versions)
+    // NOTE: Add google-services.json to app/ before building.
+    //       Download from: https://console.firebase.google.com → Project Settings → Android app
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+}
