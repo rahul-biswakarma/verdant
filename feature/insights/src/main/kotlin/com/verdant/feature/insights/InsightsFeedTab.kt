@@ -17,15 +17,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Bulb
+import compose.icons.tablericons.ChartBar
+import compose.icons.tablericons.ChartDots
+import compose.icons.tablericons.Flame
+import compose.icons.tablericons.Stars
+import compose.icons.tablericons.TrendingUp
+import compose.icons.tablericons.Trophy
+import compose.icons.tablericons.X
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +43,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.VerdantGreen40
+import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.model.AIInsight
 import com.verdant.core.model.InsightType
 import java.text.DateFormat
@@ -72,7 +72,7 @@ fun InsightsFeedTab(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(
-                        imageVector        = Icons.Default.AutoAwesome,
+                        imageVector        = TablerIcons.Stars,
                         contentDescription = null,
                         modifier           = Modifier.size(56.dp),
                         tint               = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
@@ -133,7 +133,7 @@ private fun InsightCard(
         modifier = modifier
             .fillMaxWidth()
             .animateContentSize(),
-        shape  = RoundedCornerShape(16.dp),
+        shape  = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ),
@@ -180,7 +180,7 @@ private fun InsightCard(
 
                 IconButton(onClick = onDismiss, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        imageVector        = Icons.Default.Close,
+                        imageVector        = TablerIcons.X,
                         contentDescription = "Dismiss",
                         tint               = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier           = Modifier.size(16.dp),
@@ -209,11 +209,11 @@ private data class InsightMeta(
 )
 
 private fun insightMeta(type: InsightType): InsightMeta = when (type) {
-    InsightType.DAILY_MOTIVATION  -> InsightMeta(Icons.Default.AutoAwesome,          VerdantGreen40,        "Daily Motivation")
-    InsightType.STREAK_ALERT      -> InsightMeta(Icons.Default.LocalFireDepartment,   Color(0xFFFF6D00),     "Streak Alert")
-    InsightType.PATTERN_RECOGNITION -> InsightMeta(Icons.Default.Insights,            Color(0xFF7C4DFF),     "Pattern Detected")
-    InsightType.CORRELATION       -> InsightMeta(Icons.AutoMirrored.Filled.TrendingUp,            Color(0xFF0288D1),     "Correlation")
-    InsightType.WEEKLY_SUMMARY    -> InsightMeta(Icons.Default.BarChart,              Color(0xFF00897B),     "Weekly Summary")
-    InsightType.MONTHLY_SUMMARY   -> InsightMeta(Icons.Default.BarChart,              Color(0xFF1565C0),     "Monthly Summary")
-    InsightType.SUGGESTION        -> InsightMeta(Icons.Default.Lightbulb,             Color(0xFFF9A825),     "Suggestion")
+    InsightType.DAILY_MOTIVATION  -> InsightMeta(TablerIcons.Stars,          MutedSage,        "Daily Motivation")
+    InsightType.STREAK_ALERT      -> InsightMeta(TablerIcons.Flame,   Color(0xFFFF6D00),     "Streak Alert")
+    InsightType.PATTERN_RECOGNITION -> InsightMeta(TablerIcons.ChartDots,            Color(0xFF7C4DFF),     "Pattern Detected")
+    InsightType.CORRELATION       -> InsightMeta(TablerIcons.TrendingUp,            Color(0xFF0288D1),     "Correlation")
+    InsightType.WEEKLY_SUMMARY    -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF00897B),     "Weekly Summary")
+    InsightType.MONTHLY_SUMMARY   -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF1565C0),     "Monthly Summary")
+    InsightType.SUGGESTION        -> InsightMeta(TablerIcons.Bulb,             Color(0xFFF9A825),     "Suggestion")
 }

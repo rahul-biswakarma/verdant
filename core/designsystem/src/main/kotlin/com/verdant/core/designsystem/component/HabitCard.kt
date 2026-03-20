@@ -13,9 +13,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Check
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.Plus
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -33,7 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.VerdantGreen40
+import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
@@ -86,18 +86,18 @@ fun HabitCard(
     ElevatedCard(
         onClick = onTap,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 20.dp, vertical = 18.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             // ── Habit icon ──────────────────────────────────────────────────
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(52.dp)
                     .clip(CircleShape)
                     .background(habitColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
@@ -108,7 +108,7 @@ fun HabitCard(
                 )
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(16.dp))
 
             // ── Name, frequency label, progress ────────────────────────────
             Column(
@@ -122,7 +122,6 @@ fun HabitCard(
                     Text(
                         text = habit.name,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
@@ -174,7 +173,7 @@ fun HabitCard(
                 ),
             ) {
                 Icon(
-                    imageVector = if (isCompleted) Icons.Rounded.Check else Icons.Rounded.Add,
+                    imageVector = if (isCompleted) TablerIcons.Check else TablerIcons.Plus,
                     contentDescription = if (isCompleted) "Mark incomplete" else "Add entry",
                 )
             }
@@ -194,7 +193,7 @@ private fun frequencyLabel(habit: Habit): String = when (habit.frequency) {
 
 private val previewHabitBinary = Habit(
     id = "1", name = "Morning Run", description = "5 km jog", icon = "🏃",
-    color = VerdantGreen40.value.toLong(), label = "Health",
+    color = MutedSage.value.toLong(), label = "Health",
     trackingType = TrackingType.BINARY, unit = null, targetValue = null,
     frequency = HabitFrequency.DAILY, scheduleDays = 0x7F,
     isArchived = false, reminderEnabled = true, reminderTime = "07:00",

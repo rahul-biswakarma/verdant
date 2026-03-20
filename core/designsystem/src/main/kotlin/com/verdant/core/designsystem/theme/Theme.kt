@@ -2,52 +2,83 @@ package com.verdant.core.designsystem.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
 private val LightColorScheme = lightColorScheme(
-    primary = VerdantGreen40,
-    onPrimary = VerdantNeutral99,
-    primaryContainer = VerdantGreen90,
-    secondary = VerdantTeal40,
-    onSecondary = VerdantNeutral99,
-    secondaryContainer = VerdantTeal90,
-    error = VerdantError40,
-    onError = VerdantNeutral99,
-    errorContainer = VerdantError90,
-    background = VerdantNeutral99,
-    surface = VerdantNeutral99,
-    onBackground = VerdantNeutral10,
-    onSurface = VerdantNeutral10,
+    primary = MutedSage,
+    onPrimary = WarmWhite,
+    primaryContainer = LightSage,
+    onPrimaryContainer = DeepCharcoal,
+    secondary = DustyMauve,
+    onSecondary = WarmWhite,
+    secondaryContainer = LightMauve,
+    onSecondaryContainer = DeepCharcoal,
+    tertiary = BurntOrange,
+    onTertiary = WarmWhite,
+    tertiaryContainer = LightPeach,
+    onTertiaryContainer = DeepCharcoal,
+    error = WarmRed,
+    onError = WarmWhite,
+    errorContainer = LightWarmRed,
+    onErrorContainer = DeepCharcoal,
+    background = WarmCream,
+    onBackground = DeepCharcoal,
+    surface = WarmWhite,
+    onSurface = DeepCharcoal,
+    surfaceVariant = WarmGray,
+    onSurfaceVariant = DustyMauve,
+    outline = WarmGray,
+    outlineVariant = WarmGray.copy(alpha = 0.5f),
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = VerdantGreen80,
-    onPrimary = VerdantGreen20,
-    primaryContainer = VerdantGreen30,
-    secondary = VerdantTeal80,
-    onSecondary = VerdantTeal10,
-    secondaryContainer = VerdantTeal40,
-    error = VerdantError80,
-    onError = VerdantError10,
-    errorContainer = VerdantError40,
-    background = VerdantNeutral10,
-    surface = VerdantNeutral10,
-    onBackground = VerdantNeutral90,
-    onSurface = VerdantNeutral90,
+    primary = LightSageGreen,
+    onPrimary = DeepWarmBlack,
+    primaryContainer = DarkSage,
+    onPrimaryContainer = LightSage,
+    secondary = LightMauve,
+    onSecondary = DeepWarmBlack,
+    secondaryContainer = DarkMauve,
+    onSecondaryContainer = WarmOffWhite,
+    tertiary = LightOrange,
+    onTertiary = DeepWarmBlack,
+    tertiaryContainer = DarkPeach,
+    onTertiaryContainer = LightPeach,
+    error = LightWarmRed,
+    onError = DarkOnError,
+    errorContainer = WarmRed,
+    onErrorContainer = LightWarmRed,
+    background = DeepWarmBlack,
+    onBackground = WarmOffWhite,
+    surface = DarkWarmBrown,
+    onSurface = WarmOffWhite,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = WarmGray,
+    outline = DarkSurfaceVariant,
+    outlineVariant = DarkSurfaceVariant.copy(alpha = 0.5f),
+)
+
+val VerdantShapes = Shapes(
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
 )
 
 @Composable
 fun VerdantTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -69,6 +100,7 @@ fun VerdantTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = VerdantTypography,
+        shapes = VerdantShapes,
         content = content,
     )
 }

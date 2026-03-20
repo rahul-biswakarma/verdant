@@ -20,11 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Archive
+import compose.icons.tablericons.Pencil
+import compose.icons.tablericons.Plus
+import compose.icons.tablericons.Trash
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -77,7 +77,7 @@ fun HabitsScreen(
                 onClick = onCreateHabit,
                 containerColor = MaterialTheme.colorScheme.primary,
             ) {
-                Icon(Icons.Rounded.Add, contentDescription = "Create habit")
+                Icon(TablerIcons.Plus, contentDescription = "Create habit")
             }
         },
     ) { innerPadding ->
@@ -200,7 +200,7 @@ private fun HabitListCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .combinedClickable(onClick = onTap, onLongClick = { menuExpanded = true }),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.elevatedCardElevation(1.dp),
         ) {
             Row(
@@ -241,7 +241,7 @@ private fun HabitListCard(
                         if (!habitLabel.isNullOrBlank()) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(habitColor.copy(alpha = 0.12f))
                                     .padding(horizontal = 5.dp, vertical = 1.dp),
                             ) {
@@ -281,18 +281,18 @@ private fun HabitListCard(
         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
             DropdownMenuItem(
                 text = { Text("Edit") },
-                leadingIcon = { Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp)) },
+                leadingIcon = { Icon(TablerIcons.Pencil, null, Modifier.size(18.dp)) },
                 onClick = { menuExpanded = false; onEdit() },
             )
             DropdownMenuItem(
                 text = { Text("Archive") },
-                leadingIcon = { Icon(Icons.Rounded.Archive, null, Modifier.size(18.dp)) },
+                leadingIcon = { Icon(TablerIcons.Archive, null, Modifier.size(18.dp)) },
                 onClick = { menuExpanded = false; onArchive() },
             )
             DropdownMenuItem(
                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                 leadingIcon = {
-                    Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(TablerIcons.Trash, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error)
                 },
                 onClick = { menuExpanded = false; onDelete() },
             )

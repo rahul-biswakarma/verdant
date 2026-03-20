@@ -22,16 +22,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.NavigateBefore
-import androidx.compose.material.icons.automirrored.rounded.NavigateNext
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.Archive
-import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material.icons.rounded.NavigateBefore
-import androidx.compose.material.icons.rounded.NavigateNext
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Archive
+import compose.icons.tablericons.ArrowLeft
+import compose.icons.tablericons.ChevronLeft
+import compose.icons.tablericons.ChevronRight
+import compose.icons.tablericons.DotsVertical
+import compose.icons.tablericons.Pencil
+import compose.icons.tablericons.Trash
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,7 +101,7 @@ fun HabitDetailScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, "Back")
+                        Icon(TablerIcons.ArrowLeft, "Back")
                     }
                 },
                 title = {
@@ -115,7 +113,7 @@ fun HabitDetailScreen(
                                 val habitLabel = habit.label
                                 if (!habitLabel.isNullOrBlank()) {
                                     Box(
-                                        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(habitColor.copy(alpha = 0.15f)).padding(horizontal = 5.dp, vertical = 1.dp),
+                                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(habitColor.copy(alpha = 0.15f)).padding(horizontal = 5.dp, vertical = 1.dp),
                                     ) {
                                         Text(habitLabel, style = MaterialTheme.typography.labelSmall, color = habitColor, fontWeight = FontWeight.Medium)
                                     }
@@ -127,22 +125,22 @@ fun HabitDetailScreen(
                 actions = {
                     Box {
                         IconButton(onClick = { menuExpanded = true }) {
-                            Icon(Icons.Rounded.MoreVert, "More options")
+                            Icon(TablerIcons.DotsVertical, "More options")
                         }
                         DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                             DropdownMenuItem(
                                 text = { Text("Edit") },
-                                leadingIcon = { Icon(Icons.Rounded.Edit, null, Modifier.size(18.dp)) },
+                                leadingIcon = { Icon(TablerIcons.Pencil, null, Modifier.size(18.dp)) },
                                 onClick = { menuExpanded = false; habit?.let { onEditHabit(it.id) } },
                             )
                             DropdownMenuItem(
                                 text = { Text("Archive") },
-                                leadingIcon = { Icon(Icons.Rounded.Archive, null, Modifier.size(18.dp)) },
+                                leadingIcon = { Icon(TablerIcons.Archive, null, Modifier.size(18.dp)) },
                                 onClick = { menuExpanded = false; viewModel.archiveHabit(); onNavigateBack() },
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                leadingIcon = { Icon(Icons.Rounded.Delete, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) },
+                                leadingIcon = { Icon(TablerIcons.Trash, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.error) },
                                 onClick = { menuExpanded = false; viewModel.deleteHabit(); onNavigateBack() },
                             )
                         }
@@ -358,7 +356,7 @@ private fun EntryListRow(
         }
         if (entry.skipped) {
             Box(
-                modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp),
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp),
             ) {
                 Text("Skipped", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -388,7 +386,7 @@ private fun MonthCalendar(
     Column(modifier = modifier) {
         // Month header
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onPreviousMonth) { Icon(Icons.AutoMirrored.Rounded.NavigateBefore, "Previous month") }
+            IconButton(onClick = onPreviousMonth) { Icon(TablerIcons.ChevronLeft, "Previous month") }
             Text(
                 text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                 style = MaterialTheme.typography.titleMedium,
@@ -396,7 +394,7 @@ private fun MonthCalendar(
             )
             val isCurrentMonth = !month.plusMonths(1).isAfter(today.withDayOfMonth(1))
             IconButton(onClick = onNextMonth, enabled = isCurrentMonth) {
-                Icon(Icons.AutoMirrored.Rounded.NavigateNext, "Next month", tint = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                Icon(TablerIcons.ChevronRight, "Next month", tint = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
             }
         }
 
@@ -521,7 +519,7 @@ private fun RetroLoggingSheet(
                     label = { Text("Value${habit.unit?.let { " ($it)" } ?: ""}") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                 )
                 Button(
                     onClick = { onSaveQuantitative(valueInput.toDoubleOrNull() ?: 0.0) },

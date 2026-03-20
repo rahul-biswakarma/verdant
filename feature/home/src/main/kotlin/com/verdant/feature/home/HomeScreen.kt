@@ -25,12 +25,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.LocationOn
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.MapPin
+import compose.icons.tablericons.PlayerPause
+import compose.icons.tablericons.PlayerPlay
+import compose.icons.tablericons.Stars
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -73,6 +73,7 @@ import com.verdant.core.model.TrackingType
 @Composable
 fun HomeScreen(
     onNavigateToHabitDetail: (String) -> Unit = {},
+    onCreateHabit: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -104,20 +105,23 @@ fun HomeScreen(
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
-            item {
-                HomeHeader(
-                    greeting = state.greeting,
-                    formattedDate = state.formattedDate,
-                    completedCount = state.completedCount,
-                    totalCount = state.totalCount,
-                )
-            }
+            // Only show header and insight card when user has habits
+            if (state.hasAnyHabits) {
+                item {
+                    HomeHeader(
+                        greeting = state.greeting,
+                        formattedDate = state.formattedDate,
+                        completedCount = state.completedCount,
+                        totalCount = state.totalCount,
+                    )
+                }
 
-            item {
-                AiInsightCard(
-                    insightText = state.aiInsight,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
+                item {
+                    AiInsightCard(
+                        insightText = state.aiInsight,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
             }
 
             item {
@@ -133,20 +137,24 @@ fun HomeScreen(
 
             if (state.todayItems.isEmpty() && !state.isLoading) {
                 item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                    if (!state.hasAnyHabits) {
+                        WelcomeEmptyState(onCreateHabit = onCreateHabit)
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Text("🌱", style = MaterialTheme.typography.displayMedium)
-                            Text(
-                                "No habits scheduled for today",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text("🌱", style = MaterialTheme.typography.displayMedium)
+                                Text(
+                                    "No habits scheduled for today",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
                         }
                     }
                 }
@@ -336,7 +344,7 @@ private fun AiInsightCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f)),
         elevation = CardDefaults.cardElevation(0.dp),
     ) {
@@ -345,7 +353,7 @@ private fun AiInsightCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Icon(Icons.Rounded.AutoAwesome, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary)
+            Icon(TablerIcons.Stars, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary)
             Column {
                 Text("AI Insight", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.secondary)
                 Text(
@@ -371,7 +379,7 @@ private fun HabitCardShell(
     modifier: Modifier = Modifier,
     actions: @Composable () -> Unit,
 ) {
-    ElevatedCard(onClick = onTap, modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), elevation = CardDefaults.elevatedCardElevation(1.dp)) {
+    ElevatedCard(onClick = onTap, modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), elevation = CardDefaults.elevatedCardElevation(1.dp)) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
@@ -406,9 +414,9 @@ private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onTap: (
                 containerColor = animatedColor,
                 contentColor = if (isCompleted) (if (habitColor.luminance() > 0.4f) Color.Black else Color.White) else MaterialTheme.colorScheme.onSurfaceVariant,
             ),
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(12.dp),
         ) {
-            Icon(Icons.Rounded.Check, null, Modifier.size(18.dp))
+            Icon(TablerIcons.Check, null, Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
             Text(if (isCompleted) "Done ✓" else "Mark done")
         }
@@ -438,11 +446,11 @@ private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCust
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(1.0, 5.0, 10.0).forEach { delta ->
-                FilledTonalButton(onClick = { onAdd(delta) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(4.dp, 8.dp), shape = RoundedCornerShape(8.dp)) {
+                FilledTonalButton(onClick = { onAdd(delta) }, modifier = Modifier.weight(1f), contentPadding = PaddingValues(4.dp, 8.dp), shape = RoundedCornerShape(12.dp)) {
                     Text("+${delta.fmt()}", style = MaterialTheme.typography.labelMedium)
                 }
             }
-            FilledTonalButton(onClick = onCustom, modifier = Modifier.weight(1f), contentPadding = PaddingValues(4.dp, 8.dp), shape = RoundedCornerShape(8.dp)) {
+            FilledTonalButton(onClick = onCustom, modifier = Modifier.weight(1f), contentPadding = PaddingValues(4.dp, 8.dp), shape = RoundedCornerShape(12.dp)) {
                 Text("Custom", style = MaterialTheme.typography.labelMedium)
             }
         }
@@ -467,7 +475,7 @@ private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elaps
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 12.dp, vertical = 10.dp),
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Text(
                     text = if (timerRunning) elapsedSeconds.toTimerStr() else current.toMinuteStr(),
@@ -482,7 +490,7 @@ private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elaps
                 ),
             ) {
                 Icon(
-                    if (timerRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                    if (timerRunning) TablerIcons.PlayerPause else TablerIcons.PlayerPlay,
                     if (timerRunning) "Stop" else "Start",
                     tint = if (timerRunning) (if (habitColor.luminance() > 0.4f) Color.Black else Color.White) else MaterialTheme.colorScheme.onPrimaryContainer,
                 )
@@ -516,7 +524,7 @@ private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, o
                 )
             }
         }
-        Button(onClick = onLogExpense, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = habitColor), shape = RoundedCornerShape(10.dp)) {
+        Button(onClick = onLogExpense, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = habitColor), shape = RoundedCornerShape(12.dp)) {
             Text("Log expense", color = if (habitColor.luminance() > 0.4f) Color.Black else Color.White)
         }
     }
@@ -535,12 +543,49 @@ private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onTap
             Button(
                 onClick = onCheckIn,
                 colors = ButtonDefaults.buttonColors(containerColor = if (checkedIn) habitColor else MaterialTheme.colorScheme.primaryContainer),
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Icon(Icons.Rounded.LocationOn, null, Modifier.size(16.dp), tint = if (checkedIn) (if (habitColor.luminance() > 0.4f) Color.Black else Color.White) else MaterialTheme.colorScheme.onPrimaryContainer)
+                Icon(TablerIcons.MapPin, null, Modifier.size(16.dp), tint = if (checkedIn) (if (habitColor.luminance() > 0.4f) Color.Black else Color.White) else MaterialTheme.colorScheme.onPrimaryContainer)
                 Spacer(Modifier.width(4.dp))
                 Text(if (checkedIn) "Checked in ✓" else "Check in", color = if (checkedIn) (if (habitColor.luminance() > 0.4f) Color.Black else Color.White) else MaterialTheme.colorScheme.onPrimaryContainer)
             }
+        }
+    }
+}
+
+// ── Welcome Empty State ──────────────────────────────────────────────────
+
+@Composable
+private fun WelcomeEmptyState(onCreateHabit: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text("🌱", style = MaterialTheme.typography.displayLarge)
+        Text(
+            text = "Your habit garden is empty",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        Text(
+            text = "Start with one small habit. You can always add more later.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = onCreateHabit,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        ) {
+            Text("Create your first habit", style = MaterialTheme.typography.titleMedium, color = Color.White)
         }
     }
 }
@@ -550,7 +595,7 @@ private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onTap
 @Composable
 private fun LabelPill(label: String, color: Color) {
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(4.dp)).background(color.copy(alpha = 0.12f)).padding(horizontal = 6.dp, vertical = 2.dp),
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(color.copy(alpha = 0.12f)).padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Medium)
     }

@@ -5,21 +5,19 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material3.Icon
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Flame
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.verdant.core.designsystem.theme.BurntOrange
 import com.verdant.core.designsystem.theme.VerdantTheme
-
-private val FlameColor = Color(0xFFFF6B35)
 
 /**
  * Compact streak indicator: flame icon + count.
@@ -38,16 +36,16 @@ fun StreakBadge(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Icon(
-            imageVector = Icons.Rounded.LocalFireDepartment,
+            imageVector = TablerIcons.Flame,
             contentDescription = null,
-            tint = FlameColor,
+            tint = BurntOrange,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = count.toString(),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.SemiBold,
-            color = FlameColor,
+            color = BurntOrange,
         )
     }
 }
@@ -67,5 +65,5 @@ private fun StreakBadgeLightPreview() {
 )
 @Composable
 private fun StreakBadgeDarkPreview() {
-    VerdantTheme(dynamicColor = false) { StreakBadge(count = 7) }
+    VerdantTheme { StreakBadge(count = 7) }
 }

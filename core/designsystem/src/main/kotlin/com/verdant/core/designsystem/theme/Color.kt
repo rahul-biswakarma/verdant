@@ -2,45 +2,51 @@ package com.verdant.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Verdant green-based palette
-val VerdantGreen10 = Color(0xFF002201)
-val VerdantGreen20 = Color(0xFF003A06)
-val VerdantGreen30 = Color(0xFF00540D)
-val VerdantGreen40 = Color(0xFF30A14E) // Brand primary
-val VerdantGreen80 = Color(0xFF7DDC6E)
-val VerdantGreen90 = Color(0xFF99F883)
+// ── Light palette ────────────────────────────────────────────────────────────
 
-val VerdantTeal10 = Color(0xFF001F23)
-val VerdantTeal40 = Color(0xFF00696F)
-val VerdantTeal80 = Color(0xFF4DD8E1)
-val VerdantTeal90 = Color(0xFF97F0F9)
+val WarmCream         = Color(0xFFF5F0EB)   // background
+val WarmWhite         = Color(0xFFFAF7F3)   // surface
+val WarmGray          = Color(0xFFE8E2DB)   // surface variant
+val MutedSage         = Color(0xFF5A7A60)   // primary
+val LightSage         = Color(0xFFD4E8D4)   // primary container
+val DustyMauve        = Color(0xFF7B6B6B)   // secondary
+val LightMauve        = Color(0xFFE0D5D5)   // secondary container
+val BurntOrange       = Color(0xFFE8673C)   // tertiary / accent
+val LightPeach        = Color(0xFFFDDDD0)   // tertiary container
+val DeepCharcoal      = Color(0xFF1A1917)   // on-background / on-surface
+val WarmRed           = Color(0xFFC4453A)   // error
+val LightWarmRed      = Color(0xFFFCDAD7)   // error container
 
-val VerdantNeutral10 = Color(0xFF1A1C19)
-val VerdantNeutral90 = Color(0xFFE2E3DD)
-val VerdantNeutral99 = Color(0xFFF8FAF2)
+// ── Dark palette ─────────────────────────────────────────────────────────────
 
-val VerdantError10 = Color(0xFF410002)
-val VerdantError40 = Color(0xFFBA1A1A)
-val VerdantError80 = Color(0xFFFFB4AB)
-val VerdantError90 = Color(0xFFFFDAD6)
+val DeepWarmBlack     = Color(0xFF141311)   // background
+val DarkWarmBrown     = Color(0xFF1E1C1A)   // surface
+val DarkSurfaceVariant = Color(0xFF2A2826)  // surface variant
+val LightSageGreen    = Color(0xFF8FB996)   // primary
+val DarkSage          = Color(0xFF3D5442)   // primary container
+val DarkMauve         = Color(0xFF4A3E3E)   // secondary container
+val LightOrange       = Color(0xFFF09070)   // tertiary
+val DarkPeach         = Color(0xFF5C3328)   // tertiary container
+val WarmOffWhite      = Color(0xFFE8E2DB)   // on-background / on-surface
+val DarkOnError       = Color(0xFF3B1211)   // on-error
 
-// GitHub-style contribution grid — dark theme
-val GridEmptyDark   = Color(0xFF161B22)
-val GridLevel1Dark  = Color(0xFF0E4429)
-val GridLevel2Dark  = Color(0xFF006D32)
-val GridLevel3Dark  = Color(0xFF26A641)
-val GridLevel4Dark  = Color(0xFF39D353)
+// ── Contribution grid — warm sage scale ──────────────────────────────────────
 
-// GitHub-style contribution grid — light theme
-val GridEmptyLight  = Color(0xFFEBEDF0)
-val GridLevel1Light = Color(0xFF9BE9A8)
-val GridLevel2Light = Color(0xFF40C463)
-val GridLevel3Light = Color(0xFF30A14E)
-val GridLevel4Light = Color(0xFF216E39)
+val GridEmptyLight  = Color(0xFFE8E2DB)
+val GridLevel1Light = Color(0xFFC4D8C4)
+val GridLevel2Light = Color(0xFF8FB996)
+val GridLevel3Light = Color(0xFF5A7A60)
+val GridLevel4Light = Color(0xFF3D5442)
+
+val GridEmptyDark   = Color(0xFF1E1C1A)
+val GridLevel1Dark  = Color(0xFF2A3D2E)
+val GridLevel2Dark  = Color(0xFF3D5442)
+val GridLevel3Dark  = Color(0xFF5A7A60)
+val GridLevel4Dark  = Color(0xFF8FB996)
 
 /**
  * Returns one of the 5 grid-level colors based on [intensity] and theme.
- * Used as the default color for habits whose primary color is VerdantGreen40.
+ * Used as the default color for habits whose primary color is [MutedSage].
  */
 fun gridCellColor(intensity: Float, isDark: Boolean): Color = when {
     intensity <= 0f    -> if (isDark) GridEmptyDark   else GridEmptyLight

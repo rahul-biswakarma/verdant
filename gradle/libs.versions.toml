@@ -37,6 +37,9 @@ workmanager = "2.10.0"
 # Widget
 glance = "1.1.1"
 
+# Icons
+composeIcons = "1.1.1"
+
 # Charts
 vico = "2.0.0-beta.3"
 
@@ -95,6 +98,9 @@ workmanager = { group = "androidx.work", name = "work-runtime-ktx", version.ref 
 # Glance (Widgets)
 glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
 glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+
+# Icons
+compose-icons-tabler = { group = "br.com.devsrsouza.compose.icons", name = "tabler-icons", version.ref = "composeIcons" }
 
 # Charts
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }

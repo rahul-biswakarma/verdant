@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,18 +21,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.theme.GridEmptyDark
 import com.verdant.core.designsystem.theme.GridEmptyLight
-import com.verdant.core.designsystem.theme.VerdantGreen40
+import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.designsystem.theme.gridCellColor
 
 private val LegendLevels = listOf(0f, 0.25f, 0.5f, 0.75f, 1f)
-private val CellShape = RoundedCornerShape(2.dp)
 
 /**
- * Five-square color legend mirroring the contribution grid intensity scale.
+ * Five-circle color legend mirroring the contribution grid intensity scale.
  *
- * When [color] matches the default Verdant green, the squares align exactly
- * with the GitHub-style grid palette; for other colors they lerp from the
+ * When [color] matches the default sage, the circles align exactly
+ * with the grid palette; for other colors they lerp from the
  * empty-cell color up to the full [color].
  */
 @Composable
@@ -55,15 +54,15 @@ fun IntensityLegend(
         )
 
         LegendLevels.forEach { intensity ->
-            val cellColor = if (color == VerdantGreen40) {
+            val cellColor = if (color == MutedSage) {
                 gridCellColor(intensity, isDark)
             } else {
                 if (intensity <= 0f) emptyColor else lerp(emptyColor, color, intensity)
             }
             Box(
                 modifier = Modifier
-                    .size(12.dp)
-                    .clip(CellShape)
+                    .size(14.dp)
+                    .clip(CircleShape)
                     .background(cellColor),
             )
         }
@@ -78,23 +77,23 @@ fun IntensityLegend(
 
 // ── Previews ─────────────────────────────────────────────────────────────────
 
-@Preview(name = "IntensityLegend – light (green)", showBackground = true)
+@Preview(name = "IntensityLegend – light (sage)", showBackground = true)
 @Composable
-private fun IntensityLegendGreenLightPreview() {
+private fun IntensityLegendSageLightPreview() {
     VerdantTheme {
-        IntensityLegend(color = VerdantGreen40, modifier = Modifier.padding(12.dp))
+        IntensityLegend(color = MutedSage, modifier = Modifier.padding(12.dp))
     }
 }
 
 @Preview(
-    name = "IntensityLegend – dark (green)",
+    name = "IntensityLegend – dark (sage)",
     showBackground = true,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-private fun IntensityLegendGreenDarkPreview() {
-    VerdantTheme(dynamicColor = false) {
-        IntensityLegend(color = VerdantGreen40, modifier = Modifier.padding(12.dp))
+private fun IntensityLegendSageDarkPreview() {
+    VerdantTheme {
+        IntensityLegend(color = MutedSage, modifier = Modifier.padding(12.dp))
     }
 }
 

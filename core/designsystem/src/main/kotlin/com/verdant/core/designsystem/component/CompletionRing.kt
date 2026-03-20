@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.VerdantGreen40
+import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.designsystem.theme.VerdantTheme
 
 /**
@@ -31,7 +31,7 @@ fun CompletionRing(
     progress: Float,
     color: Color,
     size: Dp = 48.dp,
-    strokeWidth: Dp = 4.dp,
+    strokeWidth: Dp = 6.dp,
     modifier: Modifier = Modifier,
 ) {
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -45,7 +45,7 @@ fun CompletionRing(
             startAngle = -90f,
             sweepAngle = 360f,
             useCenter = false,
-            style = Stroke(width = stroke),
+            style = Stroke(width = stroke, cap = StrokeCap.Round),
         )
         // Progress arc
         if (clamped > 0f) {
@@ -70,9 +70,9 @@ private fun CompletionRingLightPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            CompletionRing(progress = 0f, color = VerdantGreen40)
-            CompletionRing(progress = 0.4f, color = VerdantGreen40)
-            CompletionRing(progress = 1f, color = VerdantGreen40)
+            CompletionRing(progress = 0f, color = MutedSage)
+            CompletionRing(progress = 0.4f, color = MutedSage)
+            CompletionRing(progress = 1f, color = MutedSage)
         }
     }
 }
@@ -89,9 +89,9 @@ private fun CompletionRingDarkPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            CompletionRing(progress = 0f, color = VerdantGreen40)
-            CompletionRing(progress = 0.65f, color = VerdantGreen40)
-            CompletionRing(progress = 1f, color = VerdantGreen40)
+            CompletionRing(progress = 0f, color = MutedSage)
+            CompletionRing(progress = 0.65f, color = MutedSage)
+            CompletionRing(progress = 1f, color = MutedSage)
         }
     }
 }

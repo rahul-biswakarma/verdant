@@ -1,12 +1,12 @@
 package com.verdant.app.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
+import compose.icons.TablerIcons
+import compose.icons.tablericons.ChartBar
+import compose.icons.tablericons.Home
+import compose.icons.tablericons.ListCheck
+import compose.icons.tablericons.Settings
+import compose.icons.tablericons.Stars
 
 enum class TopLevelDestination(
     val route: String,
@@ -16,26 +16,26 @@ enum class TopLevelDestination(
     HOME(
         route = "home",
         label = "Home",
-        icon = Icons.Filled.Home,
+        icon = TablerIcons.Home,
     ),
     HABITS(
         route = "habits",
         label = "Habits",
-        icon = Icons.Filled.CheckBox,
+        icon = TablerIcons.ListCheck,
     ),
     ANALYTICS(
         route = "analytics",
         label = "Analytics",
-        icon = Icons.Filled.Analytics,
+        icon = TablerIcons.ChartBar,
     ),
     INSIGHTS(
         route = "insights",
         label = "Insights",
-        icon = Icons.Filled.AutoAwesome,
+        icon = TablerIcons.Stars,
     ),
     SETTINGS(
         route = "settings",
         label = "Settings",
-        icon = Icons.Filled.Settings,
+        icon = TablerIcons.Settings,
     ),
 }

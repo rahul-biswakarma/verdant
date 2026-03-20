@@ -4,11 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,6 +18,8 @@ import androidx.navigation.compose.rememberNavController
 import com.verdant.app.navigation.ONBOARDING_ROUTE
 import com.verdant.app.navigation.TopLevelDestination
 import com.verdant.app.navigation.VerdantNavHost
+import com.verdant.core.designsystem.component.BottomBarItem
+import com.verdant.core.designsystem.component.VerdantBottomBar
 import com.verdant.core.designsystem.theme.VerdantTheme
 
 @Composable
@@ -51,33 +49,26 @@ fun VerdantApp(
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
                 if (showBottomBar) {
-                    NavigationBar {
-                        TopLevelDestination.entries.forEach { destination ->
-                            val selected = currentDestination?.hierarchy?.any {
+                    val items = TopLevelDestination.entries.map { destination ->
+                        BottomBarItem(
+                            icon = destination.icon,
+                            label = destination.label,
+                            selected = currentDestination?.hierarchy?.any {
                                 it.route == destination.route
-                            } == true
-
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = {
-                                    navController.navigate(destination.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
+                            } == true,
+                            onClick = {
+                                navController.navigate(destination.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
                                     }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = destination.icon,
-                                        contentDescription = destination.label,
-                                    )
-                                },
-                                label = { Text(destination.label) },
-                            )
-                        }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
                     }
+
+                    VerdantBottomBar(items = items)
                 }
             },
         ) { innerPadding ->

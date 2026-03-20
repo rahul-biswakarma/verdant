@@ -25,16 +25,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Upload
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Bell
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.Download
+import compose.icons.tablericons.InfoCircle
+import compose.icons.tablericons.Settings
+import compose.icons.tablericons.Share
+import compose.icons.tablericons.ShieldLock
+import compose.icons.tablericons.Trash
+import compose.icons.tablericons.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -76,14 +76,14 @@ import com.verdant.core.designsystem.theme.ThemeMode
 
 // Preset accent colors
 private val accentColors = listOf(
-    0xFF30A14EL to "Verdant Green",
-    0xFF2196F3L to "Blue",
-    0xFF9C27B0L to "Purple",
-    0xFFFF5722L to "Deep Orange",
-    0xFF009688L to "Teal",
-    0xFFE91E63L to "Pink",
-    0xFFFF9800L to "Orange",
-    0xFF607D8BL to "Blue Grey",
+    0xFF5A7A60L to "Muted Sage",
+    0xFF7B6B6BL to "Dusty Mauve",
+    0xFFE8673CL to "Burnt Orange",
+    0xFF6B8E8AL to "Warm Teal",
+    0xFF8B7355L to "Warm Bronze",
+    0xFF9B6B6BL to "Dusty Rose",
+    0xFF5A6B7AL to "Slate",
+    0xFF8A7B5AL to "Olive",
 )
 
 private val daysOfWeek = listOf(
@@ -176,7 +176,7 @@ fun SettingsScreen(
                 .padding(innerPadding),
         ) {
             // ── Appearance ────────────────────────────────────────────────────
-            item { SectionHeader("Appearance", Icons.Default.Settings) }
+            item { SectionHeader("Appearance", TablerIcons.Settings) }
 
             item {
                 SettingsGroup {
@@ -200,7 +200,7 @@ fun SettingsScreen(
             item { Spacer(Modifier.height(16.dp)) }
 
             // ── Notifications ─────────────────────────────────────────────────
-            item { SectionHeader("Notifications", Icons.Default.Notifications) }
+            item { SectionHeader("Notifications", TablerIcons.Bell) }
 
             item {
                 SettingsGroup {
@@ -264,7 +264,7 @@ fun SettingsScreen(
             item { Spacer(Modifier.height(16.dp)) }
 
             // ── Data & Privacy ────────────────────────────────────────────────
-            item { SectionHeader("Data & Privacy", Icons.Default.Security) }
+            item { SectionHeader("Data & Privacy", TablerIcons.ShieldLock) }
 
             item {
                 SettingsGroup {
@@ -285,7 +285,7 @@ fun SettingsScreen(
                             }
                         },
                         leadingContent = {
-                            Icon(Icons.Default.Upload, contentDescription = null)
+                            Icon(TablerIcons.Upload, contentDescription = null)
                         },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -298,13 +298,13 @@ fun SettingsScreen(
                                 onClick = { importCsvLauncher.launch(arrayOf("text/csv", "text/plain")) },
                                 enabled = !uiState.importInProgress,
                             ) {
-                                Icon(Icons.Default.Download, contentDescription = null)
+                                Icon(TablerIcons.Download, contentDescription = null)
                                 Spacer(Modifier.width(4.dp))
                                 Text("Import")
                             }
                         },
                         leadingContent = {
-                            Icon(Icons.Default.Download, contentDescription = null)
+                            Icon(TablerIcons.Download, contentDescription = null)
                         },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -318,7 +318,7 @@ fun SettingsScreen(
                             }
                         },
                         leadingContent = {
-                            Icon(Icons.Default.Share, contentDescription = null)
+                            Icon(TablerIcons.Share, contentDescription = null)
                         },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
@@ -363,14 +363,14 @@ fun SettingsScreen(
                                     contentColor = MaterialTheme.colorScheme.onErrorContainer,
                                 ),
                             ) {
-                                Icon(Icons.Default.Delete, contentDescription = null)
+                                Icon(TablerIcons.Trash, contentDescription = null)
                                 Spacer(Modifier.width(4.dp))
                                 Text("Delete")
                             }
                         },
                         leadingContent = {
                             Icon(
-                                Icons.Default.Delete,
+                                TablerIcons.Trash,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.error,
                             )
@@ -382,7 +382,7 @@ fun SettingsScreen(
             item { Spacer(Modifier.height(16.dp)) }
 
             // ── About ─────────────────────────────────────────────────────────
-            item { SectionHeader("About", Icons.Default.Info) }
+            item { SectionHeader("About", TablerIcons.InfoCircle) }
 
             item {
                 SettingsGroup {
@@ -580,7 +580,7 @@ private fun ThemeModeRow(
                 ) {
                     if (selected) {
                         Icon(
-                            Icons.Default.Check,
+                            TablerIcons.Check,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
                         )
@@ -626,7 +626,7 @@ private fun AccentColorRow(
                 ) {
                     if (selected) {
                         Icon(
-                            Icons.Default.Check,
+                            TablerIcons.Check,
                             contentDescription = "Selected $name",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp),
@@ -879,7 +879,7 @@ private fun DeleteAllDataDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+        icon = { Icon(TablerIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
         title = { Text("Delete all data?") },
         text = {
             Text("This will permanently delete all your habits, history, and settings. This action cannot be undone.")

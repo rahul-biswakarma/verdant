@@ -30,10 +30,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.SmartToy
+import compose.icons.TablerIcons
+import compose.icons.tablericons.Wand
+import compose.icons.tablericons.Send
+import compose.icons.tablericons.Trash
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,7 +118,7 @@ fun CoachChatTab(
             ) {
                 IconButton(onClick = onClear) {
                     Icon(
-                        imageVector        = Icons.Default.DeleteSweep,
+                        imageVector        = TablerIcons.Trash,
                         contentDescription = "Clear chat",
                         tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     )
@@ -171,7 +171,7 @@ fun CoachChatTab(
                     ),
                 ) {
                     Icon(
-                        imageVector        = Icons.AutoMirrored.Filled.Send,
+                        imageVector        = TablerIcons.Send,
                         contentDescription = "Send",
                         modifier           = Modifier.size(20.dp),
                     )
@@ -264,7 +264,7 @@ private fun AssistantAvatar(modifier: Modifier = Modifier) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector        = Icons.Default.SmartToy,
+            imageVector        = TablerIcons.Wand,
             contentDescription = null,
             tint               = MaterialTheme.colorScheme.onSecondaryContainer,
             modifier           = Modifier.size(16.dp),
@@ -372,7 +372,7 @@ private fun CoachEmptyState(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector        = Icons.Default.SmartToy,
+                    imageVector        = TablerIcons.Wand,
                     contentDescription = null,
                     tint               = MaterialTheme.colorScheme.onSecondaryContainer,
                     modifier           = Modifier.size(32.dp),

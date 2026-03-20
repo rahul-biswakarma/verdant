@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.theme.GridEmptyDark
 import com.verdant.core.designsystem.theme.GridEmptyLight
-import com.verdant.core.designsystem.theme.VerdantGreen40
+import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.designsystem.theme.gridCellColor
 import com.verdant.core.model.DayCell
@@ -85,10 +85,10 @@ fun HabitContributionGrid(
     LazyRow(
         state = listState,
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         items(weekColumns) { weekCells ->
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 weekCells.forEach { cell ->
                     val cellColor = resolveCellColor(
                         intensity = cell.intensity,
@@ -99,7 +99,7 @@ fun HabitContributionGrid(
                     HabitGridCell(
                         intensity = cell.intensity,
                         color = cellColor,
-                        size = 12.dp,
+                        size = 14.dp,
                         isToday = cell.date == today,
                         modifier = Modifier.clickable { onCellClick(cell.date) },
                     )
@@ -116,7 +116,7 @@ private fun resolveCellColor(
     isDark: Boolean,
 ): Color = when {
     intensity <= 0f -> emptyColor
-    habitColor == VerdantGreen40 -> gridCellColor(intensity, isDark)
+    habitColor == MutedSage -> gridCellColor(intensity, isDark)
     else -> lerp(emptyColor, habitColor, intensity.coerceIn(0f, 1f))
 }
 
@@ -143,7 +143,7 @@ private fun HabitContributionGridLightPreview() {
     VerdantTheme {
         HabitContributionGrid(
             cells = previewCells(16),
-            habitColor = VerdantGreen40,
+            habitColor = MutedSage,
             weeks = 16,
             onCellClick = {},
             modifier = Modifier.padding(12.dp),
@@ -161,7 +161,7 @@ private fun HabitContributionGridDarkPreview() {
     VerdantTheme(dynamicColor = false) {
         HabitContributionGrid(
             cells = previewCells(16),
-            habitColor = VerdantGreen40,
+            habitColor = MutedSage,
             weeks = 16,
             onCellClick = {},
             modifier = Modifier.padding(12.dp),
