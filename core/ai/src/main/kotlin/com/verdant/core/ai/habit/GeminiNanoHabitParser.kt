@@ -131,14 +131,14 @@ class GeminiNanoHabitParser @Inject constructor(
         Parse the following habit description and return a JSON object with these fields:
         - name: string (short, 2-4 words)
         - icon: string (single emoji)
-        - color: string (hex color like #30A14E)
+        - color: string (hex color like #5A7A60)
         - label: string (one of: Health, Fitness, Learning, Finance, Lifestyle)
         - trackingType: string (one of: BINARY, QUANTITATIVE, DURATION, FINANCIAL)
         - unit: string or null
         - targetValue: number or null
         - frequency: string (one of: DAILY, WEEKDAYS, WEEKENDS, SPECIFIC_DAYS)
         - scheduleDays: number (bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64; all=127)
-        - suggestedReminderTime: string (HH:mm format) or null
+        - suggestedReminderTime: string (comma-separated HH:mm times, e.g. "07:00,19:00" for morning and evening) or null
         - description: string (one sentence)
 
         Habit description: "$description"
@@ -150,8 +150,8 @@ class GeminiNanoHabitParser @Inject constructor(
         val trimmed = json.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
         val obj = JSONObject(trimmed)
 
-        val colorHex = obj.optString("color", "#30A14E").trimStart('#')
-        val colorLong = colorHex.toLongOrNull(16)?.let { 0xFF000000L or it } ?: 0xFF30A14EL
+        val colorHex = obj.optString("color", "#5A7A60").trimStart('#')
+        val colorLong = colorHex.toLongOrNull(16)?.let { 0xFF000000L or it } ?: 0xFF5A7A60L
 
         return ParsedHabit(
             name = obj.optString("name", originalDescription.take(30)),

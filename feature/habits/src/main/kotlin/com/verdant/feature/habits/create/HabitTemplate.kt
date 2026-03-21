@@ -32,7 +32,7 @@ private const val WEEKDAYS = 0x1F
 val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
     TemplateCategory.HEALTH to listOf(
         HabitTemplate(
-            name = "Take vitamins", icon = "💊", color = 0xFF30A14EL,
+            name = "Take vitamins", icon = "💊", color = 0xFF5A7A60L,
             label = "Health", trackingType = TrackingType.BINARY,
             unit = null, targetValue = null, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "08:00",
@@ -175,4 +175,14 @@ val templateCategories = listOf(
     TemplateCategory.LEARNING,
     TemplateCategory.FINANCE,
     TemplateCategory.LIFESTYLE,
+)
+
+/** Popular quick-pick templates shown as chips on the create screen. */
+val popularTemplates: List<HabitTemplate> = listOf(
+    habitTemplates[TemplateCategory.HEALTH]!!.first { it.name == "Take vitamins" },
+    habitTemplates[TemplateCategory.HEALTH]!!.first { it.name == "Drink water" },
+    habitTemplates[TemplateCategory.HEALTH]!!.first { it.name == "Meditate" },
+    habitTemplates[TemplateCategory.LEARNING]!!.first { it.name == "Read books" },
+    habitTemplates[TemplateCategory.FITNESS]!!.first { it.name == "Running" },
+    habitTemplates[TemplateCategory.LIFESTYLE]!!.first { it.name == "Journal" },
 )

@@ -2,6 +2,7 @@ package com.verdant.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.common.auth.AuthRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.designsystem.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,23 +16,27 @@ data class AppState(
     /** null = still loading from DataStore */
     val onboardingCompleted: Boolean? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val accentColor: Long = 0xFF30A14EL,
+    val accentColor: Long = 0xFF5A7A60L,
+    val isSignedIn: Boolean = false,
 )
 
 @HiltViewModel
 class AppViewModel @Inject constructor(
     prefs: UserPreferencesDataStore,
+    authRepository: AuthRepository,
 ) : ViewModel() {
 
     val state: StateFlow<AppState> = combine(
         prefs.onboardingCompleted,
         prefs.themeMode,
         prefs.accentColor,
-    ) { completed, mode, color ->
+        authRepository.currentUser,
+    ) { completed, mode, color, user ->
         AppState(
             onboardingCompleted = completed,
             themeMode = ThemeMode.valueOf(mode),
             accentColor = color,
+            isSignedIn = user != null,
         )
     }.stateIn(
         scope = viewModelScope,

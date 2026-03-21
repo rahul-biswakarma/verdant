@@ -24,6 +24,7 @@ import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,10 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.theme.BurntOrange
 import com.verdant.core.designsystem.theme.DarkPeach
 import com.verdant.core.designsystem.theme.DarkSage
@@ -95,10 +98,13 @@ private const val PAGE_COUNT = 4
 fun OnboardingScreen(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
+    webClientId: String = "",
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val isDark = isSystemInDarkTheme()
+    val isSignedIn by viewModel.isSignedIn.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -143,8 +149,10 @@ fun OnboardingScreen(
         BottomBar(
             currentPage = pagerState.currentPage,
             pageCount = PAGE_COUNT,
+            isSignedIn = isSignedIn,
             onSkip = { viewModel.completeOnboarding(onComplete) },
             onGetStarted = { viewModel.completeOnboarding(onComplete) },
+            onSignIn = { viewModel.signInWithGoogle(context, webClientId, onComplete) },
         )
     }
 }
@@ -251,47 +259,73 @@ private fun OnboardingPage(
 private fun BottomBar(
     currentPage: Int,
     pageCount: Int,
+    isSignedIn: Boolean,
     onSkip: () -> Unit,
     onGetStarted: () -> Unit,
+    onSignIn: () -> Unit,
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 28.dp, end = 20.dp, bottom = 48.dp, top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(bottom = 48.dp),
     ) {
-        // Dots
-        PageIndicatorDots(
-            currentPage = currentPage,
-            pageCount = pageCount,
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 28.dp, end = 20.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Dots
+            PageIndicatorDots(
+                currentPage = currentPage,
+                pageCount = pageCount,
+            )
 
-        Spacer(Modifier.weight(1f))
+            Spacer(Modifier.weight(1f))
 
-        // Skip / Get Started
-        val isLastPage = currentPage == pageCount - 1
-        Crossfade(
-            targetState = isLastPage,
-            animationSpec = tween(250),
-            label = "bottomAction",
-        ) { last ->
-            if (last) {
-                TextButton(onClick = onGetStarted) {
-                    Text(
-                        text = "Get Started",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+            // Skip / Get Started
+            val isLastPage = currentPage == pageCount - 1
+            Crossfade(
+                targetState = isLastPage,
+                animationSpec = tween(250),
+                label = "bottomAction",
+            ) { last ->
+                if (last) {
+                    TextButton(onClick = onGetStarted) {
+                        Text(
+                            text = "Get Started",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                } else {
+                    TextButton(onClick = onSkip) {
+                        Text(
+                            text = "Skip",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-            } else {
-                TextButton(onClick = onSkip) {
-                    Text(
-                        text = "Skip",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            }
+        }
+
+        // ── Google Sign-In button (last page only, when not signed in) ──
+        if (currentPage == pageCount - 1 && !isSignedIn) {
+            Spacer(Modifier.height(12.dp))
+            FilledTonalButton(
+                onClick = onSignIn,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 28.dp),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text(
+                    text = "Sign in with Google",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
             }
         }
     }

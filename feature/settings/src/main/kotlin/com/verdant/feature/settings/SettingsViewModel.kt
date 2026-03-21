@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.common.auth.AuthRepository
+import com.verdant.core.common.auth.AuthUser
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.usecase.DatabaseCleaner
@@ -30,7 +32,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val accentColor: Long = 0xFF30A14EL,
+    val accentColor: Long = 0xFF5A7A60L,
     val firstDayMonday: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val maxNudgesPerDay: Int = 5,
@@ -45,11 +47,17 @@ data class SettingsUiState(
     val exportInProgress: Boolean = false,
     val importInProgress: Boolean = false,
     val snackbarMessage: String? = null,
+    // Auth
+    val isSignedIn: Boolean = false,
+    val userName: String? = null,
+    val userEmail: String? = null,
+    val userPhotoUrl: String? = null,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferencesDataStore,
+    private val authRepository: AuthRepository,
     private val exportUseCase: ExportUseCase,
     private val databaseCleaner: DatabaseCleaner,
     private val habitRepository: HabitRepository,
@@ -74,7 +82,7 @@ class SettingsViewModel @Inject constructor(
         prefs.weeklySummaryDay,
         prefs.weeklySummaryHour,
         prefs.llmDataSharing,
-        _extra,
+        combine(_extra, authRepository.currentUser) { extra, user -> extra to user },
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val themeMode        = ThemeMode.valueOf(args[0] as String)
@@ -89,7 +97,7 @@ class SettingsViewModel @Inject constructor(
         val weeklySumDay     = args[9] as Int
         val weeklySumHour    = args[10] as Int
         val llmSharing       = args[11] as Boolean
-        val extra            = args[12] as SettingsUiState
+        val (extra, user)    = args[12] as Pair<SettingsUiState, AuthUser?>
 
         extra.copy(
             themeMode = themeMode,
@@ -104,6 +112,10 @@ class SettingsViewModel @Inject constructor(
             weeklySummaryDay = weeklySumDay,
             weeklySummaryHour = weeklySumHour,
             llmDataSharing = llmSharing,
+            isSignedIn = user != null,
+            userName = user?.displayName,
+            userEmail = user?.email,
+            userPhotoUrl = user?.photoUrl,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
 
@@ -168,6 +180,21 @@ class SettingsViewModel @Inject constructor(
             .setAutoCancel(true)
             .build()
         nm.notify(9999, notification)
+    }
+
+    // ── Auth ───────────────────────────────────────────────────────────────────
+
+    fun signInWithGoogle(activityContext: Context, webClientId: String) = viewModelScope.launch {
+        val result = authRepository.signInWithGoogle(activityContext, webClientId)
+        if (result.isFailure) {
+            _extra.update {
+                it.copy(snackbarMessage = "Sign-in failed: ${result.exceptionOrNull()?.message}")
+            }
+        }
+    }
+
+    fun signOut() = viewModelScope.launch {
+        authRepository.signOut()
     }
 
     // ── Data & Privacy ────────────────────────────────────────────────────────

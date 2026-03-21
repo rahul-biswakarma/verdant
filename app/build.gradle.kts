@@ -17,6 +17,14 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0.0"
+
+        // TODO: Replace with your Firebase web client ID from Firebase Console →
+        //       Authentication → Sign-in method → Google → Web client ID
+        buildConfigField(
+            "String",
+            "GOOGLE_WEB_CLIENT_ID",
+            "\"32513814315-ta24fj5nmlha56ijaqc4t47jurlasndr.apps.googleusercontent.com\"",
+        )
     }
 
     buildTypes {
@@ -31,6 +39,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {

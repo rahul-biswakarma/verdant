@@ -42,29 +42,40 @@ class ReminderScheduler @Inject constructor(
     private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
     /**
-     * Schedules the next alarm for [habit].
+     * Schedules the next alarm(s) for [habit].
+     *
+     * Supports comma-separated reminder times (e.g., "07:00,19:00") for
+     * multiple daily reminders. Each time gets its own alarm with a unique
+     * PendingIntent keyed on `"${habitId}_${index}"`.
      *
      * No-ops if reminders are disabled on the habit or the habit has no
      * [Habit.reminderTime].
      */
     fun scheduleReminder(habit: Habit) {
         if (!habit.reminderEnabled) return
-        val time = habit.reminderTime?.let { runCatching { LocalTime.parse(it, timeFormatter) }.getOrNull() }
-            ?: return
+        val rawTimes = habit.reminderTime ?: return
+        val times = rawTimes.split(",").map { it.trim() }.filter { it.isNotBlank() }
+        if (times.isEmpty()) return
 
-        val nextTrigger = nextOccurrence(time, habit.reminderDays) ?: return
-        val triggerMs   = nextTrigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-
-        val pending = buildPendingIntent(habit)
-        setExactAlarm(triggerMs, pending)
+        times.forEachIndexed { index, timeStr ->
+            val time = runCatching { LocalTime.parse(timeStr, timeFormatter) }.getOrNull() ?: return@forEachIndexed
+            val nextTrigger = nextOccurrence(time, habit.reminderDays) ?: return@forEachIndexed
+            val triggerMs = nextTrigger.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val pending = buildPendingIntent(habit, index)
+            setExactAlarm(triggerMs, pending)
+        }
     }
 
     /**
-     * Cancels the alarm for [habit]. Safe to call even if no alarm is set.
+     * Cancels all alarms for [habit]. Safe to call even if no alarm is set.
+     * Cancels up to [MAX_REMINDER_SLOTS] alarms to cover any number of
+     * comma-separated reminder times.
      */
     fun cancelReminder(habit: Habit) {
-        val pending = buildPendingIntent(habit)
-        alarmManager.cancel(pending)
+        for (index in 0 until MAX_REMINDER_SLOTS) {
+            val pending = buildPendingIntent(habit, index)
+            alarmManager.cancel(pending)
+        }
     }
 
     /**
@@ -102,18 +113,24 @@ class ReminderScheduler @Inject constructor(
         return null
     }
 
-    private fun buildPendingIntent(habit: Habit): PendingIntent {
+    private fun buildPendingIntent(habit: Habit, timeIndex: Int = 0): PendingIntent {
         val intent = Intent(context, ReminderAlarmReceiver::class.java).apply {
             action = ReminderAlarmReceiver.ACTION_FIRE_REMINDER
             putExtra(ReminderAlarmReceiver.EXTRA_HABIT_ID,   habit.id)
             putExtra(ReminderAlarmReceiver.EXTRA_HABIT_NAME, habit.name)
         }
+        val requestCode = "${habit.id}_$timeIndex".hashCode()
         return PendingIntent.getBroadcast(
             context,
-            habit.id.hashCode(),
+            requestCode,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+    }
+
+    companion object {
+        /** Maximum number of reminder time slots per habit. */
+        private const val MAX_REMINDER_SLOTS = 6
     }
 
     private fun setExactAlarm(triggerMs: Long, pending: PendingIntent) {

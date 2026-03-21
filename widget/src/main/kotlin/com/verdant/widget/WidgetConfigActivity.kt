@@ -286,11 +286,11 @@ private fun HabitPickerCard(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (isSelected) Modifier.border(2.dp, habitColor, RoundedCornerShape(16.dp))
+                if (isSelected) Modifier.border(2.dp, habitColor, RoundedCornerShape(20.dp))
                 else Modifier
             )
             .clickable(onClick = onClick),
-        shape     = RoundedCornerShape(16.dp),
+        shape     = RoundedCornerShape(20.dp),
         elevation = CardDefaults.elevatedCardElevation(if (isSelected) 4.dp else 1.dp),
     ) {
         Row(

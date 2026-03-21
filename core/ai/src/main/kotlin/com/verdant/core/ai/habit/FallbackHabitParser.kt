@@ -14,9 +14,55 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
 
     override suspend fun parseHabitDescription(description: String): ParsedHabit {
         val lower = description.lowercase()
-        return RULES.firstOrNull { rule -> rule.keywords.any { lower.contains(it) } }
+        val base = RULES.firstOrNull { rule -> rule.keywords.any { lower.contains(it) } }
             ?.toHabit(description)
             ?: genericHabit(description)
+
+        // Detect multiple time-of-day keywords and override reminder times
+        val detectedTimes = detectTimeOfDay(lower)
+        return if (detectedTimes.isNotEmpty()) {
+            // Extract non-time context as description (e.g., "before food")
+            val extraContext = extractContext(lower)
+            val desc = if (extraContext.isNotBlank() && base.description != extraContext) {
+                "$extraContext${if (base.description.isNullOrBlank()) "" else " — ${base.description}"}"
+            } else {
+                base.description
+            }
+            base.copy(
+                suggestedReminderTime = detectedTimes.joinToString(","),
+                description = desc?.take(120),
+            )
+        } else {
+            base
+        }
+    }
+
+    /** Detect time-of-day keywords and map to HH:mm times. */
+    private fun detectTimeOfDay(lower: String): List<String> {
+        val times = mutableListOf<String>()
+        if (lower.contains("morning") || lower.contains("sunrise") || lower.contains("wake up")) {
+            times.add("07:00")
+        }
+        if (lower.contains("afternoon") || lower.contains("lunch")) {
+            times.add("13:00")
+        }
+        if (lower.contains("evening") || lower.contains("dinner") || lower.contains("sunset")) {
+            times.add("19:00")
+        }
+        if (lower.contains("night") || lower.contains("bedtime") || lower.contains("before sleep")) {
+            times.add("21:00")
+        }
+        return times
+    }
+
+    /** Extract context phrases like "before food", "after workout", etc. */
+    private fun extractContext(lower: String): String {
+        val contextPatterns = listOf("before food", "after food", "before meal", "after meal",
+            "before workout", "after workout", "before breakfast", "after breakfast",
+            "before lunch", "after lunch", "before dinner", "after dinner",
+            "on empty stomach", "with food", "with water")
+        return contextPatterns.filter { lower.contains(it) }.joinToString(", ")
+            .replaceFirstChar { it.uppercase() }
     }
 
     private data class Rule(
@@ -49,7 +95,7 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
         name = description.split(" ").take(4).joinToString(" ")
             .replaceFirstChar { it.uppercase() }.take(40),
         icon = "🌱",
-        color = 0xFF30A14EL,
+        color = 0xFF5A7A60L,
         label = "Lifestyle",
         trackingType = TrackingType.BINARY,
         unit = null,
@@ -69,7 +115,7 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
             // ── Health ──────────────────────────────────────────────────────
             Rule(
                 keywords = listOf("vitamin", "supplement", "pill"),
-                name = "Take vitamins", icon = "💊", color = 0xFF30A14EL,
+                name = "Take vitamins", icon = "💊", color = 0xFF5A7A60L,
                 label = "Health", trackingType = TrackingType.BINARY,
                 unit = null, targetValue = null, reminderTime = "08:00",
             ),

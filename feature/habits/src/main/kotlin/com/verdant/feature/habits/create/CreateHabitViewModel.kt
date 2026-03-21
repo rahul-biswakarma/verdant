@@ -24,9 +24,11 @@ data class CreateHabitUiState(
     val aiInput: String = "",
     val isAiLoading: Boolean = false,
     val aiError: String? = null,
-    val selectedCategory: TemplateCategory = TemplateCategory.HEALTH,
     val draft: HabitDraft? = null,
-    val isFullFormExpanded: Boolean = false,
+    /** Which collapsible sections are expanded. */
+    val trackingExpanded: Boolean = false,
+    val reminderExpanded: Boolean = false,
+    val moreOptionsExpanded: Boolean = false,
     val isSaving: Boolean = false,
     val savedSuccessfully: Boolean = false,
 )
@@ -73,10 +75,6 @@ class CreateHabitViewModel @Inject constructor(
 
     // ── Template selection ───────────────────────────────────────────────────
 
-    fun onCategorySelected(category: TemplateCategory) {
-        _uiState.update { it.copy(selectedCategory = category) }
-    }
-
     fun onTemplateSelected(template: HabitTemplate) {
         _uiState.update { it.copy(draft = template.toDraft()) }
     }
@@ -94,16 +92,21 @@ class CreateHabitViewModel @Inject constructor(
     fun onDraftFrequencyChange(freq: HabitFrequency) = updateDraft { it.copy(frequency = freq) }
     fun onDraftScheduleDaysChange(days: Int) = updateDraft { it.copy(scheduleDays = days) }
     fun onDraftReminderEnabledChange(enabled: Boolean) = updateDraft { it.copy(reminderEnabled = enabled) }
-    fun onDraftReminderTimeChange(time: String) = updateDraft { it.copy(reminderTime = time) }
+    fun onDraftReminderTimesChange(times: List<String>) = updateDraft { it.copy(reminderTimes = times) }
     fun onDraftReminderDaysChange(days: Int) = updateDraft { it.copy(reminderDays = days) }
     fun onDraftStreakGoalChange(goal: Int?) = updateDraft { it.copy(streakGoal = goal) }
 
-    fun onToggleFullForm() {
-        _uiState.update { it.copy(isFullFormExpanded = !it.isFullFormExpanded) }
-    }
+    // ── Section toggles ──────────────────────────────────────────────────────
 
-    fun onDismissPreview() {
-        _uiState.update { it.copy(draft = null, isFullFormExpanded = false) }
+    fun onToggleTracking() = _uiState.update { it.copy(trackingExpanded = !it.trackingExpanded) }
+    fun onToggleReminder() = _uiState.update { it.copy(reminderExpanded = !it.reminderExpanded) }
+    fun onToggleMoreOptions() = _uiState.update { it.copy(moreOptionsExpanded = !it.moreOptionsExpanded) }
+
+    /** Ensure a draft always exists for the form-first approach. */
+    fun ensureDraft() {
+        if (_uiState.value.draft == null) {
+            _uiState.update { it.copy(draft = HabitDraft()) }
+        }
     }
 
     // ── Save ─────────────────────────────────────────────────────────────────
@@ -153,7 +156,7 @@ private fun HabitDraft.toHabit() = Habit(
     scheduleDays = scheduleDays,
     isArchived = false,
     reminderEnabled = reminderEnabled,
-    reminderTime = reminderTime.takeIf { reminderEnabled },
+    reminderTime = reminderTimeJoined.takeIf { reminderEnabled },
     reminderDays = if (reminderEnabled) reminderDays else 0,
     sortOrder = 0,
     createdAt = System.currentTimeMillis(),

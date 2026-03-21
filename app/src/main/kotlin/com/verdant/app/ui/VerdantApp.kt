@@ -20,6 +20,7 @@ import com.verdant.app.navigation.TopLevelDestination
 import com.verdant.app.navigation.VerdantNavHost
 import com.verdant.core.designsystem.component.BottomBarItem
 import com.verdant.core.designsystem.component.VerdantBottomBar
+import com.verdant.app.BuildConfig
 import com.verdant.core.designsystem.theme.VerdantTheme
 
 @Composable
@@ -76,6 +77,7 @@ fun VerdantApp(
                 navController = navController,
                 startOnboarding = appState.onboardingCompleted == false,
                 modifier = Modifier.padding(innerPadding),
+                webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
             )
         }
     }

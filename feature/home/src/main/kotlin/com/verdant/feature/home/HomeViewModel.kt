@@ -42,6 +42,7 @@ data class HomeUiState(
     val timerSeconds: Map<String, Int> = emptyMap(),
     val aiInsight: String? = null,
     val isLoading: Boolean = true,
+    val hasAnyHabits: Boolean = true,
 )
 
 // Displayed in the "Log expense" dialog
@@ -102,6 +103,7 @@ class HomeViewModel @Inject constructor(
             timerSeconds = timerSeconds,
             aiInsight = aiInsight,
             isLoading = false,
+            hasAnyHabits = habits.isNotEmpty(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

@@ -30,11 +30,14 @@ import compose.icons.tablericons.Bell
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.Download
 import compose.icons.tablericons.InfoCircle
+import compose.icons.tablericons.Login
+import compose.icons.tablericons.Logout
 import compose.icons.tablericons.Settings
 import compose.icons.tablericons.Share
 import compose.icons.tablericons.ShieldLock
 import compose.icons.tablericons.Trash
 import compose.icons.tablericons.Upload
+import compose.icons.tablericons.User
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -96,6 +99,7 @@ private val daysOfWeek = listOf(
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToOnboarding: () -> Unit = {},
+    webClientId: String = "",
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -175,6 +179,83 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding),
         ) {
+            // ── Account ───────────────────────────────────────────────────────
+            item { SectionHeader("Account", TablerIcons.User) }
+
+            item {
+                SettingsGroup {
+                    if (uiState.isSignedIn) {
+                        // Signed-in: show user info + sign out
+                        ListItem(
+                            headlineContent = {
+                                Text(
+                                    uiState.userName ?: "User",
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            },
+                            supportingContent = uiState.userEmail?.let { email ->
+                                { Text(email) }
+                            },
+                            leadingContent = {
+                                // Initials avatar
+                                val initials = (uiState.userName ?: "U")
+                                    .split(" ")
+                                    .take(2)
+                                    .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+                                    .joinToString("")
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        text = initials,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    )
+                                }
+                            },
+                            trailingContent = {
+                                OutlinedButton(onClick = viewModel::signOut) {
+                                    Icon(
+                                        TablerIcons.Logout,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Sign out")
+                                }
+                            },
+                        )
+                    } else {
+                        // Not signed in: show sign-in prompt
+                        ListItem(
+                            headlineContent = { Text("Sign in") },
+                            supportingContent = {
+                                Text("Back up your data and sync across devices")
+                            },
+                            leadingContent = {
+                                Icon(TablerIcons.Login, contentDescription = null)
+                            },
+                            trailingContent = {
+                                FilledTonalButton(
+                                    onClick = {
+                                        viewModel.signInWithGoogle(context, webClientId)
+                                    },
+                                ) {
+                                    Text("Sign in with Google")
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
+            item { Spacer(Modifier.height(16.dp)) }
+
             // ── Appearance ────────────────────────────────────────────────────
             item { SectionHeader("Appearance", TablerIcons.Settings) }
 

@@ -19,4 +19,12 @@ data class ParsedHabit(
     val scheduleDays: Int,
     val suggestedReminderTime: String?,
     val description: String?,
-)
+) {
+    /** All suggested reminder times (supports "morning and evening" style input). */
+    val suggestedReminderTimes: List<String>
+        get() = suggestedReminderTime
+            ?.split(",")
+            ?.map { it.trim() }
+            ?.filter { it.isNotBlank() }
+            ?: emptyList()
+}

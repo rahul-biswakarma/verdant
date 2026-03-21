@@ -46,9 +46,13 @@ vico = "2.0.0-beta.3"
 # ML Kit GenAI
 mlkitGenai = "1.0.0-beta1"
 
+# Auth
+credentialManager = "1.5.0-beta01"
+googleid = "1.1.1"
+
 # Firebase
 firebaseBom = "33.7.0"
-googleServices = "4.4.2"
+googleServices = "4.4.4"
 
 [libraries]
 # AndroidX Core
@@ -91,6 +95,7 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "kotlinxCoroutines" }
 
 # WorkManager
 workmanager = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "workmanager" }
@@ -107,6 +112,11 @@ vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", ve
 
 # ML Kit GenAI
 mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenai" }
+
+# Auth (Credential Manager + Google ID)
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialManager" }
+credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialManager" }
+googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }

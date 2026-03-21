@@ -24,6 +24,7 @@ fun VerdantNavHost(
     navController: NavHostController,
     startOnboarding: Boolean,
     modifier: Modifier = Modifier,
+    webClientId: String = "",
 ) {
     val startDestination = if (startOnboarding) ONBOARDING_ROUTE
     else TopLevelDestination.HOME.route
@@ -41,6 +42,7 @@ fun VerdantNavHost(
                         popUpTo(ONBOARDING_ROUTE) { inclusive = true }
                     }
                 },
+                webClientId = webClientId,
             )
         }
 
@@ -48,6 +50,7 @@ fun VerdantNavHost(
         composable(route = TopLevelDestination.HOME.route) {
             HomeScreen(
                 onNavigateToHabitDetail = { id -> navController.navigate("habit_detail/$id") },
+                onCreateHabit = { navController.navigate("create_habit") },
             )
         }
         composable(route = TopLevelDestination.HABITS.route) {
@@ -66,6 +69,7 @@ fun VerdantNavHost(
                         popUpTo(0) { inclusive = true }
                     }
                 },
+                webClientId = webClientId,
             )
         }
 
