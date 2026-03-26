@@ -71,13 +71,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.component.HabitContributionGrid
-import com.verdant.core.designsystem.component.MoodLegend
-import com.verdant.core.designsystem.component.YearInPixelsGrid
-import com.verdant.core.designsystem.component.moodScoreToColor
-import com.verdant.core.designsystem.component.moodScoreToEmoji
+import com.verdant.core.designsystem.component.LiquidProgressVessel
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
-import com.verdant.core.model.toPixelEntry
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -167,13 +163,26 @@ fun HabitDetailScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
+            // ── Liquid vessel (QUANTITATIVE habits only) ──────────────────────
+            val quantTarget = if (habit.trackingType == TrackingType.QUANTITATIVE) habit.targetValue else null
+            if (quantTarget != null && quantTarget > 0) {
+                val todayValue = state.entries.find { it.date == LocalDate.now() }?.value ?: 0.0
+                LiquidProgressVessel(
+                    currentValue = todayValue,
+                    targetValue = quantTarget,
+                    color = habitColor,
+                    unit = habit.unit ?: "",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(horizontal = 32.dp, vertical = 12.dp),
+                )
+            }
+
             // ── Tabs ──────────────────────────────────────────────────────────
             ScrollableTabRow(selectedTabIndex = state.selectedTab, edgePadding = 0.dp, divider = {}, containerColor = Color.Transparent) {
                 Tab(selected = state.selectedTab == 0, onClick = { viewModel.onTabSelected(0) }, text = { Text("History") })
                 Tab(selected = state.selectedTab == 1, onClick = { viewModel.onTabSelected(1) }, text = { Text("Calendar") })
-                if (habit.trackingType == TrackingType.EMOTIONAL) {
-                    Tab(selected = state.selectedTab == 2, onClick = { viewModel.onTabSelected(2) }, text = { Text("Year") })
-                }
             }
 
             LazyColumn(modifier = Modifier.weight(1f)) {
@@ -248,33 +257,6 @@ fun HabitDetailScreen(
                             )
                         }
                     }
-                    2 -> {
-                        // ── Year-in-Pixels (EMOTIONAL) ────────────────────────
-                        item {
-                            Text(
-                                "${state.moodYear}",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp),
-                            )
-                        }
-                        item {
-                            YearInPixelsGrid(
-                                entries = state.entries.mapNotNull { it.toPixelEntry() },
-                                year = state.moodYear,
-                                onDayClick = { date ->
-                                    if (!date.isAfter(LocalDate.now())) viewModel.onCellTapped(date)
-                                },
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            )
-                        }
-                        item {
-                            MoodLegend(
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                            )
-                        }
-                    }
                 }
             }
         }
@@ -288,29 +270,16 @@ fun HabitDetailScreen(
             dragHandle = { BottomSheetDefaults.DragHandle() },
         ) {
             state.habit?.let { habit ->
-                if (habit.trackingType == TrackingType.EMOTIONAL) {
-                    MoodLogSheet(
-                        date = state.retroDate!!,
-                        existing = state.retroEntry,
-                        onSave = { score, note ->
-                            viewModel.retroLogMood(state.retroDate!!, score, note)
-                            viewModel.onDismissRetroSheet()
-                        },
-                        onDelete = { state.retroEntry?.let { entry -> viewModel.retroDeleteEntry(entry) }; viewModel.onDismissRetroSheet() },
-                        onDismiss = viewModel::onDismissRetroSheet,
-                    )
-                } else {
-                    RetroLoggingSheet(
-                        date = state.retroDate!!,
-                        existing = state.retroEntry,
-                        habit = habit,
-                        onSaveBinary = { completed -> viewModel.retroLogBinary(state.retroDate!!, completed); viewModel.onDismissRetroSheet() },
-                        onSaveQuantitative = { value -> viewModel.retroSetQuantitative(state.retroDate!!, value); viewModel.onDismissRetroSheet() },
-                        onSkip = { viewModel.retroSkip(state.retroDate!!); viewModel.onDismissRetroSheet() },
-                        onDelete = { state.retroEntry?.let { entry -> viewModel.retroDeleteEntry(entry) }; viewModel.onDismissRetroSheet() },
-                        onDismiss = viewModel::onDismissRetroSheet,
-                    )
-                }
+                RetroLoggingSheet(
+                    date = state.retroDate!!,
+                    existing = state.retroEntry,
+                    habit = habit,
+                    onSaveBinary = { completed -> viewModel.retroLogBinary(state.retroDate!!, completed); viewModel.onDismissRetroSheet() },
+                    onSaveQuantitative = { value -> viewModel.retroSetQuantitative(state.retroDate!!, value); viewModel.onDismissRetroSheet() },
+                    onSkip = { viewModel.retroSkip(state.retroDate!!); viewModel.onDismissRetroSheet() },
+                    onDelete = { state.retroEntry?.let { viewModel.retroDeleteEntry(it) }; viewModel.onDismissRetroSheet() },
+                    onDismiss = viewModel::onDismissRetroSheet,
+                )
             }
         }
     }
@@ -377,23 +346,16 @@ private fun EntryListRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // Dot / mood indicator
-        val moodScore = if (habit.trackingType == TrackingType.EMOTIONAL) entry.value?.toInt() else null
-        if (moodScore != null && moodScore in 1..5) {
-            Box(
-                modifier = Modifier.size(10.dp).clip(CircleShape).background(moodScoreToColor(moodScore)),
-            )
-        } else {
-            Box(
-                modifier = Modifier.size(10.dp).clip(CircleShape).background(
-                    when {
-                        entry.skipped -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                        entry.completed -> habitColor
-                        else -> MaterialTheme.colorScheme.surfaceVariant
-                    },
-                ),
-            )
-        }
+        // Dot indicator
+        Box(
+            modifier = Modifier.size(10.dp).clip(CircleShape).background(
+                when {
+                    entry.skipped -> MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    entry.completed -> habitColor
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                },
+            ),
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = entry.date.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
@@ -402,23 +364,12 @@ private fun EntryListRow(
             )
             val detail = when {
                 entry.skipped -> "Skipped"
-                habit.trackingType == TrackingType.EMOTIONAL && moodScore != null ->
-                    "${moodScoreToEmoji(moodScore)} Mood $moodScore/5"
                 entry.completed && habit.trackingType == TrackingType.BINARY -> "Completed"
                 entry.value != null -> "${entry.value!!.toDisplayStr()} ${habit.unit.orEmpty()}"
                 entry.completed -> "Done"
                 else -> "Not completed"
             }
             Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val note = entry.note
-            if (!note.isNullOrBlank() && habit.trackingType == TrackingType.EMOTIONAL) {
-                Text(
-                    note,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    maxLines = 1,
-                )
-            }
         }
         if (entry.skipped) {
             Box(
@@ -600,109 +551,6 @@ private fun RetroLoggingSheet(
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onSkip) { Text("Mark as skipped") }
-            Spacer(Modifier.weight(1f))
-            if (existing != null) {
-                TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            }
-        }
-    }
-}
-
-// ── Mood Log Sheet ─────────────────────────────────────────────────────────────
-
-@Composable
-private fun MoodLogSheet(
-    date: LocalDate,
-    existing: HabitEntry?,
-    onSave: (score: Int, note: String?) -> Unit,
-    onDelete: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val initialScore = existing?.value?.toInt()?.takeIf { it in 1..5 }
-    var selectedScore by rememberSaveable(date) { mutableStateOf(initialScore) }
-    var noteInput by rememberSaveable(date) { mutableStateOf(existing?.note ?: "") }
-
-    val emojis = listOf("😢", "😔", "😐", "🙂", "😄")
-    val labels = listOf("Terrible", "Bad", "Neutral", "Good", "Great")
-
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = date.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        Text(
-            "How are you feeling?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
-        // 5 emoji buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            emojis.forEachIndexed { idx, emoji ->
-                val score = idx + 1
-                val isSelected = selectedScore == score
-                val moodBg = moodScoreToColor(score)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isSelected) moodBg.copy(alpha = 0.25f)
-                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            )
-                            .then(
-                                if (isSelected) Modifier.border(2.dp, moodBg, CircleShape)
-                                else Modifier,
-                            )
-                            .clickable { selectedScore = score },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(emoji, style = MaterialTheme.typography.titleLarge)
-                    }
-                    Text(
-                        labels[idx],
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected) moodBg else MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
-
-        // Journal note
-        OutlinedTextField(
-            value = noteInput,
-            onValueChange = { noteInput = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Journal note (optional)") },
-            minLines = 2,
-            maxLines = 4,
-            shape = RoundedCornerShape(12.dp),
-        )
-
-        Button(
-            onClick = { selectedScore?.let { onSave(it, noteInput.takeIf { n -> n.isNotBlank() }) } },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = selectedScore != null,
-        ) {
-            Text("Save")
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
             Spacer(Modifier.weight(1f))
             if (existing != null) {
                 TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) }
