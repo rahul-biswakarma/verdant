@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.feature.analytics.tab.CorrelationsTab
 import com.verdant.feature.analytics.tab.HeatmapsTab
+import com.verdant.feature.analytics.tab.MoodTab
 import com.verdant.feature.analytics.tab.OverviewTab
 import com.verdant.feature.analytics.tab.ReportsTab
 import com.verdant.feature.analytics.tab.TrendsTab
@@ -66,6 +67,7 @@ fun AnalyticsScreen(
                 state           = state.trends,
                 onSeriesSelected = viewModel::selectTrendSeries,
             )
+            AnalyticsTab.MOOD          -> MoodTab(state = state.mood)
             AnalyticsTab.CORRELATIONS  -> CorrelationsTab(
                 habits      = state.habits,
                 state       = state.correlations,

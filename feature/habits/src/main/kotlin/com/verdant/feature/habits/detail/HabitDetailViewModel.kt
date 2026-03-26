@@ -11,7 +11,6 @@ import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
-import java.time.temporal.ChronoUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,13 +36,12 @@ data class HabitDetailUiState(
     val completionRate: Float = 0f,
     val totalEntries: Int = 0,
     val averageValue: Double? = null,
-    val selectedTab: Int = 0,          // 0 = history, 1 = calendar, 2 = orbital (EVENT_DRIVEN only)
+    val selectedTab: Int = 0,          // 0 = history, 1 = calendar, 2 = mood (EMOTIONAL only)
     val selectedMonth: LocalDate = LocalDate.now().withDayOfMonth(1),
     val retroEntry: HabitEntry? = null, // entry being edited in bottom sheet
     val retroDate: LocalDate? = null,   // date for which bottom sheet is open
+    val moodYear: Int = LocalDate.now().year,
     val isLoading: Boolean = true,
-    /** Days since last completion; -1 = never. Only meaningful for EVENT_DRIVEN habits. */
-    val daysSinceLast: Int = -1,
 )
 
 @HiltViewModel
@@ -60,9 +58,10 @@ class HabitDetailViewModel @Inject constructor(
     private val _selectedMonth = MutableStateFlow(LocalDate.now().withDayOfMonth(1))
     private val _retroDate = MutableStateFlow<LocalDate?>(null)
     private val _stats = MutableStateFlow(Triple(0, 0, 0f)) // current, longest, rate
+    private val _moodYear = MutableStateFlow(LocalDate.now().year)
 
-    // 84 days back for the 12-week grid, today as end
-    private val gridStart = LocalDate.now().minusWeeks(12)
+    // Cover a full year for the mood grid; 12-week contribution grid uses the same entries
+    private val gridStart = LocalDate.now().withDayOfYear(1)
     private val gridEnd = LocalDate.now()
 
     private val habitFlow = MutableStateFlow<Habit?>(null)
@@ -85,11 +84,6 @@ class HabitDetailViewModel @Inject constructor(
         val retroEntry = retroDate?.let {
             entries.firstOrNull { e -> e.date == it }
         }
-        val daysSinceLast = if (habit.trackingType == TrackingType.EVENT_DRIVEN) {
-            val allCompleted = entryRepository.getCompletedDates(habitId)
-            val lastDate = allCompleted.maxOrNull()
-            if (lastDate != null) ChronoUnit.DAYS.between(lastDate, LocalDate.now()).toInt() else -1
-        } else -1
         HabitDetailUiState(
             habit = habit,
             entries = entries.sortedByDescending { it.date }.take(14),
@@ -103,8 +97,8 @@ class HabitDetailViewModel @Inject constructor(
             selectedMonth = month,
             retroEntry = retroEntry,
             retroDate = retroDate,
+            moodYear = _moodYear.value,
             isLoading = false,
-            daysSinceLast = daysSinceLast,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HabitDetailUiState())
 
@@ -153,12 +147,11 @@ class HabitDetailViewModel @Inject constructor(
         viewModelScope.launch { entryRepository.delete(entry) }
     }
 
-    // ── Event-driven ─────────────────────────────────────────────────────────
-
-    /** Logs a completion for an EVENT_DRIVEN habit today, resetting its orbit. */
-    fun logEventDriven() {
-        viewModelScope.launch { logEntryUseCase.logBinary(habitId, LocalDate.now(), completed = true) }
+    fun retroLogMood(date: LocalDate, score: Int, note: String?) {
+        viewModelScope.launch { logEntryUseCase.logMood(habitId, date, score, note) }
     }
+
+    fun onMoodYearChanged(year: Int) = _moodYear.update { year }
 
     // ── Habit actions ────────────────────────────────────────────────────────
 

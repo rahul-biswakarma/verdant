@@ -16,7 +16,9 @@ import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.InsightType
+import com.verdant.core.model.TrackingType
 import com.verdant.core.model.isScheduledForDate
+import com.verdant.core.model.toPixelEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -236,6 +238,7 @@ class AnalyticsViewModel @Inject constructor(
         loadOverview(habits, allEntries, streakMap, today)
         loadHeatmapForHabit(habits.first(), 0, allEntries)
         loadTrends(habits, allEntries, today)
+        loadMoodData(habits, allEntries, today)
 
         _state.update { it.copy(isLoading = false) }
     }
@@ -381,6 +384,62 @@ class AnalyticsViewModel @Inject constructor(
         }
 
         _state.update { it.copy(trends = TrendsState(series = series)) }
+    }
+
+    private fun loadMoodData(
+        habits: List<Habit>,
+        allEntries: List<HabitEntry>,
+        today: LocalDate,
+    ) {
+        val emotionalIds = habits
+            .filter { it.trackingType == TrackingType.EMOTIONAL }
+            .map { it.id }
+            .toSet()
+
+        if (emotionalIds.isEmpty()) return
+
+        val yearStart = today.withDayOfYear(1)
+        val moodEntries = allEntries
+            .filter { it.habitId in emotionalIds && it.completed && !it.date.isBefore(yearStart) }
+            .mapNotNull { it.toPixelEntry() }
+
+        val avgMood = if (moodEntries.isEmpty()) 0f
+        else moodEntries.map { it.moodScore }.average().toFloat()
+
+        val weeklyTrend = (11 downTo 0).map { offset ->
+            val weekEnd = today.minusWeeks(offset.toLong())
+            val weekStart = weekEnd.minusDays(6)
+            val week = moodEntries.filter { !it.date.isBefore(weekStart) && !it.date.isAfter(weekEnd) }
+            if (week.isEmpty()) 0f else week.map { it.moodScore }.average().toFloat()
+        }
+
+        val weekLabels = (11 downTo 0).map { offset ->
+            today.minusWeeks(offset.toLong()).minusDays(6)
+                .format(monthFormatter)
+        }
+
+        val nonMoodIds = habits
+            .filter { it.trackingType != TrackingType.EMOTIONAL }
+            .map { it.id }
+            .toSet()
+        val completionOverlay = allEntries
+            .filter { it.habitId in nonMoodIds && it.completed }
+            .map { it.date }
+            .toSet()
+
+        _state.update {
+            it.copy(
+                mood = MoodState(
+                    year = today.year,
+                    entries = moodEntries,
+                    averageMood = avgMood,
+                    weeklyMoodTrend = weeklyTrend,
+                    weekLabels = weekLabels,
+                    completionOverlay = completionOverlay,
+                    daysLogged = moodEntries.size,
+                ),
+            )
+        }
     }
 
     private fun aiErrorMessage(e: Throwable): String {

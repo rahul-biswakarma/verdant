@@ -3,13 +3,22 @@ package com.verdant.feature.analytics
 import com.verdant.core.ai.Correlation
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
+import com.verdant.core.model.PixelEntry
+import java.time.LocalDate
+
+// ── Tab enum ─────────────────────────────────────────────────────────────────
+
 enum class AnalyticsTab(val label: String) {
     OVERVIEW("Overview"),
     HEATMAPS("Heatmaps"),
     TRENDS("Trends"),
+    MOOD("Mood"),
     CORRELATIONS("Correlations"),
     REPORTS("Reports"),
 }
+
+// ── Top-level UI state ────────────────────────────────────────────────────────
+
 data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val habits: List<Habit> = emptyList(),
@@ -17,9 +26,13 @@ data class AnalyticsUiState(
     val overview: OverviewState = OverviewState(),
     val heatmaps: HeatmapsState = HeatmapsState(),
     val trends: TrendsState = TrendsState(),
+    val mood: MoodState = MoodState(),
     val correlations: CorrelationsState = CorrelationsState.Idle,
     val reports: ReportsState = ReportsState.Idle,
 )
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+
 data class OverviewState(
     val completedToday: Int = 0,
     val scheduledToday: Int = 0,
@@ -36,6 +49,9 @@ data class OverviewState(
     /** Total completed entries ever */
     val totalCompletions: Int = 0,
 )
+
+// ── Heatmaps ──────────────────────────────────────────────────────────────────
+
 data class HeatmapsState(
     val selectedHabitIndex: Int = 0,
     /** Grid cells for the selected habit, 52 weeks */
@@ -45,6 +61,9 @@ data class HeatmapsState(
     val totalCompletions: Int = 0,
     val completionRate30d: Float = 0f,
 )
+
+// ── Trends ────────────────────────────────────────────────────────────────────
+
 /**
  * One data series plotted on the trend chart.
  * @param label   Habit name, or "Overall" for the aggregate series.
@@ -64,12 +83,36 @@ data class TrendsState(
     /** X-axis week labels, e.g. ["Mar 3", "Mar 10", …]; 12 entries */
     val weekLabels: List<String> = emptyList(),
 )
+
+// ── Mood ──────────────────────────────────────────────────────────────────────
+
+data class MoodState(
+    val year: Int = LocalDate.now().year,
+    /** Mood entries for [year], one per day logged. */
+    val entries: List<PixelEntry> = emptyList(),
+    /** Average mood score 1–5 over all logged entries. */
+    val averageMood: Float = 0f,
+    /** Weekly average mood (oldest first, 12 weeks). */
+    val weeklyMoodTrend: List<Float> = emptyList(),
+    /** X-axis labels for weekly trend ("Mar 3", …). */
+    val weekLabels: List<String> = emptyList(),
+    /** Dates where any non-emotional habit was completed (overlay dots). */
+    val completionOverlay: Set<LocalDate> = emptySet(),
+    /** Total days with a mood logged this year. */
+    val daysLogged: Int = 0,
+)
+
+// ── Correlations ──────────────────────────────────────────────────────────────
+
 sealed interface CorrelationsState {
     data object Idle : CorrelationsState
     data object Loading : CorrelationsState
     data class Success(val correlations: List<Correlation>) : CorrelationsState
     data class Error(val message: String) : CorrelationsState
 }
+
+// ── Reports ───────────────────────────────────────────────────────────────────
+
 data class ReportEntry(
     val id: String,
     val title: String,
