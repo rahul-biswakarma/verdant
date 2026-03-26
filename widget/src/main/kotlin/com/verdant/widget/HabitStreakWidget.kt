@@ -12,22 +12,23 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 /**
- * 4×2 configurable widget showing 3–5 selected habits with per-habit toggle buttons.
+ * 2×2 per-habit streak widget.
  *
- * The user picks which habits appear via [WidgetConfigActivity].
- * Habit IDs are stored as a comma-separated string in [WidgetPreferencesKeys.MULTI_HABIT_IDS].
- * Each row includes a toggle button that broadcasts [ChecklistToggleReceiver.ACTION_TOGGLE].
+ * Shows the current streak count for a single selected habit along with a
+ * mini circular progress indicator reflecting the 30-day completion rate.
+ *
+ * Compare with [StreakWidget] which shows the top 3 streaks across all habits.
  */
-class MultiHabitWidget : GlanceAppWidget() {
+class HabitStreakWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        provideContent { MultiHabitContent() }
+        provideContent { HabitStreakContent() }
     }
 }
 
-class MultiHabitWidgetReceiver : GlanceAppWidgetReceiver() {
-    override val glanceAppWidget = MultiHabitWidget()
+class HabitStreakWidgetReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget = HabitStreakWidget()
 
     override fun onEnabled(context: Context) {
         super.onEnabled(context)

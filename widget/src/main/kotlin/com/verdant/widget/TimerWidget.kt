@@ -12,13 +12,10 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 /**
- * Timer widget for DURATION habits (2×2).
+ * 2×2 timer widget for Duration and Quantitative habits.
  *
- * Lets users start and stop a session timer directly from the home screen.
- * Elapsed time is shown in HH:MM:SS format with a circular progress arc.
- * On stop, logs the elapsed duration via [LogEntryUseCase.setQuantitative].
- *
- * Requires a habit to be selected during config ([WidgetConfigActivity]).
+ * Tap to start a timer; tap again to stop. On stop, the elapsed seconds are
+ * logged as a [com.verdant.core.model.HabitEntry] via [TimerActionReceiver].
  */
 class TimerWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition

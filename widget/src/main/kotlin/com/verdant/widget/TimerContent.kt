@@ -28,211 +28,126 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import java.time.LocalDate
 
 /**
- * Timer widget composable (2×2) for DURATION habits.
+ * Timer widget UI (2×2).
  *
- * Layout:
- *  - Header: habit icon + name
- *  - Center: HH:MM:SS elapsed counter + progress fraction
- *  - Bottom: Start/Stop button  |  intensity dots (1–5)
- *
- * Elapsed time displayed at tap-time:
- *  - Running: currentEpoch − startEpoch + previousElapsed
- *  - Stopped: previousElapsed
- *
- * The content composable passes the computed elapsed to [TimerActionReceiver]
- * so the worker can log the exact duration without a separate clock lookup.
+ * Displays elapsed/accumulated session time and a start/stop button.
+ * The [TimerActionReceiver] handles state transitions.
  */
 @Composable
 internal fun TimerContent() {
-    val prefs   = currentState<Preferences>()
-    val context = LocalContext.current
-    val today   = LocalDate.now().toString()
+    val prefs     = currentState<Preferences>()
+    val context   = LocalContext.current
 
-    val habitId     = prefs[WidgetPreferencesKeys.HABIT_ID]         ?: ""
-    val habitName   = prefs[WidgetPreferencesKeys.HABIT_NAME]       ?: "Duration"
-    val habitIcon   = prefs[WidgetPreferencesKeys.HABIT_ICON]       ?: "⏱"
-    val habitColorL = prefs[WidgetPreferencesKeys.HABIT_COLOR]      ?: 0xFF5A7A60L
-    val running     = prefs[WidgetPreferencesKeys.TIMER_RUNNING]    ?: false
-    val startEpoch  = prefs[WidgetPreferencesKeys.TIMER_START_EPOCH]  ?: 0L
-    val prevElapsed = prefs[WidgetPreferencesKeys.TIMER_ELAPSED_SECS] ?: 0L
-    val targetSecs  = prefs[WidgetPreferencesKeys.TIMER_TARGET_SECS]  ?: 0L
-    val intensity   = prefs[WidgetPreferencesKeys.TIMER_INTENSITY]   ?: 3
+    val habitId    = prefs[WidgetPreferencesKeys.HABIT_ID]          ?: ""
+    val habitName  = prefs[WidgetPreferencesKeys.HABIT_NAME]         ?: "Habit"
+    val habitIcon  = prefs[WidgetPreferencesKeys.HABIT_ICON]         ?: "🌱"
+    val colorLong  = prefs[WidgetPreferencesKeys.HABIT_COLOR]        ?: 0xFF4CAF50L
+    val startMs    = prefs[WidgetPreferencesKeys.TIMER_START_MS]     ?: 0L
+    val totalSecs  = prefs[WidgetPreferencesKeys.TIMER_TOTAL_SECONDS] ?: 0
 
-    val habitColor = Color(habitColorL.toInt())
+    val isRunning   = startMs > 0L
+    val habitColor  = Color(colorLong.toInt())
 
-    // Compute elapsed at render time; passed back on stop so worker logs exactly this value.
-    val nowEpoch   = System.currentTimeMillis() / 1000L
-    val elapsed    = if (running && startEpoch > 0) nowEpoch - startEpoch + prevElapsed else prevElapsed
-    val progress   = if (targetSecs > 0) (elapsed.toFloat() / targetSecs).coerceIn(0f, 1f) else 0f
-    val nextIntensity = if (intensity >= 5) 1 else intensity + 1
+    // Calculate elapsed seconds if running
+    val elapsedSecs = if (isRunning) {
+        ((System.currentTimeMillis() - startMs) / 1000L).toInt() + totalSecs
+    } else {
+        totalSecs
+    }
+
+    val timerText = formatSeconds(elapsedSecs)
+    val action    = if (isRunning) TimerActionReceiver.ACTION_STOP else TimerActionReceiver.ACTION_START
 
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(Color(0xFF1A1D21))
-            .cornerRadius(20.dp)
-            .padding(10.dp),
+            .cornerRadius(16.dp)
+            .padding(12.dp),
         contentAlignment = Alignment.TopStart,
     ) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
 
-            // ── Header ────────────────────────────────────────────────────────
+            // Header
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = habitIcon, style = TextStyle(fontSize = 14.sp))
-                Spacer(GlanceModifier.width(4.dp))
                 Text(
-                    text     = habitName,
-                    style    = TextStyle(
-                        color      = ColorProvider(Color.White),
-                        fontSize   = 11.sp,
+                    text = habitIcon,
+                    style = TextStyle(fontSize = 14.sp),
+                )
+                Spacer(GlanceModifier.width(6.dp))
+                Text(
+                    text = habitName,
+                    style = TextStyle(
+                        color = ColorProvider(Color(0xFFE0E0E0)),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                     maxLines = 1,
                     modifier = GlanceModifier.defaultWeight(),
                 )
-                // Running indicator dot
-                if (running) {
-                    Box(
-                        modifier = GlanceModifier
-                            .size(7.dp)
-                            .background(Color(0xFFEF5350))
-                            .cornerRadius(4.dp),
-                    ) {}
-                }
             }
 
-            Spacer(GlanceModifier.height(4.dp))
+            Spacer(GlanceModifier.height(8.dp))
 
-            // ── Elapsed time display ──────────────────────────────────────────
+            // Timer display
             Box(
                 modifier = GlanceModifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text  = formatElapsed(elapsed),
+                    text = timerText,
                     style = TextStyle(
-                        color      = ColorProvider(if (running) habitColor else Color.White),
-                        fontSize   = 22.sp,
+                        color = ColorProvider(if (isRunning) habitColor else Color(0xFFE0E0E0)),
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                 )
             }
 
-            // ── Progress bar ──────────────────────────────────────────────────
-            if (targetSecs > 0) {
-                Spacer(GlanceModifier.height(3.dp))
-                Box(
-                    modifier = GlanceModifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color(0xFF2D3339))
-                        .cornerRadius(2.dp),
-                ) {
-                    // Fill portion — approximated as a narrow inner Box
-                    // (Glance doesn't support fractional widths, so we use a
-                    //  ratio-based label instead for accuracy)
-                }
-                Spacer(GlanceModifier.height(2.dp))
-                Text(
-                    text  = "${(progress * 100).toInt()}% of goal",
-                    style = TextStyle(
-                        color    = ColorProvider(Color(0xFF9E9E9E)),
-                        fontSize = 8.sp,
-                    ),
-                )
-            }
+            Spacer(GlanceModifier.height(8.dp))
 
-            Spacer(GlanceModifier.defaultWeight())
-
-            // ── Bottom row: Start/Stop + Intensity ────────────────────────────
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Start / Stop button
-                Box(
-                    modifier = GlanceModifier
-                        .height(26.dp)
-                        .width(64.dp)
-                        .background(if (running) Color(0xFFEF5350) else habitColor)
-                        .cornerRadius(13.dp)
-                        .clickable(
-                            if (running) {
-                                actionSendBroadcast(
-                                    Intent(TimerActionReceiver.ACTION_TIMER_STOP).apply {
-                                        setPackage(context.packageName)
-                                        putExtra(TimerActionReceiver.EXTRA_HABIT_ID, habitId)
-                                        putExtra(TimerActionReceiver.EXTRA_ELAPSED, elapsed)
-                                        putExtra(TimerActionReceiver.EXTRA_INTENSITY, intensity)
-                                        putExtra(TimerActionReceiver.EXTRA_DATE, today)
-                                    }
-                                )
-                            } else {
-                                actionSendBroadcast(
-                                    Intent(TimerActionReceiver.ACTION_TIMER_START).apply {
-                                        setPackage(context.packageName)
-                                        putExtra(TimerActionReceiver.EXTRA_HABIT_ID, habitId)
-                                    }
-                                )
-                            }
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text  = if (running) "⏹ Stop" else "▶ Start",
-                        style = TextStyle(
-                            color      = ColorProvider(Color.White),
-                            fontSize   = 9.sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                }
-
-                Spacer(GlanceModifier.defaultWeight())
-
-                // Intensity dots — tap to cycle
-                Row(
-                    modifier = GlanceModifier.clickable(
+            // Start / Stop button
+            Box(
+                modifier = GlanceModifier
+                    .fillMaxWidth()
+                    .height(36.dp)
+                    .background(if (isRunning) Color(0xFFE53935) else habitColor)
+                    .cornerRadius(18.dp)
+                    .clickable(
                         actionSendBroadcast(
-                            Intent(TimerActionReceiver.ACTION_TIMER_INTENSITY).apply {
+                            Intent(action).apply {
                                 setPackage(context.packageName)
                                 putExtra(TimerActionReceiver.EXTRA_HABIT_ID, habitId)
-                                putExtra(TimerActionReceiver.EXTRA_INTENSITY, nextIntensity)
                             }
                         )
                     ),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    for (i in 1..5) {
-                        Box(
-                            modifier = GlanceModifier
-                                .size(7.dp)
-                                .background(
-                                    if (i <= intensity) habitColor else Color(0xFF2D3339)
-                                )
-                                .cornerRadius(4.dp),
-                        ) {}
-                        if (i < 5) Spacer(GlanceModifier.width(2.dp))
-                    }
-                }
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (isRunning) "⏹ Stop" else "▶ Start",
+                    style = TextStyle(
+                        color = ColorProvider(Color.White),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
             }
         }
     }
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/** Formats seconds as HH:MM:SS (no leading zeros on hours if 0). */
-private fun formatElapsed(secs: Long): String {
-    val h = secs / 3600
-    val m = (secs % 3600) / 60
-    val s = secs % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s)
-    else "%02d:%02d".format(m, s)
+private fun formatSeconds(totalSecs: Int): String {
+    val h = totalSecs / 3600
+    val m = (totalSecs % 3600) / 60
+    val s = totalSecs % 60
+    return if (h > 0) {
+        "%d:%02d:%02d".format(h, m, s)
+    } else {
+        "%02d:%02d".format(m, s)
+    }
 }

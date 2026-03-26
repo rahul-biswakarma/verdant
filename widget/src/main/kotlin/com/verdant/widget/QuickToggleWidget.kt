@@ -12,11 +12,11 @@ import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
 /**
- * Quick-toggle binary habit widget (2×2).
+ * 2×2 one-tap toggle widget for Binary habits.
  *
- * One large tap surface that marks a binary habit as complete for today.
- * Shows the habit name, icon, streak, and today's completion state.
- * Configured via [WidgetConfigActivity] — requires a habit to be selected.
+ * Shows the habit icon + name with a large tap target. A single tap marks the
+ * habit complete for today (or un-marks it if already done). The completion
+ * state is reflected immediately via the visual indicator.
  */
 class QuickToggleWidget : GlanceAppWidget() {
     override val stateDefinition = PreferencesGlanceStateDefinition

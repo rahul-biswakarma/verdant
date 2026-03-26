@@ -91,36 +91,21 @@ internal object WidgetPreferencesKeys {
     val QUOTE_DATE   = stringPreferencesKey("quote_date")
 
     // ── QuickToggleWidget ─────────────────────────────────────────────────────
-    /** Whether today's binary habit is completed. */
-    val TOGGLE_COMPLETED = booleanPreferencesKey("toggle_completed")
+    /** Whether the habit has been completed today. */
+    val QUICK_TOGGLE_COMPLETED = booleanPreferencesKey("quick_toggle_completed")
 
     // ── TimerWidget ───────────────────────────────────────────────────────────
-    /** Whether the timer is currently running. */
-    val TIMER_RUNNING       = booleanPreferencesKey("timer_running")
-    /** Epoch seconds when the current timer session started (0 if not running). */
-    val TIMER_START_EPOCH   = longPreferencesKey("timer_start_epoch")
-    /** Accumulated elapsed seconds from previous sessions (before current run). */
-    val TIMER_ELAPSED_SECS  = longPreferencesKey("timer_elapsed_secs")
-    /** Target duration in seconds (derived from habit.targetValue). */
-    val TIMER_TARGET_SECS   = longPreferencesKey("timer_target_secs")
-    /** Intensity level 1–5 selected by the user before logging. */
-    val TIMER_INTENSITY     = intPreferencesKey("timer_intensity")
-
-    // ── ProgressWidget ────────────────────────────────────────────────────────
-    /** Today's logged value (seconds for DURATION, count for QUANTITATIVE). */
-    val PROGRESS_VALUE  = floatPreferencesKey("progress_value")
-    /** Habit target value (0 means no target set). */
-    val PROGRESS_TARGET = floatPreferencesKey("progress_target")
-    /** Unit label string (e.g. "cups", "km", "min"). */
-    val PROGRESS_UNIT   = stringPreferencesKey("progress_unit")
-    // STREAK key is reused for current streak count.
+    /** System.currentTimeMillis() when the timer was started; 0 = stopped. */
+    val TIMER_START_MS      = longPreferencesKey("timer_start_ms")
+    /** Accumulated seconds from previous (completed) timer sessions today. */
+    val TIMER_TOTAL_SECONDS = intPreferencesKey("timer_total_seconds")
 
     // ── MultiHabitWidget ──────────────────────────────────────────────────────
-    /** Comma-separated ordered habit IDs chosen during config (up to 5). */
+    /** Comma-separated list of habit IDs selected for this widget instance. */
     val MULTI_HABIT_IDS  = stringPreferencesKey("multi_habit_ids")
     /**
-     * JSON array of selected habits for today's display — same schema as
-     * CHECKLIST_JSON: [{"id":"..","icon":"..","name":"..","colorL":..,"completed":..,"status":"..","binary":..}]
+     * Multi-habit checklist JSON (same schema as CHECKLIST_JSON) but only for
+     * the configured habits: [{"id":"...","icon":"🏃","name":"Run","colorL":...,"completed":true,...}]
      */
     val MULTI_HABIT_JSON = stringPreferencesKey("multi_habit_json")
 }

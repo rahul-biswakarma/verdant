@@ -8,10 +8,10 @@
     <string name="widget_mini_heatmap_description">Mini heatmap + stats — 8-week grid with streak and completion stats</string>
     <string name="widget_streak_description">Streak tracker — see your top active streaks and all-time best</string>
     <string name="widget_quote_description">Daily motivation — a fresh quote every day to keep you going</string>
-    <string name="widget_quick_toggle_description">Quick toggle — one tap to complete a binary habit right from your home screen</string>
-    <string name="widget_timer_description">Session timer — start and stop a focused session for any duration habit</string>
-    <string name="widget_progress_description">Progress — streak count or value progress with a visual bar for any habit</string>
-    <string name="widget_multi_habit_description">Multi-habit — up to 5 habits with quick-action buttons in one widget</string>
+    <string name="widget_quick_toggle_description">Quick toggle — tap once to mark a binary habit complete</string>
+    <string name="widget_timer_description">Session timer — start and stop a timer to log duration habits</string>
+    <string name="widget_habit_streak_description">Habit streak — current streak and 30-day progress for one habit</string>
+    <string name="widget_multi_habit_description">Multi-habit — quick-action buttons for 3–5 selected habits</string>
     <string name="widget_config_title">Choose a Habit</string>
     <string name="widget_add_button">Add Widget</string>
 </resources>

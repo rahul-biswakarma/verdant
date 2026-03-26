@@ -32,11 +32,10 @@ import org.json.JSONArray
 import java.time.LocalDate
 
 /**
- * Multi-habit widget composable (4×2).
+ * Multi-habit widget UI (4×2).
  *
- * Renders up to 5 habit rows sourced from [WidgetPreferencesKeys.MULTI_HABIT_JSON]
- * (same JSON schema as CHECKLIST_JSON).  Each row's toggle fires
- * [ChecklistToggleReceiver] — the existing toggle/log path.
+ * Shows 3–5 user-selected habits with a toggle button on each row.
+ * Uses the same [ChecklistToggleReceiver] action as the Checklist widget.
  */
 @Composable
 internal fun MultiHabitContent() {
@@ -44,11 +43,11 @@ internal fun MultiHabitContent() {
     val context = LocalContext.current
     val today   = LocalDate.now().toString()
 
-    val multiJson = prefs[WidgetPreferencesKeys.MULTI_HABIT_JSON] ?: "[]"
-    val done      = prefs[WidgetPreferencesKeys.TODAY_DONE]       ?: 0
-    val total     = prefs[WidgetPreferencesKeys.TODAY_TOTAL]      ?: 0
+    val done  = prefs[WidgetPreferencesKeys.TODAY_DONE]  ?: 0
+    val total = prefs[WidgetPreferencesKeys.TODAY_TOTAL] ?: 0
+    val json  = prefs[WidgetPreferencesKeys.MULTI_HABIT_JSON] ?: "[]"
 
-    val items = parseChecklistJson(multiJson)  // reuse same data model + parser
+    val items = parseChecklistJson(json)  // reuses ChecklistItem + parser
 
     Box(
         modifier = GlanceModifier
@@ -60,7 +59,7 @@ internal fun MultiHabitContent() {
     ) {
         Column(modifier = GlanceModifier.fillMaxSize()) {
 
-            // ── Header ────────────────────────────────────────────────────────
+            // Header
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -68,56 +67,35 @@ internal fun MultiHabitContent() {
                 Text(
                     text = "My Habits",
                     style = TextStyle(
-                        color      = ColorProvider(Color.White),
-                        fontSize   = 11.sp,
+                        color = ColorProvider(Color.White),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                     modifier = GlanceModifier.defaultWeight(),
                 )
-                // Completion pill
-                Box(
-                    modifier = GlanceModifier
-                        .background(
-                            if (done == total && total > 0) Color(0xFF2D4A30) else Color(0xFF2D3339)
-                        )
-                        .cornerRadius(8.dp)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text  = "$done / $total",
-                        style = TextStyle(
-                            color      = ColorProvider(
-                                if (done == total && total > 0) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
-                            ),
-                            fontSize   = 9.sp,
-                            fontWeight = FontWeight.Bold,
+                Text(
+                    text = "$done/$total",
+                    style = TextStyle(
+                        color = ColorProvider(
+                            if (done == total && total > 0) Color(0xFF4CAF50) else Color(0xFF9E9E9E)
                         ),
-                    )
-                }
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
             }
 
             Spacer(GlanceModifier.height(6.dp))
 
-            // ── Divider ───────────────────────────────────────────────────────
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Color(0xFF2D3339)),
-            ) {}
-
-            Spacer(GlanceModifier.height(4.dp))
-
-            // ── Habit rows ────────────────────────────────────────────────────
             if (items.isEmpty()) {
                 Box(
                     modifier = GlanceModifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text  = "No habits selected",
+                        text = "No habits configured",
                         style = TextStyle(
-                            color    = ColorProvider(Color(0xFF9E9E9E)),
+                            color = ColorProvider(Color(0xFF9E9E9E)),
                             fontSize = 10.sp,
                         ),
                     )
@@ -144,45 +122,40 @@ private fun MultiHabitRow(
     val completed  = item.completed
 
     Row(
-        modifier = GlanceModifier.fillMaxWidth(),
+        modifier = GlanceModifier
+            .fillMaxWidth()
+            .height(28.dp)
+            .background(
+                if (completed) habitColor.copy(alpha = 0.15f) else Color(0xFF242830)
+            )
+            .cornerRadius(14.dp)
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Colored dot accent
-        Box(
-            modifier = GlanceModifier
-                .size(6.dp)
-                .background(habitColor)
-                .cornerRadius(3.dp),
-        ) {}
-
-        Spacer(GlanceModifier.width(5.dp))
-
-        // Icon
-        Text(text = item.icon, style = TextStyle(fontSize = 12.sp))
-
-        Spacer(GlanceModifier.width(5.dp))
-
-        // Name (with strike-through style via color when done)
         Text(
-            text     = item.name,
-            style    = TextStyle(
-                color    = ColorProvider(if (completed) Color(0xFF6B7280) else Color.White),
-                fontSize = 10.sp,
+            text = item.icon,
+            style = TextStyle(fontSize = 12.sp),
+        )
+
+        Spacer(GlanceModifier.width(6.dp))
+
+        Text(
+            text = item.name,
+            style = TextStyle(
+                color = ColorProvider(
+                    if (completed) Color(0xFF9E9E9E) else Color.White
+                ),
+                fontSize = 11.sp,
             ),
             maxLines = 1,
             modifier = GlanceModifier.defaultWeight(),
         )
 
-        Spacer(GlanceModifier.width(6.dp))
-
         // Toggle button
         Box(
             modifier = GlanceModifier
-                .height(22.dp)
-                .width(52.dp)
-                .background(
-                    if (completed) habitColor.copy(alpha = 0.2f) else habitColor
-                )
+                .size(22.dp)
+                .background(if (completed) habitColor else Color(0xFF2D3339))
                 .cornerRadius(11.dp)
                 .clickable(
                     actionSendBroadcast(
@@ -196,12 +169,10 @@ private fun MultiHabitRow(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text  = if (completed) "✓ Done" else "Tap",
+                text = if (completed) "✓" else "+",
                 style = TextStyle(
-                    color      = ColorProvider(
-                        if (completed) habitColor else Color.White
-                    ),
-                    fontSize   = 8.sp,
+                    color = ColorProvider(Color.White),
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                 ),
             )
