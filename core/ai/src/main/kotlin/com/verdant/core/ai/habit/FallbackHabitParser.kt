@@ -111,9 +111,7 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
         private const val WEEKDAYS = 0x1F   // 31
         private const val ALL_DAYS = 0x7F   // 127
 
-        val RULES = listOf(
-            // ── Health ──────────────────────────────────────────────────────
-            Rule(
+        val RULES = listOf(            Rule(
                 keywords = listOf("vitamin", "supplement", "pill"),
                 name = "Take vitamins", icon = "💊", color = 0xFF5A7A60L,
                 label = "Health", trackingType = TrackingType.BINARY,
@@ -122,13 +120,13 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
             Rule(
                 keywords = listOf("water", "hydrat", "drink"),
                 name = "Drink water", icon = "💧", color = 0xFF2196F3L,
-                label = "Health", trackingType = TrackingType.QUANTITATIVE,
+                label = "Health", trackingType = TrackingType.NUMERIC,
                 unit = "glasses", targetValue = 8.0, reminderTime = "09:00",
             ),
             Rule(
                 keywords = listOf("meditat", "mindful", "breathe", "breathing"),
                 name = "Meditate", icon = "🧘", color = 0xFF9C27B0L,
-                label = "Health", trackingType = TrackingType.DURATION,
+                label = "Health", trackingType = TrackingType.NUMERIC,
                 unit = "min", targetValue = 10.0, reminderTime = "07:00",
             ),
             Rule(
@@ -142,57 +140,51 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
                 name = "No junk food", icon = "🥗", color = 0xFF4CAF50L,
                 label = "Health", trackingType = TrackingType.BINARY,
                 unit = null, targetValue = null, reminderTime = null,
-            ),
-            // ── Fitness ─────────────────────────────────────────────────────
-            Rule(
+            ),            Rule(
                 keywords = listOf("cycl", "bike", "bicycle"),
                 name = "Cycling", icon = "🚴", color = 0xFFFF9800L,
-                label = "Fitness", trackingType = TrackingType.DURATION,
+                label = "Fitness", trackingType = TrackingType.NUMERIC,
                 unit = "min", targetValue = 30.0, reminderTime = "07:00",
             ),
             Rule(
                 keywords = listOf("run", "jog", "jogging", "sprint"),
                 name = "Running", icon = "🏃", color = 0xFFFF5722L,
-                label = "Fitness", trackingType = TrackingType.QUANTITATIVE,
+                label = "Fitness", trackingType = TrackingType.NUMERIC,
                 unit = "km", targetValue = 5.0, reminderTime = "06:30",
             ),
             Rule(
                 keywords = listOf("walk", "step", "10k", "10,000"),
                 name = "Walk 10k steps", icon = "👟", color = 0xFF8BC34AL,
-                label = "Fitness", trackingType = TrackingType.QUANTITATIVE,
+                label = "Fitness", trackingType = TrackingType.NUMERIC,
                 unit = "steps", targetValue = 10000.0, reminderTime = null,
             ),
             Rule(
                 keywords = listOf("gym", "workout", "lift", "weight", "strength"),
                 name = "Gym workout", icon = "🏋️", color = 0xFFE91E63L,
-                label = "Fitness", trackingType = TrackingType.DURATION,
+                label = "Fitness", trackingType = TrackingType.NUMERIC,
                 unit = "min", targetValue = 60.0, reminderTime = "07:00",
-            ),
-            // ── Learning ────────────────────────────────────────────────────
-            Rule(
+            ),            Rule(
                 keywords = listOf("read", "book", "page"),
                 name = "Read books", icon = "📚", color = 0xFF00BCD4L,
-                label = "Learning", trackingType = TrackingType.QUANTITATIVE,
+                label = "Learning", trackingType = TrackingType.NUMERIC,
                 unit = "pages", targetValue = 20.0, reminderTime = "21:00",
             ),
             Rule(
                 keywords = listOf("cod", "program", "develop", "algorithm"),
                 name = "Practice coding", icon = "💻", color = 0xFF607D8BL,
-                label = "Learning", trackingType = TrackingType.DURATION,
+                label = "Learning", trackingType = TrackingType.NUMERIC,
                 unit = "min", targetValue = 30.0, reminderTime = "20:00",
             ),
             Rule(
                 keywords = listOf("language", "vocab", "spanish", "french", "german", "duolingo", "japanese", "chinese"),
                 name = "Learn language", icon = "🗣️", color = 0xFF009688L,
-                label = "Learning", trackingType = TrackingType.DURATION,
+                label = "Learning", trackingType = TrackingType.NUMERIC,
                 unit = "min", targetValue = 15.0, reminderTime = "19:00",
-            ),
-            // ── Finance ─────────────────────────────────────────────────────
-            Rule(
+            ),            Rule(
                 keywords = listOf("spend", "budget", "expense", "track money"),
                 name = "Track spending", icon = "💰", color = 0xFFFFEB3BL,
-                label = "Finance", trackingType = TrackingType.FINANCIAL,
-                unit = null, targetValue = null, reminderTime = "20:00",
+                label = "Finance", trackingType = TrackingType.NUMERIC,
+                unit = "₹", targetValue = null, reminderTime = "20:00",
             ),
             Rule(
                 keywords = listOf("impulse", "no buy", "shopping", "purchase"),
@@ -203,11 +195,9 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
             Rule(
                 keywords = listOf("save", "saving", "invest"),
                 name = "Save money", icon = "🏦", color = 0xFF4CAF50L,
-                label = "Finance", trackingType = TrackingType.FINANCIAL,
-                unit = null, targetValue = null, reminderTime = "09:00",
-            ),
-            // ── Lifestyle ───────────────────────────────────────────────────
-            Rule(
+                label = "Finance", trackingType = TrackingType.NUMERIC,
+                unit = "₹", targetValue = null, reminderTime = "09:00",
+            ),            Rule(
                 keywords = listOf("journal", "diary", "write", "writing"),
                 name = "Journal", icon = "📓", color = 0xFF795548L,
                 label = "Lifestyle", trackingType = TrackingType.BINARY,

@@ -53,8 +53,6 @@ fun ReportsTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
-        // ── Generate buttons ──────────────────────────────────────────────────
         SectionCard(title = "Generate Reports") {
             Text(
                 text  = "AI-powered summaries of your habit performance, " +
@@ -102,8 +100,6 @@ fun ReportsTab(
                 }
             }
         }
-
-        // ── Error banner ──────────────────────────────────────────────────────
         if (state is ReportsState.Error) {
             SectionCard(title = "Error") {
                 Text(
@@ -113,8 +109,6 @@ fun ReportsTab(
                 )
             }
         }
-
-        // ── Past reports ──────────────────────────────────────────────────────
         when (state) {
             is ReportsState.Idle -> {
                 Column(

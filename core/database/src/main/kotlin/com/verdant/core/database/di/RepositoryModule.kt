@@ -6,6 +6,8 @@ import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.repository.HabitRepositoryImpl
 import com.verdant.core.database.repository.LabelRepository
 import com.verdant.core.database.repository.LabelRepositoryImpl
+import com.verdant.core.database.repository.TransactionRepository
+import com.verdant.core.database.repository.TransactionRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -27,4 +29,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindHabitEntryRepository(impl: HabitEntryRepositoryImpl): HabitEntryRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTransactionRepository(impl: TransactionRepositoryImpl): TransactionRepository
 }

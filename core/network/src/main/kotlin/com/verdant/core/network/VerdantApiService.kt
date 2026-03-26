@@ -39,9 +39,6 @@ interface VerdantApiService {
         @Body request: ReportRequest,
     ): Response<ReportResponse>
 }
-
-// ── Request models ────────────────────────────────────────────────────────────
-
 @Serializable
 data class InsightRequest(
     /** One of: daily_motivation | pattern | correlation | weekly_summary | monthly_summary | suggestion | coach_reply */
@@ -59,9 +56,6 @@ data class ReportRequest(
     /** Compact habit data payload produced by HabitDataAggregator */
     @SerialName("habitData") val habitData: JsonObject,
 )
-
-// ── Response models ───────────────────────────────────────────────────────────
-
 @Serializable
 data class InsightResponse(
     /** The generated AI text */
@@ -79,9 +73,6 @@ data class ReportResponse(
     val suggestions: List<String> = emptyList(),
     val highlights: List<String> = emptyList(),
 )
-
-// ── Error body ────────────────────────────────────────────────────────────────
-
 /** Shape of the JSON body returned alongside 4xx/5xx HTTP errors. */
 @Serializable
 data class ApiErrorBody(

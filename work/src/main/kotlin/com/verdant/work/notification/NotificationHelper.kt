@@ -16,7 +16,6 @@ import com.verdant.work.receiver.NotificationActionReceiver
  */
 object NotificationHelper {
 
-    // ── Public builders ───────────────────────────────────────────────────────
 
     fun postDailyMotivation(context: Context, message: String) {
         val notification = base(context, NotificationChannels.CHANNEL_MOTIVATION)
@@ -106,7 +105,28 @@ object NotificationHelper {
         notify(context, NotificationChannels.milestoneId(habitId), notification)
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+
+    fun postFinanceAlert(context: Context, title: String, message: String) {
+        val notification = base(context, NotificationChannels.CHANNEL_FINANCE_ALERTS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setAutoCancel(true)
+            .build()
+        notify(context, NotificationChannels.NOTIF_FINANCE_ALERT, notification)
+    }
+
+    fun postFinanceReport(context: Context, summary: String) {
+        val notification = base(context, NotificationChannels.CHANNEL_FINANCE_REPORTS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Monthly spending report")
+            .setContentText(summary)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(summary))
+            .setAutoCancel(true)
+            .build()
+        notify(context, NotificationChannels.NOTIF_FINANCE_REPORT, notification)
+    }
 
     private fun base(context: Context, channelId: String): NotificationCompat.Builder =
         NotificationCompat.Builder(context, channelId)

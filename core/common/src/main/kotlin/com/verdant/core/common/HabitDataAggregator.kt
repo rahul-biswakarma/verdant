@@ -12,7 +12,6 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// ── Output data classes (all @Serializable for JSON transport to LLM) ────────
 
 /**
  * Compact aggregated summary of a user's habit data, sized to stay under the
@@ -42,7 +41,7 @@ data class HabitSummaryItem(
     /** 0–1 completion rate over the aggregation period */
     val completionRate: Float,
     val currentStreak: Int,
-    /** Mean value for QUANTITATIVE / DURATION / FINANCIAL habits; null for BINARY */
+    /** Mean value for NUMERIC habits; null for BINARY */
     val avgValue: Double? = null,
     val unit: String? = null,
 )
@@ -61,7 +60,6 @@ data class DailyCompletion(
     val completionRate: Float,
 )
 
-// ── Aggregator ────────────────────────────────────────────────────────────────
 
 /**
  * Converts raw Room data into [AggregatedHabitData] compact enough to send
@@ -119,7 +117,6 @@ class HabitDataAggregator @Inject constructor() {
         includeWeeklyBreakdown = true,
     )
 
-    // ── Core aggregation ──────────────────────────────────────────────────────
 
     private fun aggregate(
         habits: List<Habit>,
@@ -136,7 +133,7 @@ class HabitDataAggregator @Inject constructor() {
             .filter { it.date in periodStart..today }
             .groupBy { it.habitId }
 
-        // ── Per-habit summaries ───────────────────────────────────────────
+
         val summaries = habits.map { habit ->
             val habitEntries = entriesByHabit[habit.id] ?: emptyList()
             val scheduled = scheduledDaysInPeriod(habit, periodStart, today)
@@ -160,7 +157,7 @@ class HabitDataAggregator @Inject constructor() {
             )
         }
 
-        // ── Overall completion rates ──────────────────────────────────────
+
         val overallToday = overallCompletionForDay(habits, entries, today)
         val overallWeek = overallCompletionForRange(
             habits, entries,
@@ -173,7 +170,7 @@ class HabitDataAggregator @Inject constructor() {
             end = today,
         )
 
-        // ── Top streaks (max 5, only active) ─────────────────────────────
+
         val topStreaks = habits
             .mapNotNull { h ->
                 val streak = streaks[h.id] ?: 0
@@ -182,7 +179,7 @@ class HabitDataAggregator @Inject constructor() {
             .sortedByDescending { it.currentStreak }
             .take(5)
 
-        // ── Daily breakdown (for reports) ─────────────────────────────────
+
         val weeklyBreakdown = if (includeWeeklyBreakdown) {
             (0 until periodDays).map { offset ->
                 val date = periodStart.plusDays(offset.toLong())
@@ -204,7 +201,6 @@ class HabitDataAggregator @Inject constructor() {
         )
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     /** Returns the number of days in the range start..end that [habit] is scheduled for. */
     private fun scheduledDaysInPeriod(habit: Habit, start: LocalDate, end: LocalDate): Int {

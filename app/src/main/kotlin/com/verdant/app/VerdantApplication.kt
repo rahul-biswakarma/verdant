@@ -12,6 +12,8 @@ import androidx.work.WorkManager
 import com.verdant.work.notification.NotificationChannels
 import com.verdant.work.worker.DailyMotivationWorker
 import com.verdant.work.worker.StreakAlertWorker
+import com.verdant.work.worker.SmsProcessingWorker
+import com.verdant.work.worker.SpendingAlertWorker
 import com.verdant.work.worker.WeeklySummaryWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.time.DayOfWeek
@@ -34,16 +36,14 @@ class VerdantApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
 
-        // Create all notification channels (idempotent — safe to call on every launch)
         NotificationChannels.createAll(this)
-
-        // Schedule background workers
         scheduleDailyMotivation()
         scheduleStreakAlerts()
         scheduleWeeklySummary()
+        scheduleSmsProcessing()
+        scheduleSpendingAlerts()
     }
 
-    // ── Worker scheduling ─────────────────────────────────────────────────────
 
     /**
      * Enqueues a daily PeriodicWorkRequest that runs once every 24 h.
@@ -126,7 +126,45 @@ class VerdantApplication : Application(), Configuration.Provider {
         )
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Reads new bank SMS every 2 hours and processes them into transactions.
+     */
+    private fun scheduleSmsProcessing() {
+        val request = PeriodicWorkRequestBuilder<SmsProcessingWorker>(
+            repeatInterval = 2,
+            repeatIntervalTimeUnit = TimeUnit.HOURS,
+        )
+            .setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.MINUTES)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            SmsProcessingWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
+
+    /**
+     * Checks for spending anomalies every 6 hours.
+     */
+    private fun scheduleSpendingAlerts() {
+        val request = PeriodicWorkRequestBuilder<SpendingAlertWorker>(
+            repeatInterval = 6,
+            repeatIntervalTimeUnit = TimeUnit.HOURS,
+        )
+            .setConstraints(
+                Constraints.Builder().setRequiresBatteryNotLow(true).build()
+            )
+            .setBackoffCriteria(BackoffPolicy.LINEAR, 30, TimeUnit.MINUTES)
+            .build()
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            SpendingAlertWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
 
     /**
      * Returns milliseconds until the next occurrence of [hour]:[minute].

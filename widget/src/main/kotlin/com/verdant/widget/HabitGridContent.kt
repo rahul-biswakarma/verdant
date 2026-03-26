@@ -31,135 +31,127 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import java.time.LocalDate
 
+private val GridBg = Color(0xFF1C1C1E)
+private val GridMuted = Color(0xFF8E8E93)
+
 /**
- * Root Glance composable for the habit contribution grid widget.
+ * Habit contribution grid widget (2x2 -> 4x3).
  *
- * Grid layout: 7 rows (Mon=0 … Sun=6) × [weeks] columns, oldest at the left.
- * Cell colour encodes completion intensity via [intensityColor].
+ * Shows bold Total/Best stats header, then a GitHub-style contribution grid
+ * with color-coded intensity cells.
  */
 @androidx.compose.runtime.Composable
 internal fun HabitGridContent() {
     val prefs = currentState<Preferences>()
     val size = LocalSize.current
     val context = LocalContext.current
-
-    // ── State ─────────────────────────────────────────────────────────────────
     val habitId      = prefs[WidgetPreferencesKeys.HABIT_ID]      ?: return
     val habitName    = prefs[WidgetPreferencesKeys.HABIT_NAME]    ?: "Habit"
-    val habitIcon    = prefs[WidgetPreferencesKeys.HABIT_ICON]    ?: "🌱"
+    val habitIcon    = prefs[WidgetPreferencesKeys.HABIT_ICON]    ?: "\uD83C\uDF31"
     val habitColorL  = prefs[WidgetPreferencesKeys.HABIT_COLOR]   ?: 0xFF4CAF50L
     val streak       = prefs[WidgetPreferencesKeys.STREAK]        ?: 0
     val gridJson     = prefs[WidgetPreferencesKeys.GRID_JSON]     ?: "[]"
     val weekDone     = prefs[WidgetPreferencesKeys.WEEK_DONE]     ?: 0
     val weekTotal    = prefs[WidgetPreferencesKeys.WEEK_TOTAL]    ?: 7
     val isBinary     = prefs[WidgetPreferencesKeys.TRACKING_TYPE] == "BINARY"
+    val totalCompletions = prefs[WidgetPreferencesKeys.TOTAL_COMPLETIONS] ?: 0
+    val bestStreak       = prefs[WidgetPreferencesKeys.BEST_EVER_STREAK_SINGLE] ?: streak
 
     val habitColor = Color(habitColorL.toInt())
     val gridCells  = parseGridJson(gridJson)
     val today      = LocalDate.now()
-
-    // ── Responsive sizing ─────────────────────────────────────────────────────
     val weeks = when {
-        size.width < 200.dp  -> 4
+        size.width < 200.dp  -> 6
         size.height < 150.dp -> 12
-        else                 -> 20
+        else                 -> 16
     }
     val cellDp = when (weeks) {
-        4    -> 18.dp
-        12   -> 13.dp
-        else -> 10.dp
+        6    -> 14.dp
+        12   -> 11.dp
+        else -> 9.dp
     }
+    val gapDp = 2.dp
 
-    // Align gridStart to the Monday of the earliest displayed week
-    val todayDow   = today.dayOfWeek.value                        // 1=Mon..7=Sun
+    val todayDow   = today.dayOfWeek.value
     val thisMonday = today.minusDays((todayDow - 1).toLong())
     val gridStart  = thisMonday.minusWeeks((weeks - 1).toLong())
 
-    // ── Root container ────────────────────────────────────────────────────────
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Color(0xFF1A1D21))
-            .padding(8.dp)
-            .cornerRadius(16.dp),
+            .background(GridBg)
+            .cornerRadius(20.dp),
         contentAlignment = Alignment.TopStart,
     ) {
-        Column(modifier = GlanceModifier.fillMaxSize()) {
-
-            // ── Header ───────────────────────────────────────────────────────
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            // ── Header: Bold stats ──
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = Alignment.Bottom,
             ) {
-                // Icon + name → tapping opens Habit Detail in the app
+                // Total completions
                 Text(
-                    text = "$habitIcon $habitName",
+                    text = "$totalCompletions",
                     style = TextStyle(
                         color = ColorProvider(Color.White),
-                        fontSize = 11.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                     ),
-                    modifier = GlanceModifier
-                        .defaultWeight()
-                        .clickable(
-                            actionStartActivity(
-                                Intent(context, Class.forName("com.verdant.app.MainActivity"))
-                                    .apply {
-                                        putExtra("habitId", habitId)
-                                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                                    }
-                            )
-                        ),
-                    maxLines = 1,
+                )
+                Spacer(GlanceModifier.width(3.dp))
+                Text(
+                    text = "Total",
+                    style = TextStyle(
+                        color = ColorProvider(GridMuted),
+                        fontSize = 11.sp,
+                    ),
                 )
 
-                // Streak flame
-                if (streak > 0) {
-                    Spacer(GlanceModifier.width(4.dp))
-                    Text(
-                        text = "🔥$streak",
-                        style = TextStyle(
-                            color = ColorProvider(Color(0xFFFFB74D)),
-                            fontSize = 10.sp,
-                        ),
-                    )
-                }
+                Spacer(GlanceModifier.width(12.dp))
 
-                // Quick-check button (binary only) → logs today via QuickCheckReceiver
-                if (isBinary) {
-                    Spacer(GlanceModifier.width(4.dp))
-                    Box(
-                        modifier = GlanceModifier
-                            .size(22.dp)
-                            .background(habitColor.copy(alpha = 0.25f))
-                            .cornerRadius(11.dp)
-                            .clickable(
-                                actionSendBroadcast(
-                                    Intent(QuickCheckReceiver.ACTION_QUICK_CHECK).apply {
-                                        setPackage(context.packageName)
-                                        putExtra(QuickCheckReceiver.EXTRA_HABIT_ID, habitId)
-                                        putExtra(QuickCheckReceiver.EXTRA_DATE, today.toString())
-                                    }
-                                )
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "✓",
-                            style = TextStyle(
-                                color = ColorProvider(habitColor),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                            ),
+                // Best streak
+                Text(
+                    text = "$bestStreak",
+                    style = TextStyle(
+                        color = ColorProvider(Color.White),
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+                Spacer(GlanceModifier.width(3.dp))
+                Text(
+                    text = "Best",
+                    style = TextStyle(
+                        color = ColorProvider(GridMuted),
+                        fontSize = 11.sp,
+                    ),
+                )
+
+                Spacer(GlanceModifier.defaultWeight())
+
+                // Habit icon + name
+                Text(
+                    text = "$habitIcon",
+                    style = TextStyle(fontSize = 14.sp),
+                    modifier = GlanceModifier.clickable(
+                        actionStartActivity(
+                            Intent(context, Class.forName("com.verdant.app.MainActivity"))
+                                .apply {
+                                    putExtra("habitId", habitId)
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                                }
                         )
-                    }
-                }
+                    ),
+                )
             }
 
-            Spacer(GlanceModifier.height(5.dp))
+            Spacer(GlanceModifier.height(8.dp))
 
-            // ── Contribution grid ─────────────────────────────────────────────
-            // 7 rows (dayIndex 0=Mon … 6=Sun) × weeks columns (oldest → newest)
+            // ── Contribution grid: 7 rows x N cols ──
             Column {
                 for (dayIndex in 0 until 7) {
                     Row {
@@ -168,11 +160,9 @@ internal fun HabitGridContent() {
                             val isFuture = date.isAfter(today)
                             val isToday  = date == today
 
-                            // Determine cell colour
                             val cellColor: Color = when {
                                 isFuture -> Color.Transparent
                                 isToday  -> {
-                                    // Today always shows at least a faint tint as an indicator
                                     val raw = gridCells[date.toString()] ?: 0f
                                     intensityColor(habitColor, raw.coerceAtLeast(0.18f))
                                 }
@@ -183,9 +173,8 @@ internal fun HabitGridContent() {
                                 .size(cellDp)
                                 .padding(1.dp)
                                 .background(cellColor)
-                                .cornerRadius(2.dp)
+                                .cornerRadius(3.dp)
 
-                            // Past / today cells are tappable → deep link to Day Detail
                             val clickableMod = if (!isFuture) {
                                 cellMod.clickable(
                                     actionStartActivity(
@@ -206,16 +195,63 @@ internal fun HabitGridContent() {
                 }
             }
 
-            Spacer(GlanceModifier.height(5.dp))
+            Spacer(GlanceModifier.height(6.dp))
 
-            // ── Footer ───────────────────────────────────────────────────────
-            Text(
-                text = "$weekDone / $weekTotal this week",
-                style = TextStyle(
-                    color = ColorProvider(Color(0xFF9E9E9E)),
-                    fontSize = 9.sp,
-                ),
-            )
+            // ── Footer: streak + week progress ──
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (streak > 0) {
+                    Text(
+                        text = "\uD83D\uDD25 $streak",
+                        style = TextStyle(
+                            color = ColorProvider(Color(0xFFFF9F0A)),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        ),
+                    )
+                    Spacer(GlanceModifier.width(8.dp))
+                }
+
+                Text(
+                    text = "$weekDone/$weekTotal this week",
+                    style = TextStyle(
+                        color = ColorProvider(GridMuted),
+                        fontSize = 9.sp,
+                    ),
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+
+                // Quick-check button (binary only)
+                if (isBinary) {
+                    Box(
+                        modifier = GlanceModifier
+                            .size(22.dp)
+                            .background(habitColor.copy(alpha = 0.2f))
+                            .cornerRadius(11.dp)
+                            .clickable(
+                                actionSendBroadcast(
+                                    Intent(QuickCheckReceiver.ACTION_QUICK_CHECK).apply {
+                                        setPackage(context.packageName)
+                                        putExtra(QuickCheckReceiver.EXTRA_HABIT_ID, habitId)
+                                        putExtra(QuickCheckReceiver.EXTRA_DATE, today.toString())
+                                    }
+                                )
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "\u2713",
+                            style = TextStyle(
+                                color = ColorProvider(habitColor),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
         }
     }
 }

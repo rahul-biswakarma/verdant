@@ -1,9 +1,6 @@
 package com.verdant.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
-
-// ── Light palette ────────────────────────────────────────────────────────────
-
 val WarmCream         = Color(0xFFF5F0EB)   // background
 val WarmWhite         = Color(0xFFFAF7F3)   // surface
 val WarmGray          = Color(0xFFE8E2DB)   // surface variant
@@ -16,9 +13,6 @@ val LightPeach        = Color(0xFFFDDDD0)   // tertiary container
 val DeepCharcoal      = Color(0xFF1A1917)   // on-background / on-surface
 val WarmRed           = Color(0xFFC4453A)   // error
 val LightWarmRed      = Color(0xFFFCDAD7)   // error container
-
-// ── Dark palette ─────────────────────────────────────────────────────────────
-
 val DeepWarmBlack     = Color(0xFF141311)   // background
 val DarkWarmBrown     = Color(0xFF1E1C1A)   // surface
 val DarkSurfaceVariant = Color(0xFF2A2826)  // surface variant
@@ -29,9 +23,6 @@ val LightOrange       = Color(0xFFF09070)   // tertiary
 val DarkPeach         = Color(0xFF5C3328)   // tertiary container
 val WarmOffWhite      = Color(0xFFE8E2DB)   // on-background / on-surface
 val DarkOnError       = Color(0xFF3B1211)   // on-error
-
-// ── Contribution grid — warm sage scale ──────────────────────────────────────
-
 val GridEmptyLight  = Color(0xFFE8E2DB)
 val GridLevel1Light = Color(0xFFC4D8C4)
 val GridLevel2Light = Color(0xFF8FB996)

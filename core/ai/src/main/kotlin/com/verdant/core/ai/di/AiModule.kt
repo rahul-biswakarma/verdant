@@ -2,9 +2,8 @@ package com.verdant.core.ai.di
 
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.ai.VerdantAIRouter
-import com.verdant.core.ai.habit.FallbackHabitParser
-import com.verdant.core.ai.habit.GeminiNanoHabitParser
 import com.verdant.core.ai.habit.HabitParser
+import com.verdant.core.ai.habit.MediaPipeHabitParser
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,11 +20,11 @@ abstract class AiModule {
      */
     @Binds
     @Singleton
-    abstract fun bindHabitParser(impl: GeminiNanoHabitParser): HabitParser
+    abstract fun bindHabitParser(impl: MediaPipeHabitParser): HabitParser
 
     /**
      * Binds the main [VerdantAI] interface to [VerdantAIRouter], which
-     * automatically selects between on-device (Gemini Nano), template fallback,
+     * automatically selects between on-device (MediaPipe), template fallback,
      * and Claude cloud backends based on network availability and operation type.
      */
     @Binds

@@ -58,8 +58,6 @@ fun TrendsTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
-        // ── Series selector chips ─────────────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text  = "Show",
@@ -80,8 +78,6 @@ fun TrendsTab(
                 }
             }
         }
-
-        // ── Line chart ────────────────────────────────────────────────────────
         SectionCard(title = "12-Week Completion Rate") {
             CompletionLineChart(
                 series     = selectedSeries,
@@ -91,8 +87,6 @@ fun TrendsTab(
                     .height(180.dp),
             )
         }
-
-        // ── Summary stats for selected series ────────────────────────────────
         val values = selectedSeries.values
         val avg    = if (values.isEmpty()) 0f else values.average().toFloat()
         val max    = values.maxOrNull() ?: 0f

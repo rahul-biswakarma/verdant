@@ -49,9 +49,6 @@ fun StreakBadge(
         )
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 @Preview(name = "StreakBadge – light", showBackground = true)
 @Composable
 private fun StreakBadgeLightPreview() {

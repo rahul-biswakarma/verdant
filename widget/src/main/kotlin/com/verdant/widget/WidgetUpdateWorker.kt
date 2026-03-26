@@ -68,9 +68,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
 
         return Result.success()
     }
-
-    // ── Pre-action: log / toggle before data refresh ─────────────────────────
-
     private suspend fun handlePreActions() {
         val quickHabitId = inputData.getString(KEY_QUICK_LOG_HABIT_ID)
         if (quickHabitId != null) {
@@ -87,9 +84,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             logEntryUseCase.logBinary(toggleHabitId, date, completed = !(existing?.completed ?: false))
         }
     }
-
-    // ── HabitGridWidget ───────────────────────────────────────────────────────
-
     private suspend fun updateHabitGridWidgets(manager: GlanceAppWidgetManager, today: LocalDate) {
         val ids = manager.getGlanceIds(HabitGridWidget::class.java)
         for (glanceId in ids) {
@@ -115,6 +109,8 @@ class WidgetUpdateWorker @AssistedInject constructor(
                 val weekTotal = todayDow
                 val weekDone  = entries.count { it.date >= weekStart && it.completed }
                 val streak    = calculateStreakUseCase.currentStreak(habitId)
+                val bestSingle = calculateStreakUseCase.longestStreak(habitId)
+                val totalComp  = entries.count { it.completed }
 
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
                     p.toMutablePreferences().apply {
@@ -126,15 +122,14 @@ class WidgetUpdateWorker @AssistedInject constructor(
                         this[WidgetPreferencesKeys.GRID_JSON]     = buildGridJson(gridCells)
                         this[WidgetPreferencesKeys.WEEK_DONE]     = weekDone
                         this[WidgetPreferencesKeys.WEEK_TOTAL]    = weekTotal
+                        this[WidgetPreferencesKeys.TOTAL_COMPLETIONS]      = totalComp
+                        this[WidgetPreferencesKeys.BEST_EVER_STREAK_SINGLE] = bestSingle
                     }
                 }
                 HabitGridWidget().update(context, glanceId)
             }
         }
     }
-
-    // ── ChecklistWidget ───────────────────────────────────────────────────────
-
     private suspend fun updateChecklistWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -179,9 +174,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
-
-    // ── SummaryWidget ─────────────────────────────────────────────────────────
-
     private suspend fun updateSummaryWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -215,9 +207,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
-
-    // ── BarChartWidget ────────────────────────────────────────────────────────
-
     private suspend fun updateBarChartWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -260,9 +249,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
-
-    // ── RadialRingWidget ──────────────────────────────────────────────────────
-
     private suspend fun updateRadialRingWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -300,9 +286,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
-
-    // ── MiniHeatmapWidget ─────────────────────────────────────────────────────
-
     private suspend fun updateMiniHeatmapWidgets(
         manager: GlanceAppWidgetManager,
         today: LocalDate,
@@ -356,9 +339,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
-
-    // ── StreakWidget ──────────────────────────────────────────────────────────
-
     private suspend fun updateStreakWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -388,22 +368,73 @@ class WidgetUpdateWorker @AssistedInject constructor(
             })
         }
 
+        // Build weekly completion days (Mon–Sun) for streak widget
+        val today = LocalDate.now()
+        val todayDow = today.dayOfWeek.value
+        val weekStart = today.minusDays((todayDow - 1).toLong())
+        val weekEntries = entryRepository.observeAllEntries(weekStart, today).first()
+        val entriesByDate = weekEntries.groupBy { it.date }
+
+        val weekDaysJson = JSONArray()
+        val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+        for (dayIdx in 0 until 7) {
+            val date = weekStart.plusDays(dayIdx.toLong())
+            val isFuture = date.isAfter(today)
+            val isToday = date == today
+            val dayBit = 1 shl dayIdx
+            val scheduled = allHabits.filter { it.scheduleDays and dayBit != 0 }
+            val dayEntries = entriesByDate[date] ?: emptyList()
+            val doneCount = dayEntries.count { it.completed }
+            val totalCount = scheduled.size
+            val allDone = totalCount > 0 && doneCount >= totalCount
+            val partial = totalCount > 0 && doneCount > 0 && !allDone
+
+            weekDaysJson.put(JSONObject().apply {
+                put("day", dayLabels[dayIdx])
+                put("done", allDone && !isFuture)
+                put("partial", partial && !isFuture)
+                put("future", isFuture)
+                put("today", isToday)
+            })
+        }
+
+        // Total completions and best streak across all habits
+        val totalCompletions = allHabits.sumOf { habit ->
+            runCatching {
+                entryRepository.observeEntries(habit.id, LocalDate.of(2020, 1, 1), today).first()
+                    .count { it.completed }
+            }.getOrDefault(0)
+        }
+
+        // Top habit for measurable display
+        val topHabit = top3.firstOrNull()
+        val topEntry = topHabit?.let { entryRepository.getByHabitAndDate(it.id, today) }
+
         for (glanceId in ids) {
             runCatching {
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
                     p.toMutablePreferences().apply {
-                        this[WidgetPreferencesKeys.TOP_STREAKS_JSON]  = jsonArray.toString()
-                        this[WidgetPreferencesKeys.BEST_EVER_NAME]    = bestName
-                        this[WidgetPreferencesKeys.BEST_EVER_STREAK]  = bestStreak
+                        this[WidgetPreferencesKeys.TOP_STREAKS_JSON]    = jsonArray.toString()
+                        this[WidgetPreferencesKeys.BEST_EVER_NAME]      = bestName
+                        this[WidgetPreferencesKeys.BEST_EVER_STREAK]    = bestStreak
+                        this[WidgetPreferencesKeys.WEEK_DAYS_JSON]      = weekDaysJson.toString()
+                        this[WidgetPreferencesKeys.TOTAL_COMPLETIONS]   = totalCompletions
+                        this[WidgetPreferencesKeys.TODAY_DONE]          = weekEntries.count { it.date == today && it.completed }
+                        this[WidgetPreferencesKeys.TODAY_TOTAL]         = allHabits.count { it.scheduleDays and (1 shl (todayDow - 1)) != 0 }
+                        if (topHabit != null) {
+                            this[WidgetPreferencesKeys.HABIT_NAME]  = topHabit.name
+                            this[WidgetPreferencesKeys.HABIT_ICON]  = topHabit.icon.ifEmpty { "🌱" }
+                            this[WidgetPreferencesKeys.HABIT_COLOR] = topHabit.color
+                            this[WidgetPreferencesKeys.UNIT_LABEL]  = topHabit.unit ?: ""
+                            this[WidgetPreferencesKeys.CURRENT_VALUE] = topEntry?.value?.toFloat() ?: 0f
+                            this[WidgetPreferencesKeys.TARGET_VALUE]  = topHabit.targetValue?.toFloat() ?: 0f
+                        }
                     }
                 }
                 StreakWidget().update(context, glanceId)
             }
         }
     }
-
-    // ── QuoteWidget ───────────────────────────────────────────────────────────
-
     /**
      * Generates the daily quote card for all [QuoteWidget] instances.
      *
@@ -538,9 +569,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
             weekCompletion = weekCompletion,
         )
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
     private fun entryIntensity(entry: HabitEntry?, targetValue: Double?): Float = when {
         entry == null       -> 0f
         entry.skipped       -> 0f
@@ -553,9 +581,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
         }
         else -> 0f
     }
-
-    // ── Constants ─────────────────────────────────────────────────────────────
-
     companion object {
         const val PERIODIC_WORK_NAME     = "verdant_widget_periodic_update"
         const val KEY_QUICK_LOG_HABIT_ID = "quick_log_habit_id"

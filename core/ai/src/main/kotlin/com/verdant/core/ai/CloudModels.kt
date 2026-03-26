@@ -4,8 +4,6 @@ import com.verdant.core.common.AggregatedHabitData
 import com.verdant.core.model.Habit
 import java.time.LocalDate
 
-// ── Exception ─────────────────────────────────────────────────────────────────
-
 /**
  * Thrown by cloud-only [VerdantAI] methods when the feature cannot be completed.
  *
@@ -40,8 +38,6 @@ class AIFeatureUnavailableException(
     }
 }
 
-// ── Weekly report ─────────────────────────────────────────────────────────────
-
 data class WeeklyReportData(
     val weekStart: LocalDate,
     val weekEnd: LocalDate,
@@ -58,8 +54,6 @@ data class WeeklyReport(
     val highlights: List<String>,
 )
 
-// ── Monthly report ────────────────────────────────────────────────────────────
-
 data class MonthlyReportData(
     val monthStart: LocalDate,
     val monthEnd: LocalDate,
@@ -75,8 +69,6 @@ data class MonthlyReport(
     val highlights: List<String>,
 )
 
-// ── Pattern analysis ──────────────────────────────────────────────────────────
-
 data class PatternData(
     val habits: List<Habit>,
     val aggregatedData: AggregatedHabitData,
@@ -91,8 +83,6 @@ data class Pattern(
     /** IDs of habits involved in this pattern */
     val relatedHabitIds: List<String>,
 )
-
-// ── Correlation analysis ──────────────────────────────────────────────────────
 
 data class CorrelationData(
     val habits: List<Habit>,
@@ -110,8 +100,6 @@ data class Correlation(
     val description: String,
 )
 
-// ── Coach chat ────────────────────────────────────────────────────────────────
-
 /**
  * Compact habit summary passed as context to the AI coach.
  *
@@ -123,4 +111,35 @@ data class HabitSummary(
     val recentCompletionRate: Float,
     val activeStreaks: Map<String, Int>,
     val periodDays: Int = 7,
+)
+
+// ── Finance AI data classes ──────────────────────────────────────────────────
+
+data class FinanceHistory(
+    /** Monthly totals for the last 3–6 months: (yearMonth string → totalSpent) */
+    val monthlyTotals: Map<String, Double>,
+    /** Category trends: (categoryName → list of monthly amounts, most recent last) */
+    val categoryTrends: Map<String, List<Double>>,
+    /** Current month's total so far */
+    val currentMonthSpent: Double,
+    /** Number of months of history available */
+    val monthsOfData: Int,
+)
+
+data class SpendingSummaryData(
+    val totalSpent: Double,
+    val totalIncome: Double,
+    val categoryBreakdown: Map<String, Double>,
+    val topMerchants: List<String>,
+    val monthOverMonthChange: Double?,
+    val periodDays: Int = 30,
+)
+
+/**
+ * Cross-product context for the unified dashboard insight.
+ * Combines habit performance with financial summary.
+ */
+data class DashboardContext(
+    val habitSummary: HabitSummary?,
+    val financeSummary: SpendingSummaryData?,
 )

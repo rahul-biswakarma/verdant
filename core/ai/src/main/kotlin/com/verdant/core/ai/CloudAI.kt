@@ -36,9 +36,6 @@ class CloudAI @Inject constructor(
     private val fallbackAI: FallbackAI,
     private val json: Json,
 ) : VerdantAI {
-
-    // ── On-device methods — delegate to FallbackAI (never called by the router) ──
-
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         fallbackAI.parseHabitDescription(text)
 
@@ -53,9 +50,6 @@ class CloudAI @Inject constructor(
 
     override fun isOnDeviceAvailable(): Flow<AIAvailability> =
         flowOf(AIAvailability.UNAVAILABLE)
-
-    // ── Cloud-only methods ────────────────────────────────────────────────────
-
     override suspend fun generateDailyMotivationEnhanced(context: MotivationContext): String {
         // Build a minimal AggregatedHabitData from MotivationContext for daily payloads
         val habitJson = buildMinimalHabitJson(context)
@@ -134,9 +128,6 @@ class CloudAI @Inject constructor(
         val response = callInsight("coach_reply", habitJson, message = lastUserMessage)
         return response.content
     }
-
-    // ── Internal helpers ──────────────────────────────────────────────────────
-
     private suspend fun callInsight(
         type: String,
         habitJson: JsonObject,

@@ -33,8 +33,8 @@ internal fun QuoteContent() {
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Color(0xFF1B5E20))   // fallback bg until bitmap loads
-            .cornerRadius(16.dp),
+            .background(Color(0xFF1C1C1E))
+            .cornerRadius(20.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (bmp != null) {

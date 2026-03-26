@@ -32,9 +32,6 @@ internal object WidgetBitmapUtils {
     }
 
     fun loadBitmap(path: String): Bitmap? = runCatching { BitmapFactory.decodeFile(path) }.getOrNull()
-
-    // ── Summary Ring ──────────────────────────────────────────────────────────
-
     /**
      * Dark card + circular progress track + filled arc + "done/total" centred text.
      *
@@ -48,7 +45,7 @@ internal object WidgetBitmapUtils {
         val canvas = Canvas(bmp)
 
         // Background
-        canvas.drawColor(Color.parseColor("#1A1D21"))
+        canvas.drawColor(Color.parseColor("#1C1C1E"))
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val cx = size / 2f
@@ -97,9 +94,6 @@ internal object WidgetBitmapUtils {
 
         return bmp
     }
-
-    // ── Radial Concentric Rings ───────────────────────────────────────────────
-
     /**
      * Concentric arcs — one ring per habit (outermost first).
      *
@@ -115,7 +109,7 @@ internal object WidgetBitmapUtils {
     ): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        canvas.drawColor(Color.parseColor("#1A1D21"))
+        canvas.drawColor(Color.parseColor("#1C1C1E"))
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         val cx = size / 2f
@@ -163,9 +157,6 @@ internal object WidgetBitmapUtils {
 
         return bmp
     }
-
-    // ── Motivational Quote with Gradient ─────────────────────────────────────
-
     private val GRADIENT_PALETTES = listOf(
         intArrayOf(0xFF1B5E20.toInt(), 0xFF2E7D32.toInt(), 0xFF388E3C.toInt()),  // verdant green
         intArrayOf(0xFF0D47A1.toInt(), 0xFF1565C0.toInt(), 0xFF1976D2.toInt()),  // deep blue

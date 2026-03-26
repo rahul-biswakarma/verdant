@@ -89,7 +89,6 @@ class ReminderScheduler @Inject constructor(
         }
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
      * Returns the next [LocalDateTime] on or after now that satisfies [time]

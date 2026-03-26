@@ -43,8 +43,6 @@ fun OverviewTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
-        // ── Today's snapshot ─────────────────────────────────────────────────
         SectionCard(title = "Today") {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -91,8 +89,6 @@ fun OverviewTab(
                 }
             }
         }
-
-        // ── Last 7 days bar chart ────────────────────────────────────────────
         SectionCard(title = "Last 7 Days") {
             Row(
                 modifier = Modifier
@@ -106,8 +102,6 @@ fun OverviewTab(
                 }
             }
         }
-
-        // ── Top streaks ──────────────────────────────────────────────────────
         if (state.topStreaks.isNotEmpty()) {
             SectionCard(title = "Top Streaks 🔥") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -166,9 +160,6 @@ fun OverviewTab(
         Spacer(Modifier.height(16.dp))
     }
 }
-
-// ── Shared helpers ────────────────────────────────────────────────────────────
-
 @Composable
 fun SectionCard(
     title: String,

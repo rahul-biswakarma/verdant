@@ -123,7 +123,6 @@ class WeeklySummaryWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun buildSummaryText(
         aiSummary: String,

@@ -139,10 +139,7 @@ private fun InsightCard(
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-
-            // ── Header row ────────────────────────────────────────────────────
-            Row(
+        Column(modifier = Modifier.padding(16.dp)) {            Row(
                 modifier          = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -189,8 +186,6 @@ private fun InsightCard(
             }
 
             Spacer(Modifier.height(10.dp))
-
-            // ── Content ───────────────────────────────────────────────────────
             Text(
                 text  = insight.content,
                 style = MaterialTheme.typography.bodyMedium,
@@ -199,9 +194,6 @@ private fun InsightCard(
         }
     }
 }
-
-// ── Meta helpers ──────────────────────────────────────────────────────────────
-
 private data class InsightMeta(
     val icon: ImageVector,
     val color: Color,

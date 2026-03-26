@@ -40,14 +40,14 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
         ),
         HabitTemplate(
             name = "Drink water", icon = "💧", color = 0xFF2196F3L,
-            label = "Health", trackingType = TrackingType.QUANTITATIVE,
+            label = "Health", trackingType = TrackingType.NUMERIC,
             unit = "glasses", targetValue = 8.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "09:00",
             category = TemplateCategory.HEALTH,
         ),
         HabitTemplate(
             name = "Meditate", icon = "🧘", color = 0xFF9C27B0L,
-            label = "Health", trackingType = TrackingType.DURATION,
+            label = "Health", trackingType = TrackingType.NUMERIC,
             unit = "min", targetValue = 10.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "07:00",
             category = TemplateCategory.HEALTH,
@@ -70,28 +70,28 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
     TemplateCategory.FITNESS to listOf(
         HabitTemplate(
             name = "Cycling", icon = "🚴", color = 0xFFFF9800L,
-            label = "Fitness", trackingType = TrackingType.DURATION,
+            label = "Fitness", trackingType = TrackingType.NUMERIC,
             unit = "min", targetValue = 30.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "07:00",
             category = TemplateCategory.FITNESS,
         ),
         HabitTemplate(
             name = "Running", icon = "🏃", color = 0xFFFF5722L,
-            label = "Fitness", trackingType = TrackingType.QUANTITATIVE,
+            label = "Fitness", trackingType = TrackingType.NUMERIC,
             unit = "km", targetValue = 5.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "06:30",
             category = TemplateCategory.FITNESS,
         ),
         HabitTemplate(
             name = "Walk 10k steps", icon = "👟", color = 0xFF8BC34AL,
-            label = "Fitness", trackingType = TrackingType.QUANTITATIVE,
+            label = "Fitness", trackingType = TrackingType.NUMERIC,
             unit = "steps", targetValue = 10000.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = null,
             category = TemplateCategory.FITNESS,
         ),
         HabitTemplate(
             name = "Gym workout", icon = "🏋️", color = 0xFFE91E63L,
-            label = "Fitness", trackingType = TrackingType.DURATION,
+            label = "Fitness", trackingType = TrackingType.NUMERIC,
             unit = "min", targetValue = 60.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "07:00",
             category = TemplateCategory.FITNESS,
@@ -100,21 +100,21 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
     TemplateCategory.LEARNING to listOf(
         HabitTemplate(
             name = "Read books", icon = "📚", color = 0xFF00BCD4L,
-            label = "Learning", trackingType = TrackingType.QUANTITATIVE,
+            label = "Learning", trackingType = TrackingType.NUMERIC,
             unit = "pages", targetValue = 20.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "21:00",
             category = TemplateCategory.LEARNING,
         ),
         HabitTemplate(
             name = "Practice coding", icon = "💻", color = 0xFF607D8BL,
-            label = "Learning", trackingType = TrackingType.DURATION,
+            label = "Learning", trackingType = TrackingType.NUMERIC,
             unit = "min", targetValue = 30.0, frequency = HabitFrequency.DAILY,
             scheduleDays = WEEKDAYS, suggestedReminderTime = "20:00",
             category = TemplateCategory.LEARNING,
         ),
         HabitTemplate(
             name = "Learn language", icon = "🗣️", color = 0xFF009688L,
-            label = "Learning", trackingType = TrackingType.DURATION,
+            label = "Learning", trackingType = TrackingType.NUMERIC,
             unit = "min", targetValue = 15.0, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "19:00",
             category = TemplateCategory.LEARNING,
@@ -123,8 +123,8 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
     TemplateCategory.FINANCE to listOf(
         HabitTemplate(
             name = "Track spending", icon = "💰", color = 0xFFFFEB3BL,
-            label = "Finance", trackingType = TrackingType.FINANCIAL,
-            unit = null, targetValue = null, frequency = HabitFrequency.DAILY,
+            label = "Finance", trackingType = TrackingType.NUMERIC,
+            unit = "₹", targetValue = null, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "20:00",
             category = TemplateCategory.FINANCE,
         ),
@@ -137,8 +137,8 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
         ),
         HabitTemplate(
             name = "Save money", icon = "🏦", color = 0xFF4CAF50L,
-            label = "Finance", trackingType = TrackingType.FINANCIAL,
-            unit = null, targetValue = null, frequency = HabitFrequency.DAILY,
+            label = "Finance", trackingType = TrackingType.NUMERIC,
+            unit = "₹", targetValue = null, frequency = HabitFrequency.DAILY,
             scheduleDays = ALL_DAYS, suggestedReminderTime = "09:00",
             category = TemplateCategory.FINANCE,
         ),

@@ -74,9 +74,6 @@ fun IntensityLegend(
         )
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 @Preview(name = "IntensityLegend – light (sage)", showBackground = true)
 @Composable
 private fun IntensityLegendSageLightPreview() {

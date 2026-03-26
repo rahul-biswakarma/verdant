@@ -3,9 +3,6 @@ package com.verdant.feature.analytics
 import com.verdant.core.ai.Correlation
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
-
-// ── Tab enum ─────────────────────────────────────────────────────────────────
-
 enum class AnalyticsTab(val label: String) {
     OVERVIEW("Overview"),
     HEATMAPS("Heatmaps"),
@@ -13,9 +10,6 @@ enum class AnalyticsTab(val label: String) {
     CORRELATIONS("Correlations"),
     REPORTS("Reports"),
 }
-
-// ── Top-level UI state ────────────────────────────────────────────────────────
-
 data class AnalyticsUiState(
     val isLoading: Boolean = true,
     val habits: List<Habit> = emptyList(),
@@ -26,9 +20,6 @@ data class AnalyticsUiState(
     val correlations: CorrelationsState = CorrelationsState.Idle,
     val reports: ReportsState = ReportsState.Idle,
 )
-
-// ── Overview ──────────────────────────────────────────────────────────────────
-
 data class OverviewState(
     val completedToday: Int = 0,
     val scheduledToday: Int = 0,
@@ -45,9 +36,6 @@ data class OverviewState(
     /** Total completed entries ever */
     val totalCompletions: Int = 0,
 )
-
-// ── Heatmaps ──────────────────────────────────────────────────────────────────
-
 data class HeatmapsState(
     val selectedHabitIndex: Int = 0,
     /** Grid cells for the selected habit, 52 weeks */
@@ -57,9 +45,6 @@ data class HeatmapsState(
     val totalCompletions: Int = 0,
     val completionRate30d: Float = 0f,
 )
-
-// ── Trends ────────────────────────────────────────────────────────────────────
-
 /**
  * One data series plotted on the trend chart.
  * @param label   Habit name, or "Overall" for the aggregate series.
@@ -79,18 +64,12 @@ data class TrendsState(
     /** X-axis week labels, e.g. ["Mar 3", "Mar 10", …]; 12 entries */
     val weekLabels: List<String> = emptyList(),
 )
-
-// ── Correlations ──────────────────────────────────────────────────────────────
-
 sealed interface CorrelationsState {
     data object Idle : CorrelationsState
     data object Loading : CorrelationsState
     data class Success(val correlations: List<Correlation>) : CorrelationsState
     data class Error(val message: String) : CorrelationsState
 }
-
-// ── Reports ───────────────────────────────────────────────────────────────────
-
 data class ReportEntry(
     val id: String,
     val title: String,

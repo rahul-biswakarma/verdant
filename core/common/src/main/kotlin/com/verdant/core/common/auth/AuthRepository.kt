@@ -3,7 +3,7 @@ package com.verdant.core.common.auth
 import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
@@ -51,13 +51,10 @@ class AuthRepository @Inject constructor(
         runCatching {
             val credentialManager = CredentialManager.create(activityContext)
 
-            val googleIdOption = GetGoogleIdOption.Builder()
-                .setFilterByAuthorizedAccounts(false)
-                .setServerClientId(webClientId)
-                .build()
+            val signInWithGoogleOption = GetSignInWithGoogleOption.Builder(webClientId).build()
 
             val request = GetCredentialRequest.Builder()
-                .addCredentialOption(googleIdOption)
+                .addCredentialOption(signInWithGoogleOption)
                 .build()
 
             val result = credentialManager.getCredential(activityContext, request)

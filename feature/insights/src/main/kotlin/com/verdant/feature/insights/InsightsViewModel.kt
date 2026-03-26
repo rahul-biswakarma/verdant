@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.verdant.core.ai.AIFeatureUnavailableException
 import com.verdant.core.ai.HabitSummary
 import com.verdant.core.ai.VerdantAI
+import com.verdant.core.model.ChatBubble
+import com.verdant.core.model.ChatState
 import com.verdant.core.database.dao.AIInsightDao
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
@@ -37,13 +39,11 @@ class InsightsViewModel @Inject constructor(
         observeFeed()
     }
 
-    // ── Tab selection ─────────────────────────────────────────────────────────
 
     fun selectTab(tab: InsightsTab) {
         _state.update { it.copy(selectedTab = tab) }
     }
 
-    // ── Feed ──────────────────────────────────────────────────────────────────
 
     private fun observeFeed() {
         viewModelScope.launch {
@@ -79,7 +79,6 @@ class InsightsViewModel @Inject constructor(
         }
     }
 
-    // ── Coach chat ────────────────────────────────────────────────────────────
 
     fun onInputChanged(text: String) {
         _state.update { it.copy(chat = it.chat.copy(inputText = text, sendError = null)) }
@@ -199,7 +198,6 @@ class InsightsViewModel @Inject constructor(
         _state.update { it.copy(chat = ChatState()) }
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private suspend fun callCoach(userMessage: String): String {
         val habits  = habitRepository.observeActiveHabits().first()

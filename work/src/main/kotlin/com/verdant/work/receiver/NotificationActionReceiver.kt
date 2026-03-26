@@ -45,7 +45,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
         }
     }
 
-    // ── Action handlers ───────────────────────────────────────────────────────
 
     private fun handleDone(context: Context, habitId: String) {
         dismissNotification(context, habitId)
@@ -89,7 +88,6 @@ class NotificationActionReceiver : BroadcastReceiver() {
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private fun dismissNotification(context: Context, habitId: String) {
         with(NotificationManagerCompat.from(context)) {

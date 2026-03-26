@@ -17,14 +17,8 @@ import kotlin.math.roundToInt
 class FallbackAI @Inject constructor(
     private val habitParser: FallbackHabitParser,
 ) : VerdantAI {
-
-    // ── Parsing ──────────────────────────────────────────────────────────────
-
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
-
-    // ── Motivation ───────────────────────────────────────────────────────────
-
     override suspend fun generateMotivation(context: MotivationContext): String {
         val bestStreakEntry = context.activeStreaks.maxByOrNull { it.value }
         val bestHabit = bestStreakEntry?.let { entry ->
@@ -65,9 +59,6 @@ class FallbackAI @Inject constructor(
                         "Each small action you take today is an investment in your future self."
         }
     }
-
-    // ── Nudge ────────────────────────────────────────────────────────────────
-
     override suspend fun generateNudge(context: NudgeContext): String {
         val habitName = context.habit.name
         val streak = context.currentStreak
@@ -89,9 +80,6 @@ class FallbackAI @Inject constructor(
                 "Time to check in on $habitName. ${timeNote ?: "A small step counts!"}".trim()
         }
     }
-
-    // ── Milestone ────────────────────────────────────────────────────────────
-
     override suspend fun generateMilestoneMessage(habit: Habit, milestone: Int): String {
         val name = habit.name
         return when (milestone) {
@@ -115,9 +103,6 @@ class FallbackAI @Inject constructor(
             }
         }
     }
-
-    // ── Availability ─────────────────────────────────────────────────────────
-
     /** FallbackAI is always "available" — it requires no model download. */
     override fun isOnDeviceAvailable(): Flow<AIAvailability> =
         flowOf(AIAvailability.UNAVAILABLE)

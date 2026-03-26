@@ -33,8 +33,8 @@ internal fun SummaryContent() {
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Color(0xFF1A1D21))
-            .cornerRadius(16.dp),
+            .background(Color(0xFF1C1C1E))
+            .cornerRadius(20.dp),
         contentAlignment = Alignment.Center,
     ) {
         if (bmp != null) {

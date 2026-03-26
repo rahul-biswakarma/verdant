@@ -4,8 +4,11 @@ import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.ai.mediapipe.ModelDownloadState
+import com.verdant.core.ai.mediapipe.ModelManager
 import com.verdant.core.common.auth.AuthRepository
 import com.verdant.core.common.auth.AuthUser
+import com.verdant.core.database.dao.TransactionDao
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.usecase.DatabaseCleaner
@@ -43,6 +46,7 @@ data class SettingsUiState(
     val weeklySummaryDay: Int = 7,
     val weeklySummaryHour: Int = 19,
     val llmDataSharing: Boolean = false,
+    val modelDownloadState: ModelDownloadState = ModelDownloadState.NotDownloaded,
     val showDeleteConfirmDialog: Boolean = false,
     val exportInProgress: Boolean = false,
     val importInProgress: Boolean = false,
@@ -52,6 +56,22 @@ data class SettingsUiState(
     val userName: String? = null,
     val userEmail: String? = null,
     val userPhotoUrl: String? = null,
+    // Finance
+    val smsPermissionGranted: Boolean = false,
+    val financeAlertsEnabled: Boolean = true,
+    val monthlyReportEnabled: Boolean = true,
+    val financeDataSharing: Boolean = false,
+    val showDeleteFinanceDataDialog: Boolean = false,
+)
+
+private data class FinanceAndExtra(
+    val extra: SettingsUiState,
+    val user: AuthUser?,
+    val modelState: ModelDownloadState,
+    val smsPerm: Boolean,
+    val finAlerts: Boolean,
+    val monthlyReport: Boolean,
+    val finSharing: Boolean,
 )
 
 @HiltViewModel
@@ -62,6 +82,8 @@ class SettingsViewModel @Inject constructor(
     private val databaseCleaner: DatabaseCleaner,
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
+    private val transactionDao: TransactionDao,
+    val modelManager: ModelManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
 
@@ -82,7 +104,20 @@ class SettingsViewModel @Inject constructor(
         prefs.weeklySummaryDay,
         prefs.weeklySummaryHour,
         prefs.llmDataSharing,
-        combine(_extra, authRepository.currentUser) { extra, user -> extra to user },
+        combine(
+            _extra, authRepository.currentUser, modelManager.state,
+            prefs.smsPermissionGranted, prefs.financeAlertsEnabled,
+            prefs.monthlyReportEnabled, prefs.financeDataSharing,
+        ) { args ->
+            val extra = args[0] as SettingsUiState
+            val user = args[1] as AuthUser?
+            val modelState = args[2] as ModelDownloadState
+            val smsPerm = args[3] as Boolean
+            val finAlerts = args[4] as Boolean
+            val monthlyReport = args[5] as Boolean
+            val finSharing = args[6] as Boolean
+            FinanceAndExtra(extra, user, modelState, smsPerm, finAlerts, monthlyReport, finSharing)
+        },
     ) { args ->
         @Suppress("UNCHECKED_CAST")
         val themeMode        = ThemeMode.valueOf(args[0] as String)
@@ -97,9 +132,9 @@ class SettingsViewModel @Inject constructor(
         val weeklySumDay     = args[9] as Int
         val weeklySumHour    = args[10] as Int
         val llmSharing       = args[11] as Boolean
-        val (extra, user)    = args[12] as Pair<SettingsUiState, AuthUser?>
+        val fin = args[12] as FinanceAndExtra
 
-        extra.copy(
+        fin.extra.copy(
             themeMode = themeMode,
             accentColor = accentColor,
             firstDayMonday = firstDayMonday,
@@ -112,15 +147,17 @@ class SettingsViewModel @Inject constructor(
             weeklySummaryDay = weeklySumDay,
             weeklySummaryHour = weeklySumHour,
             llmDataSharing = llmSharing,
-            isSignedIn = user != null,
-            userName = user?.displayName,
-            userEmail = user?.email,
-            userPhotoUrl = user?.photoUrl,
+            modelDownloadState = fin.modelState,
+            isSignedIn = fin.user != null,
+            userName = fin.user?.displayName,
+            userEmail = fin.user?.email,
+            userPhotoUrl = fin.user?.photoUrl,
+            smsPermissionGranted = fin.smsPerm,
+            financeAlertsEnabled = fin.finAlerts,
+            monthlyReportEnabled = fin.monthlyReport,
+            financeDataSharing = fin.finSharing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsUiState())
-
-    // ── Appearance ────────────────────────────────────────────────────────────
-
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         prefs.setThemeMode(mode.name)
     }
@@ -132,9 +169,6 @@ class SettingsViewModel @Inject constructor(
     fun setFirstDayMonday(monday: Boolean) = viewModelScope.launch {
         prefs.setFirstDayOfWeek(if (monday) "MONDAY" else "SUNDAY")
     }
-
-    // ── Notifications ─────────────────────────────────────────────────────────
-
     fun setNotificationsEnabled(enabled: Boolean) = viewModelScope.launch {
         prefs.setNotificationsEnabled(enabled)
     }
@@ -181,9 +215,6 @@ class SettingsViewModel @Inject constructor(
             .build()
         nm.notify(9999, notification)
     }
-
-    // ── Auth ───────────────────────────────────────────────────────────────────
-
     fun signInWithGoogle(activityContext: Context, webClientId: String) = viewModelScope.launch {
         val result = authRepository.signInWithGoogle(activityContext, webClientId)
         if (result.isFailure) {
@@ -196,11 +227,17 @@ class SettingsViewModel @Inject constructor(
     fun signOut() = viewModelScope.launch {
         authRepository.signOut()
     }
-
-    // ── Data & Privacy ────────────────────────────────────────────────────────
-
     fun setLlmDataSharing(enabled: Boolean) = viewModelScope.launch {
         prefs.setLlmDataSharing(enabled)
+    }
+
+    fun downloadAiModel() = viewModelScope.launch {
+        modelManager.downloadModel()
+    }
+
+    fun deleteAiModel() = viewModelScope.launch {
+        modelManager.deleteModel()
+        _extra.update { it.copy(snackbarMessage = "AI model deleted") }
     }
 
     fun exportJson(outputStream: OutputStream) = viewModelScope.launch {
@@ -369,6 +406,41 @@ class SettingsViewModel @Inject constructor(
             databaseCleaner.clearAll()
             prefs.resetAll()
             onComplete()
+        } catch (e: Exception) {
+            _extra.update { it.copy(snackbarMessage = "Delete failed: ${e.message}") }
+        }
+    }
+
+    fun setSmsPermissionGranted(granted: Boolean) = viewModelScope.launch {
+        prefs.setSmsPermissionGranted(granted)
+    }
+
+    fun setFinanceAlertsEnabled(enabled: Boolean) = viewModelScope.launch {
+        prefs.setFinanceAlertsEnabled(enabled)
+    }
+
+    fun setMonthlyReportEnabled(enabled: Boolean) = viewModelScope.launch {
+        prefs.setMonthlyReportEnabled(enabled)
+    }
+
+    fun setFinanceDataSharing(enabled: Boolean) = viewModelScope.launch {
+        prefs.setFinanceDataSharing(enabled)
+    }
+
+    fun showDeleteFinanceDataDialog() = _extra.update { it.copy(showDeleteFinanceDataDialog = true) }
+    fun dismissDeleteFinanceDataDialog() = _extra.update { it.copy(showDeleteFinanceDataDialog = false) }
+
+    fun deleteFinanceData() = viewModelScope.launch {
+        try {
+            transactionDao.deleteAll()
+            prefs.setFinanceOnboardingCompleted(false)
+            prefs.setLastSmsProcessedTime(0L)
+            _extra.update {
+                it.copy(
+                    showDeleteFinanceDataDialog = false,
+                    snackbarMessage = "All finance data deleted",
+                )
+            }
         } catch (e: Exception) {
             _extra.update { it.copy(snackbarMessage = "Delete failed: ${e.message}") }
         }

@@ -59,13 +59,11 @@ class AnalyticsViewModel @Inject constructor(
         loadReports()
     }
 
-    // ── Tab selection ─────────────────────────────────────────────────────────
 
     fun selectTab(tab: AnalyticsTab) {
         _state.update { it.copy(selectedTab = tab) }
     }
 
-    // ── Heatmaps ──────────────────────────────────────────────────────────────
 
     fun selectHabitForHeatmap(index: Int) {
         val habits = _state.value.habits
@@ -77,13 +75,11 @@ class AnalyticsViewModel @Inject constructor(
         }
     }
 
-    // ── Trends ────────────────────────────────────────────────────────────────
 
     fun selectTrendSeries(key: String) {
         _state.update { it.copy(trends = it.trends.copy(selectedSeriesKey = key)) }
     }
 
-    // ── Correlations ─────────────────────────────────────────────────────────
 
     fun generateCorrelations() {
         val habits = _state.value.habits
@@ -121,7 +117,6 @@ class AnalyticsViewModel @Inject constructor(
         }
     }
 
-    // ── Reports ───────────────────────────────────────────────────────────────
 
     fun generateWeeklyReport() {
         val habits = _state.value.habits
@@ -230,7 +225,6 @@ class AnalyticsViewModel @Inject constructor(
         }
     }
 
-    // ── Data loading helpers ──────────────────────────────────────────────────
 
     private suspend fun reloadData(habits: List<Habit>) {
         val today = LocalDate.now()

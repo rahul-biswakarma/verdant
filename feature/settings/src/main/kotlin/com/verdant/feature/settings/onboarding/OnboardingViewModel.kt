@@ -1,6 +1,7 @@
 package com.verdant.feature.settings.onboarding
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdant.core.common.auth.AuthRepository
@@ -22,17 +23,16 @@ class OnboardingViewModel @Inject constructor(
     val isSignedIn: StateFlow<Boolean> = authRepository.isSignedIn
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    fun completeOnboarding(onDone: () -> Unit) = viewModelScope.launch {
+    fun markOnboardingDone() = viewModelScope.launch {
         prefs.setOnboardingCompleted(true)
-        onDone()
     }
 
-    fun signInWithGoogle(activityContext: Context, webClientId: String, onDone: () -> Unit) =
+    fun signInWithGoogle(activityContext: Context, webClientId: String) =
         viewModelScope.launch {
             val result = authRepository.signInWithGoogle(activityContext, webClientId)
-            if (result.isSuccess) {
-                prefs.setOnboardingCompleted(true)
-                onDone()
+            if (result.isFailure) {
+                Log.e("OnboardingViewModel", "Google sign-in failed", result.exceptionOrNull())
             }
+            // Navigation is driven reactively by isSignedIn in OnboardingScreen
         }
 }

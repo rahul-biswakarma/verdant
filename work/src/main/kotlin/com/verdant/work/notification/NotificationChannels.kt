@@ -10,7 +10,6 @@ import android.content.Context
  */
 object NotificationChannels {
 
-    // ── Channel IDs ───────────────────────────────────────────────────────────
 
     /** Per-habit reminders set by the user. High priority, sound. */
     const val CHANNEL_REMINDERS = "verdant_reminders"
@@ -27,12 +26,17 @@ object NotificationChannels {
     /** Milestone achievements (7-day, 30-day, …). Default priority. */
     const val CHANNEL_MILESTONES = "verdant_milestones"
 
-    // ── Notification IDs ──────────────────────────────────────────────────────
-    // Deterministic IDs avoid duplicate notifications; reminder IDs are derived
-    // from the habit's stable hash so each habit gets its own slot.
+    /** Finance spending alerts and budget warnings. Default priority. */
+    const val CHANNEL_FINANCE_ALERTS = "verdant_finance_alerts"
+
+    /** Monthly finance report summaries. Low priority. */
+    const val CHANNEL_FINANCE_REPORTS = "verdant_finance_reports"
+
 
     const val NOTIF_DAILY_MOTIVATION = 10_001
     const val NOTIF_WEEKLY_SUMMARY   = 10_002
+    const val NOTIF_FINANCE_ALERT    = 10_003
+    const val NOTIF_FINANCE_REPORT   = 10_004
 
     /** Streak-nudge notifications use IDs in [20_000, 20_999]. */
     fun streakNudgeId(habitId: String): Int = 20_000 + (habitId.hashCode() and 0x3FF)
@@ -43,7 +47,6 @@ object NotificationChannels {
     /** Milestone notification IDs live in [40_000, 40_999]. */
     fun milestoneId(habitId: String): Int = 40_000 + (habitId.hashCode() and 0x3FF)
 
-    // ── Channel creation ──────────────────────────────────────────────────────
 
     fun createAll(context: Context) {
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -86,6 +89,21 @@ object NotificationChannels {
                 ).apply {
                     description = "Celebrations when you hit streak milestones"
                     enableVibration(true)
+                },
+                NotificationChannel(
+                    CHANNEL_FINANCE_ALERTS,
+                    "Finance Alerts",
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply {
+                    description = "Spending alerts and budget warnings"
+                    enableVibration(true)
+                },
+                NotificationChannel(
+                    CHANNEL_FINANCE_REPORTS,
+                    "Finance Reports",
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply {
+                    description = "Monthly spending summaries"
                 },
             )
         )

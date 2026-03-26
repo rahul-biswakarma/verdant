@@ -1,8 +1,8 @@
 [versions]
 agp = "9.1.0"
-kotlin = "2.2.10"
+kotlin = "2.3.20"
 ksp = "2.3.2"
-compileSdk = "35"
+compileSdk = "36"
 minSdk = "26"
 targetSdk = "35"
 
@@ -16,7 +16,7 @@ activityCompose = "1.9.3"
 navigationCompose = "2.8.4"
 
 # DI
-hilt = "2.56.2"
+hilt = "2.59.2"
 hiltExtensions = "1.2.0"
 
 # Database
@@ -43,8 +43,8 @@ composeIcons = "1.1.1"
 # Charts
 vico = "2.0.0-beta.3"
 
-# ML Kit GenAI
-mlkitGenai = "1.0.0-beta1"
+# MediaPipe LLM
+mediapipeLlm = "0.10.22"
 
 # Auth
 credentialManager = "1.5.0-beta01"
@@ -110,8 +110,8 @@ compose-icons-tabler = { group = "br.com.devsrsouza.compose.icons", name = "tabl
 # Charts
 vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 
-# ML Kit GenAI
-mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenai" }
+# MediaPipe LLM
+mediapipe-llm = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeLlm" }
 
 # Auth (Credential Manager + Google ID)
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialManager" }

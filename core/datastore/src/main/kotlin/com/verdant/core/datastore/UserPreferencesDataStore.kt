@@ -80,10 +80,19 @@ class UserPreferencesDataStore @Inject constructor(
 
         // Onboarding
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+
+        // On-device AI model
+        val ON_DEVICE_MODEL_DOWNLOADED = booleanPreferencesKey("on_device_model_downloaded")
+        val ON_DEVICE_MODEL_PATH = stringPreferencesKey("on_device_model_path")
+
+        // Finance product
+        val SMS_PERMISSION_GRANTED = booleanPreferencesKey("sms_permission_granted")
+        val FINANCE_ONBOARDING_COMPLETED = booleanPreferencesKey("finance_onboarding_completed")
+        val LAST_SMS_PROCESSED_TIME = longPreferencesKey("last_sms_processed_time")
+        val FINANCE_ALERTS_ENABLED = booleanPreferencesKey("finance_alerts_enabled")
+        val MONTHLY_REPORT_ENABLED = booleanPreferencesKey("monthly_report_enabled")
+        val FINANCE_DATA_SHARING = booleanPreferencesKey("finance_data_sharing")
     }
-
-    // ── Appearance ────────────────────────────────────────────────────────────
-
     val useDynamicColor: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.USE_DYNAMIC_COLOR] ?: true
     }
@@ -118,9 +127,6 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setFirstDayOfWeek(value: String) {
         context.dataStore.edit { it[Keys.FIRST_DAY_OF_WEEK] = value }
     }
-
-    // ── Master toggle ─────────────────────────────────────────────────────────
-
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.NOTIFICATIONS_ENABLED] ?: true
     }
@@ -128,9 +134,6 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setNotificationsEnabled(value: Boolean) {
         context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = value }
     }
-
-    // ── Quiet hours ───────────────────────────────────────────────────────────
-
     /** Hour (0–23) at which the quiet period begins. Default: 22 (10 PM). */
     val quietHoursStart: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[Keys.QUIET_HOURS_START] ?: 22
@@ -147,9 +150,6 @@ class UserPreferencesDataStore @Inject constructor(
             prefs[Keys.QUIET_HOURS_END]   = endHour
         }
     }
-
-    // ── Nudge limits ─────────────────────────────────────────────────────────
-
     /** Maximum streak-nudge notifications per day. Default: 5. */
     val maxNudgesPerDay: Flow<Int> = context.dataStore.data.map { prefs ->
         prefs[Keys.MAX_NUDGES_PER_DAY] ?: 5
@@ -158,9 +158,6 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setMaxNudgesPerDay(value: Int) {
         context.dataStore.edit { it[Keys.MAX_NUDGES_PER_DAY] = value.coerceIn(1, 10) }
     }
-
-    // ── Nudge tone ────────────────────────────────────────────────────────────
-
     /** One of "gentle", "motivating", "direct". Default: "motivating". */
     val nudgeTone: Flow<String> = context.dataStore.data.map { prefs ->
         prefs[Keys.NUDGE_TONE] ?: NudgeTone.MOTIVATING.key
@@ -169,9 +166,6 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setNudgeTone(tone: NudgeTone) {
         context.dataStore.edit { it[Keys.NUDGE_TONE] = tone.key }
     }
-
-    // ── Feature toggles ───────────────────────────────────────────────────────
-
     val dailyMotivationEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.DAILY_MOTIVATION_ENABLED] ?: true
     }
@@ -213,9 +207,6 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setStreakAlertsEnabled(value: Boolean) {
         context.dataStore.edit { it[Keys.STREAK_ALERTS_ENABLED] = value }
     }
-
-    // ── Privacy ───────────────────────────────────────────────────────────────
-
     val llmDataSharing: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.LLM_DATA_SHARING] ?: false
     }
@@ -223,15 +214,70 @@ class UserPreferencesDataStore @Inject constructor(
     suspend fun setLlmDataSharing(value: Boolean) {
         context.dataStore.edit { it[Keys.LLM_DATA_SHARING] = value }
     }
-
-    // ── Onboarding ────────────────────────────────────────────────────────────
-
     val onboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.ONBOARDING_COMPLETED] ?: false
     }
 
     suspend fun setOnboardingCompleted(value: Boolean) {
         context.dataStore.edit { it[Keys.ONBOARDING_COMPLETED] = value }
+    }
+
+    val onDeviceModelDownloaded: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.ON_DEVICE_MODEL_DOWNLOADED] ?: false
+    }
+
+    suspend fun setOnDeviceModelDownloaded(value: Boolean) {
+        context.dataStore.edit { it[Keys.ON_DEVICE_MODEL_DOWNLOADED] = value }
+    }
+
+    // ── Finance product ────────────────────────────────────────
+
+    val smsPermissionGranted: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.SMS_PERMISSION_GRANTED] ?: false
+    }
+
+    suspend fun setSmsPermissionGranted(value: Boolean) {
+        context.dataStore.edit { it[Keys.SMS_PERMISSION_GRANTED] = value }
+    }
+
+    val financeOnboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.FINANCE_ONBOARDING_COMPLETED] ?: false
+    }
+
+    suspend fun setFinanceOnboardingCompleted(value: Boolean) {
+        context.dataStore.edit { it[Keys.FINANCE_ONBOARDING_COMPLETED] = value }
+    }
+
+    val lastSmsProcessedTime: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LAST_SMS_PROCESSED_TIME] ?: 0L
+    }
+
+    suspend fun setLastSmsProcessedTime(value: Long) {
+        context.dataStore.edit { it[Keys.LAST_SMS_PROCESSED_TIME] = value }
+    }
+
+    val financeAlertsEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.FINANCE_ALERTS_ENABLED] ?: true
+    }
+
+    suspend fun setFinanceAlertsEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.FINANCE_ALERTS_ENABLED] = value }
+    }
+
+    val monthlyReportEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.MONTHLY_REPORT_ENABLED] ?: true
+    }
+
+    suspend fun setMonthlyReportEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.MONTHLY_REPORT_ENABLED] = value }
+    }
+
+    val financeDataSharing: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.FINANCE_DATA_SHARING] ?: false
+    }
+
+    suspend fun setFinanceDataSharing(value: Boolean) {
+        context.dataStore.edit { it[Keys.FINANCE_DATA_SHARING] = value }
     }
 
     /** Resets all preferences to defaults (used by "Delete all data"). */

@@ -156,9 +156,6 @@ class WidgetConfigActivity : ComponentActivity() {
         )
     }
 }
-
-// ── UI ────────────────────────────────────────────────────────────────────────
-
 @Composable
 private fun WidgetConfigScreen(
     needsHabit: Boolean,
@@ -173,9 +170,7 @@ private fun WidgetConfigScreen(
     onCancel: () -> Unit,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column {
-            // ── Title bar ─────────────────────────────────────────────────────
-            Row(
+        Column {            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -195,9 +190,7 @@ private fun WidgetConfigScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (needsHabit) {
-                    // ── Habit picker ──────────────────────────────────────────
-                    item {
+                if (needsHabit) {                    item {
                         Text(
                             "Select a habit",
                             style = MaterialTheme.typography.titleSmall,
@@ -225,8 +218,6 @@ private fun WidgetConfigScreen(
                     }
 
                     item { Spacer(Modifier.height(8.dp)) }
-
-                    // ── Grid density ──────────────────────────────────────────
                     item {
                         Text(
                             "Grid density",
@@ -245,7 +236,6 @@ private fun WidgetConfigScreen(
                         }
                     }
                 } else {
-                    // ── No-config widgets: just describe what will be added ───
                     item {
                         Text(
                             "This widget shows data for all your habits automatically. " +
@@ -258,8 +248,6 @@ private fun WidgetConfigScreen(
 
                 item { Spacer(Modifier.height(16.dp)) }
             }
-
-            // ── Confirm button ────────────────────────────────────────────────
             Button(
                 onClick  = onConfirm,
                 enabled  = !needsHabit || selectedHabitId != null,

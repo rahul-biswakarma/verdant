@@ -27,6 +27,9 @@
     <!-- ── Wake lock (WorkManager / foreground workers) ─────────────────── -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- ── SMS (Finance product — bank transaction tracking) ──────────── -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+
     <application
         android:name=".VerdantApplication"
         android:allowBackup="true"

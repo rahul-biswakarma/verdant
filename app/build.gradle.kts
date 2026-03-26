@@ -1,10 +1,9 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.google.services) // Firebase — requires google-services.json in app/
+    alias(libs.plugins.google.services)
 }
 
 android {
@@ -18,8 +17,6 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        // TODO: Replace with your Firebase web client ID from Firebase Console →
-        //       Authentication → Sign-in method → Google → Web client ID
         buildConfigField(
             "String",
             "GOOGLE_WEB_CLIENT_ID",
@@ -46,10 +43,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 }
 
 dependencies {
@@ -59,6 +52,7 @@ dependencies {
     implementation(project(":feature:analytics"))
     implementation(project(":feature:insights"))
     implementation(project(":feature:settings"))
+    implementation(project(":feature:finance"))
 
     // Widget + background work modules
     implementation(project(":widget"))
@@ -89,16 +83,14 @@ dependencies {
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    ksp(libs.hilt.compiler.ext)   // needed for @HiltWorker in :widget
+    ksp(libs.hilt.compiler.ext)
     implementation(libs.hilt.navigation.compose)
 
-    // WorkManager (for HiltWorkerFactory setup)
+    // WorkManager
     implementation(libs.workmanager)
     implementation(libs.hilt.work)
 
-    // Firebase (BOM manages all Firebase library versions)
-    // NOTE: Add google-services.json to app/ before building.
-    //       Download from: https://console.firebase.google.com → Project Settings → Android app
+    // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
 }

@@ -59,9 +59,6 @@ fun CompletionRing(
         }
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 @Preview(name = "CompletionRing – light", showBackground = true)
 @Composable
 private fun CompletionRingLightPreview() {

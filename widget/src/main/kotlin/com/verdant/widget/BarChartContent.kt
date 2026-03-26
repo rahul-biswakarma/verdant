@@ -24,15 +24,18 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import org.json.JSONArray
 
-private const val MAX_BAR_WIDTH_DP = 130   // dp available for the bar itself
-private const val LABEL_WIDTH_DP   = 28    // day-of-week label
-private const val COUNT_WIDTH_DP   = 26    // "done/total" count
+private const val MAX_BAR_WIDTH_DP = 120
+private val BarBg = Color(0xFF1C1C1E)
+private val BarMuted = Color(0xFF8E8E93)
+private val BarTrack = Color(0xFF2C2C2E)
+private val BarGreen = Color(0xFF34C759)
+private val BarGreenDim = Color(0xFF1A5E2A)
 
 /**
- * Bar chart widget composable (4×2).
+ * Bar chart widget (4x2).
  *
- * Reads [WidgetPreferencesKeys.BAR_CHART_JSON] and renders 7 horizontal bars
- * (oldest → today) using pure Glance Row+Box composables — no Canvas required.
+ * 7-day horizontal bars with bold typography, percentage labels,
+ * and highlighted today row.
  */
 @androidx.compose.runtime.Composable
 internal fun BarChartContent() {
@@ -40,37 +43,63 @@ internal fun BarChartContent() {
     val json  = prefs[WidgetPreferencesKeys.BAR_CHART_JSON] ?: "[]"
     val bars  = parseBarChartJson(json)
 
+    // Calculate totals for header
+    val totalDone  = bars.sumOf { it.done }
+    val totalAll   = bars.sumOf { it.total }
+    val overallPct = if (totalAll > 0) (totalDone.toFloat() / totalAll * 100).toInt() else 0
+
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Color(0xFF1A1D21))
-            .padding(8.dp)
-            .cornerRadius(16.dp),
+            .background(BarBg)
+            .cornerRadius(20.dp),
         contentAlignment = Alignment.TopStart,
     ) {
-        Column(modifier = GlanceModifier.fillMaxSize()) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+        ) {
+            // ── Header ──
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Bottom,
+            ) {
+                Text(
+                    text = "This Week",
+                    style = TextStyle(
+                        color = ColorProvider(Color.White),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    modifier = GlanceModifier.defaultWeight(),
+                )
+                Text(
+                    text = "$overallPct%",
+                    style = TextStyle(
+                        color = ColorProvider(
+                            if (overallPct >= 80) BarGreen else BarMuted
+                        ),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
 
-            // ── Title ─────────────────────────────────────────────────────────
-            Text(
-                text  = "This Week",
-                style = TextStyle(
-                    color      = ColorProvider(Color.White),
-                    fontSize   = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-
-            Spacer(GlanceModifier.height(6.dp))
+            Spacer(GlanceModifier.height(8.dp))
 
             if (bars.isEmpty()) {
                 Box(GlanceModifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No data", style = TextStyle(color = ColorProvider(Color(0xFF9E9E9E)), fontSize = 10.sp))
+                    Text(
+                        text = "No data yet",
+                        style = TextStyle(color = ColorProvider(BarMuted), fontSize = 10.sp),
+                    )
                 }
             } else {
                 Column(modifier = GlanceModifier.fillMaxSize()) {
                     for (bar in bars) {
                         BarRow(bar = bar)
-                        Spacer(GlanceModifier.height(2.dp))
+                        Spacer(GlanceModifier.height(3.dp))
                     }
                 }
             }
@@ -80,8 +109,9 @@ internal fun BarChartContent() {
 
 @androidx.compose.runtime.Composable
 private fun BarRow(bar: BarEntry) {
-    val barColor = if (bar.isToday) Color(0xFF4CAF50) else Color(0xFF3D7A42)
-    val barWidthDp = (bar.fraction * MAX_BAR_WIDTH_DP).toInt().coerceAtLeast(if (bar.total > 0) 2 else 0)
+    val barColor = if (bar.isToday) BarGreen else BarGreenDim
+    val barWidthDp = (bar.fraction * MAX_BAR_WIDTH_DP).toInt().coerceAtLeast(if (bar.total > 0) 3 else 0)
+    val pct = if (bar.total > 0) (bar.fraction * 100).toInt() else 0
 
     Row(
         modifier = GlanceModifier.fillMaxWidth(),
@@ -89,23 +119,21 @@ private fun BarRow(bar: BarEntry) {
     ) {
         // Day label
         Text(
-            text     = bar.label,
-            style    = TextStyle(
-                color    = ColorProvider(
-                    if (bar.isToday) Color.White else Color(0xFF9E9E9E)
-                ),
-                fontSize = 9.sp,
+            text = bar.label,
+            style = TextStyle(
+                color = ColorProvider(if (bar.isToday) Color.White else BarMuted),
+                fontSize = 10.sp,
                 fontWeight = if (bar.isToday) FontWeight.Bold else FontWeight.Normal,
             ),
-            modifier = GlanceModifier.width(LABEL_WIDTH_DP.dp),
+            modifier = GlanceModifier.width(30.dp),
         )
 
         // Bar track
         Box(
             modifier = GlanceModifier
                 .width(MAX_BAR_WIDTH_DP.dp)
-                .height(7.dp)
-                .background(Color(0xFF2D3339))
+                .height(8.dp)
+                .background(BarTrack)
                 .cornerRadius(4.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
@@ -113,35 +141,36 @@ private fun BarRow(bar: BarEntry) {
                 Box(
                     modifier = GlanceModifier
                         .width(barWidthDp.dp)
-                        .height(7.dp)
+                        .height(8.dp)
                         .background(barColor)
                         .cornerRadius(4.dp),
                 ) {}
             }
         }
 
-        Spacer(GlanceModifier.width(4.dp))
+        Spacer(GlanceModifier.width(6.dp))
 
-        // Count
+        // Percentage or count
         Text(
-            text  = if (bar.total > 0) "${bar.done}/${bar.total}" else "—",
+            text = if (bar.total > 0) "${bar.done}/${bar.total}" else "\u2014",
             style = TextStyle(
-                color    = ColorProvider(Color(0xFF9E9E9E)),
-                fontSize = 8.sp,
+                color = ColorProvider(
+                    if (bar.isToday && bar.fraction >= 1f) BarGreen else BarMuted
+                ),
+                fontSize = 9.sp,
+                fontWeight = if (bar.isToday) FontWeight.Bold else FontWeight.Normal,
             ),
-            modifier = GlanceModifier.width(COUNT_WIDTH_DP.dp),
+            modifier = GlanceModifier.width(28.dp),
         )
     }
 }
 
-// ── Data / parsing ─────────────────────────────────────────────────────────────
-
 internal data class BarEntry(
-    val label:    String,
-    val done:     Int,
-    val total:    Int,
+    val label: String,
+    val done: Int,
+    val total: Int,
     val fraction: Float,
-    val isToday:  Boolean,
+    val isToday: Boolean,
 )
 
 internal fun parseBarChartJson(json: String): List<BarEntry> {

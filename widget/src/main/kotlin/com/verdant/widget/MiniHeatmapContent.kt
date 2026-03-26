@@ -31,31 +31,33 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import java.time.LocalDate
 
-private const val MINI_WEEKS     = 8
-private const val MINI_CELL_DP   = 10   // cell size
-private const val MINI_PADDING   = 1    // gap between cells
+private const val MINI_WEEKS   = 8
+private const val MINI_CELL_DP = 10
+
+private val HeatmapBg = Color(0xFF1C1C1E)
+private val HeatmapMuted = Color(0xFF8E8E93)
 
 /**
- * Mini heatmap + stats widget composable (4×2).
+ * Mini heatmap + stats widget (4x2).
  *
- * Left: 8-week contribution grid (same algo as [HabitGridContent]).
- * Right: stats column — streak, best, completion %, trend, quick-log button.
+ * Left: 8-week contribution grid with rounded cells.
+ * Right: bold stats column with streak, best, rate, trend, and quick-log.
  */
 @androidx.compose.runtime.Composable
 internal fun MiniHeatmapContent() {
     val prefs   = currentState<Preferences>()
     val context = LocalContext.current
 
-    val habitId    = prefs[WidgetPreferencesKeys.HABIT_ID]      ?: return
-    val habitName  = prefs[WidgetPreferencesKeys.HABIT_NAME]    ?: "Habit"
-    val habitIcon  = prefs[WidgetPreferencesKeys.HABIT_ICON]    ?: "🌱"
-    val habitColorL = prefs[WidgetPreferencesKeys.HABIT_COLOR]  ?: 0xFF4CAF50L
-    val streak     = prefs[WidgetPreferencesKeys.STREAK]        ?: 0
-    val best       = prefs[WidgetPreferencesKeys.BEST_STREAK]   ?: 0
-    val rate       = prefs[WidgetPreferencesKeys.COMPLETION_RATE] ?: 0f
-    val trend      = prefs[WidgetPreferencesKeys.TREND_PCT]     ?: 0f
-    val gridJson   = prefs[WidgetPreferencesKeys.GRID_JSON]     ?: "[]"
-    val isBinary   = prefs[WidgetPreferencesKeys.TRACKING_TYPE] == "BINARY"
+    val habitId     = prefs[WidgetPreferencesKeys.HABIT_ID]        ?: return
+    val habitName   = prefs[WidgetPreferencesKeys.HABIT_NAME]      ?: "Habit"
+    val habitIcon   = prefs[WidgetPreferencesKeys.HABIT_ICON]      ?: "\uD83C\uDF31"
+    val habitColorL = prefs[WidgetPreferencesKeys.HABIT_COLOR]     ?: 0xFF4CAF50L
+    val streak      = prefs[WidgetPreferencesKeys.STREAK]          ?: 0
+    val best        = prefs[WidgetPreferencesKeys.BEST_STREAK]     ?: 0
+    val rate        = prefs[WidgetPreferencesKeys.COMPLETION_RATE] ?: 0f
+    val trend       = prefs[WidgetPreferencesKeys.TREND_PCT]       ?: 0f
+    val gridJson    = prefs[WidgetPreferencesKeys.GRID_JSON]       ?: "[]"
+    val isBinary    = prefs[WidgetPreferencesKeys.TRACKING_TYPE] == "BINARY"
 
     val habitColor = Color(habitColorL.toInt())
     val gridCells  = parseGridJson(gridJson)
@@ -66,42 +68,68 @@ internal fun MiniHeatmapContent() {
     val gridStart  = thisMonday.minusWeeks((MINI_WEEKS - 1).toLong())
 
     val trendColor = when {
-        trend > 0  -> Color(0xFF4CAF50)
-        trend < 0  -> Color(0xFFEF5350)
-        else       -> Color(0xFF9E9E9E)
+        trend > 0  -> Color(0xFF34C759)
+        trend < 0  -> Color(0xFFFF453A)
+        else       -> HeatmapMuted
     }
     val trendArrow = when {
-        trend > 0  -> "↑"
-        trend < 0  -> "↓"
-        else       -> "→"
+        trend > 0  -> "\u2191"
+        trend < 0  -> "\u2193"
+        else       -> "\u2192"
     }
 
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(Color(0xFF1A1D21))
-            .padding(8.dp)
-            .cornerRadius(16.dp),
+            .background(HeatmapBg)
+            .cornerRadius(20.dp),
         contentAlignment = Alignment.TopStart,
     ) {
-        Row(modifier = GlanceModifier.fillMaxSize()) {
-
-            // ── Left: 8-week grid ──────────────────────────────────────────────
-            Column(modifier = GlanceModifier.fillMaxHeight()) {
-                // Habit label
+        Column(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            // ── Header: icon + name ──
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = "$habitIcon $habitName",
                     style = TextStyle(
-                        color      = ColorProvider(Color.White),
-                        fontSize   = 9.sp,
+                        color = ColorProvider(Color.White),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     ),
                     maxLines = 1,
+                    modifier = GlanceModifier.defaultWeight(),
                 )
 
-                Spacer(GlanceModifier.height(3.dp))
+                if (streak > 0) {
+                    Box(
+                        modifier = GlanceModifier
+                            .background(Color(0xFF2C1215))
+                            .cornerRadius(8.dp)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = "\uD83D\uDD25 $streak",
+                            style = TextStyle(
+                                color = ColorProvider(Color(0xFFFF9F0A)),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
 
-                // Grid: 7 rows × 8 cols
+            Spacer(GlanceModifier.height(6.dp))
+
+            // ── Body: grid + stats side by side ──
+            Row(modifier = GlanceModifier.fillMaxWidth()) {
+                // Grid: 7 rows x 8 cols
                 Column {
                     for (dayIndex in 0 until 7) {
                         Row {
@@ -120,7 +148,7 @@ internal fun MiniHeatmapContent() {
                                 Box(
                                     modifier = GlanceModifier
                                         .size(MINI_CELL_DP.dp)
-                                        .padding(MINI_PADDING.dp)
+                                        .padding(1.dp)
                                         .background(cellColor)
                                         .cornerRadius(2.dp),
                                 ) {}
@@ -128,73 +156,120 @@ internal fun MiniHeatmapContent() {
                         }
                     }
                 }
-            }
 
-            Spacer(GlanceModifier.width(8.dp))
+                Spacer(GlanceModifier.width(10.dp))
 
-            // ── Right: stats column ───────────────────────────────────────────
-            Column(
-                modifier = GlanceModifier
-                    .defaultWeight()
-                    .fillMaxHeight(),
-            ) {
-                StatRow(label = "🔥", value = "$streak day streak", color = Color(0xFFFFB74D))
-                Spacer(GlanceModifier.height(3.dp))
-                StatRow(label = "⭐", value = "Best $best", color = Color(0xFF9E9E9E))
-                Spacer(GlanceModifier.height(3.dp))
-                StatRow(label = "📊", value = "${(rate * 100).toInt()}% this month", color = Color(0xFF9E9E9E))
-                Spacer(GlanceModifier.height(3.dp))
-                StatRow(
-                    label = trendArrow,
-                    value = "${kotlin.math.abs(trend).toInt()}% vs prev month",
-                    color = trendColor,
-                )
-
-                Spacer(GlanceModifier.height(4.dp))
-
-                // Quick-log button (binary habits only)
-                if (isBinary) {
-                    Box(
-                        modifier = GlanceModifier
-                            .fillMaxWidth()
-                            .height(20.dp)
-                            .background(habitColor.copy(alpha = 0.22f))
-                            .cornerRadius(10.dp)
-                            .clickable(
-                                actionSendBroadcast(
-                                    Intent(QuickCheckReceiver.ACTION_QUICK_CHECK).apply {
-                                        setPackage(context.packageName)
-                                        putExtra(QuickCheckReceiver.EXTRA_HABIT_ID, habitId)
-                                        putExtra(QuickCheckReceiver.EXTRA_DATE, today.toString())
-                                    }
-                                )
-                            ),
-                        contentAlignment = Alignment.Center,
+                // Stats column
+                Column(
+                    modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+                ) {
+                    // Streak + Best row
+                    Row(
+                        modifier = GlanceModifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
                     ) {
+                        Column {
+                            Text(
+                                text = "STREAK",
+                                style = TextStyle(color = ColorProvider(HeatmapMuted), fontSize = 7.sp),
+                            )
+                            Text(
+                                text = "$streak",
+                                style = TextStyle(
+                                    color = ColorProvider(Color.White),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                            )
+                        }
+                        Spacer(GlanceModifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = "BEST",
+                                style = TextStyle(color = ColorProvider(HeatmapMuted), fontSize = 7.sp),
+                            )
+                            Text(
+                                text = "$best",
+                                style = TextStyle(
+                                    color = ColorProvider(Color(0xFFFFD60A)),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                            )
+                        }
+                    }
+
+                    Spacer(GlanceModifier.height(4.dp))
+
+                    // Completion rate
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text  = "✓ Log today",
+                            text = "${(rate * 100).toInt()}%",
                             style = TextStyle(
-                                color      = ColorProvider(habitColor),
-                                fontSize   = 9.sp,
+                                color = ColorProvider(habitColor),
+                                fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
                             ),
                         )
+                        Spacer(GlanceModifier.width(4.dp))
+                        Text(
+                            text = "rate",
+                            style = TextStyle(color = ColorProvider(HeatmapMuted), fontSize = 9.sp),
+                        )
+                    }
+
+                    Spacer(GlanceModifier.height(2.dp))
+
+                    // Trend
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "$trendArrow ${kotlin.math.abs(trend).toInt()}%",
+                            style = TextStyle(
+                                color = ColorProvider(trendColor),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                        Spacer(GlanceModifier.width(3.dp))
+                        Text(
+                            text = "vs last",
+                            style = TextStyle(color = ColorProvider(HeatmapMuted), fontSize = 8.sp),
+                        )
+                    }
+
+                    Spacer(GlanceModifier.defaultWeight())
+
+                    // Quick-log button
+                    if (isBinary) {
+                        Box(
+                            modifier = GlanceModifier
+                                .fillMaxWidth()
+                                .height(22.dp)
+                                .background(habitColor.copy(alpha = 0.18f))
+                                .cornerRadius(11.dp)
+                                .clickable(
+                                    actionSendBroadcast(
+                                        Intent(QuickCheckReceiver.ACTION_QUICK_CHECK).apply {
+                                            setPackage(context.packageName)
+                                            putExtra(QuickCheckReceiver.EXTRA_HABIT_ID, habitId)
+                                            putExtra(QuickCheckReceiver.EXTRA_DATE, today.toString())
+                                        }
+                                    )
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "\u2713 Log",
+                                style = TextStyle(
+                                    color = ColorProvider(habitColor),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                            )
+                        }
                     }
                 }
             }
         }
-    }
-}
-
-@androidx.compose.runtime.Composable
-private fun StatRow(label: String, value: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = label, style = TextStyle(fontSize = 9.sp))
-        Spacer(GlanceModifier.width(3.dp))
-        Text(
-            text  = value,
-            style = TextStyle(color = ColorProvider(color), fontSize = 9.sp),
-            maxLines = 1,
-        )
     }
 }

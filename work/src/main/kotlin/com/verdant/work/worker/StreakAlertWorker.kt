@@ -101,7 +101,6 @@ class StreakAlertWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
      * Returns true when [hour] falls inside the quiet window.

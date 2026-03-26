@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Bell
+import compose.icons.tablericons.Wallet
+import compose.icons.tablericons.Wand
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.Download
 import compose.icons.tablericons.InfoCircle
@@ -41,10 +43,12 @@ import compose.icons.tablericons.User
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -74,8 +78,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdant.core.ai.mediapipe.ModelDownloadState
 import com.verdant.core.datastore.NudgeTone
 import com.verdant.core.designsystem.theme.ThemeMode
+import kotlin.math.roundToInt
 
 // Preset accent colors
 private val accentColors = listOf(
@@ -115,6 +121,13 @@ fun SettingsScreen(
         }
     }
 
+    // SMS permission request
+    val smsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        viewModel.setSmsPermissionGranted(granted)
+    }
+
     // Snackbar
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let {
@@ -150,6 +163,29 @@ fun SettingsScreen(
         uri?.let { viewModel.importCsv(it) }
     }
 
+    if (uiState.showDeleteFinanceDataDialog) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDeleteFinanceDataDialog,
+            title = { Text("Delete finance data?") },
+            text = {
+                Text("This will permanently delete all transactions and finance history. Your habits and other data will not be affected.")
+            },
+            confirmButton = {
+                Button(
+                    onClick = viewModel::deleteFinanceData,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                    ),
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissDeleteFinanceDataDialog) {
+                    Text("Cancel")
+                }
+            },
+        )
+    }
+
     if (uiState.showDeleteConfirmDialog) {
         DeleteAllDataDialog(
             onConfirm = {
@@ -178,9 +214,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-        ) {
-            // ── Account ───────────────────────────────────────────────────────
-            item { SectionHeader("Account", TablerIcons.User) }
+        ) {            item { SectionHeader("Account", TablerIcons.User) }
 
             item {
                 SettingsGroup {
@@ -255,8 +289,6 @@ fun SettingsScreen(
             }
 
             item { Spacer(Modifier.height(16.dp)) }
-
-            // ── Appearance ────────────────────────────────────────────────────
             item { SectionHeader("Appearance", TablerIcons.Settings) }
 
             item {
@@ -279,8 +311,6 @@ fun SettingsScreen(
             }
 
             item { Spacer(Modifier.height(16.dp)) }
-
-            // ── Notifications ─────────────────────────────────────────────────
             item { SectionHeader("Notifications", TablerIcons.Bell) }
 
             item {
@@ -343,8 +373,6 @@ fun SettingsScreen(
             }
 
             item { Spacer(Modifier.height(16.dp)) }
-
-            // ── Data & Privacy ────────────────────────────────────────────────
             item { SectionHeader("Data & Privacy", TablerIcons.ShieldLock) }
 
             item {
@@ -461,8 +489,114 @@ fun SettingsScreen(
             }
 
             item { Spacer(Modifier.height(16.dp)) }
+            item { SectionHeader("Finance", TablerIcons.Wallet) }
 
-            // ── About ─────────────────────────────────────────────────────────
+            item {
+                SettingsGroup {
+                    // SMS access toggle
+                    SwitchRow(
+                        title = "SMS access",
+                        subtitle = if (uiState.smsPermissionGranted)
+                            "Reading bank SMS for transaction tracking"
+                        else
+                            "Grant permission to auto-detect transactions from bank SMS",
+                        checked = uiState.smsPermissionGranted,
+                        onCheckedChange = { enabled ->
+                            if (enabled) {
+                                smsPermissionLauncher.launch(android.Manifest.permission.READ_SMS)
+                            } else {
+                                viewModel.setSmsPermissionGranted(false)
+                            }
+                        },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Finance alerts
+                    SwitchRow(
+                        title = "Spending alerts",
+                        subtitle = "Get notified about unusual spending patterns",
+                        checked = uiState.financeAlertsEnabled,
+                        onCheckedChange = viewModel::setFinanceAlertsEnabled,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Monthly report
+                    SwitchRow(
+                        title = "Monthly report",
+                        subtitle = "Receive an AI-generated spending report each month",
+                        checked = uiState.monthlyReportEnabled,
+                        onCheckedChange = viewModel::setMonthlyReportEnabled,
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Finance data sharing
+                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        SwitchRow(
+                            title = "Share finance data with AI",
+                            subtitle = null,
+                            checked = uiState.financeDataSharing,
+                            onCheckedChange = viewModel::setFinanceDataSharing,
+                        )
+                        if (uiState.financeDataSharing) {
+                            Text(
+                                text = "When enabled, aggregated spending categories and amounts are sent to our AI for predictions and insights. Raw SMS text is never shared.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                            )
+                        }
+                    }
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Delete finance data
+                    ListItem(
+                        headlineContent = {
+                            Text(
+                                "Delete finance data",
+                                color = MaterialTheme.colorScheme.error,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                "Remove all transactions and finance history",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        trailingContent = {
+                            Button(
+                                onClick = viewModel::showDeleteFinanceDataDialog,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer,
+                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                ),
+                            ) {
+                                Icon(TablerIcons.Trash, contentDescription = null)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Delete")
+                            }
+                        },
+                        leadingContent = {
+                            Icon(
+                                TablerIcons.Trash,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                    )
+                }
+            }
+
+            item { Spacer(Modifier.height(16.dp)) }
+            item { SectionHeader("AI Model", TablerIcons.Wand) }
+
+            item {
+                SettingsGroup {
+                    AiModelSection(
+                        state = uiState.modelDownloadState,
+                        onDownload = viewModel::downloadAiModel,
+                        onDelete = viewModel::deleteAiModel,
+                    )
+                }
+            }
+
+            item { Spacer(Modifier.height(16.dp)) }
             item { SectionHeader("About", TablerIcons.InfoCircle) }
 
             item {
@@ -553,9 +687,6 @@ fun SettingsScreen(
         }
     }
 }
-
-// ── Section components ────────────────────────────────────────────────────────
-
 @Composable
 private fun SectionHeader(title: String, icon: ImageVector) {
     Row(
@@ -588,6 +719,135 @@ private fun SettingsGroup(content: @Composable () -> Unit) {
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
     ) {
         content()
+    }
+}
+
+@Composable
+private fun AiModelSection(
+    state: ModelDownloadState,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    when (state) {
+        is ModelDownloadState.Unsupported -> {
+            ListItem(
+                headlineContent = { Text("On-device AI") },
+                supportingContent = {
+                    Text("Device not supported (6 GB+ RAM required)")
+                },
+                leadingContent = {
+                    Icon(TablerIcons.Wand, contentDescription = null)
+                },
+            )
+        }
+
+        is ModelDownloadState.NotDownloaded -> {
+            ListItem(
+                headlineContent = { Text("On-device AI") },
+                supportingContent = {
+                    Text("Download Gemma 2B for offline AI features (~1.2 GB)")
+                },
+                leadingContent = {
+                    Icon(TablerIcons.Wand, contentDescription = null)
+                },
+                trailingContent = {
+                    FilledTonalButton(onClick = onDownload) {
+                        Icon(
+                            TablerIcons.Download,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("Download")
+                    }
+                },
+            )
+        }
+
+        is ModelDownloadState.Downloading -> {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Downloading AI model...", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "${(state.progress * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { state.progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        }
+
+        is ModelDownloadState.Downloaded, is ModelDownloadState.Loading -> {
+            ListItem(
+                headlineContent = { Text("On-device AI") },
+                supportingContent = {
+                    Text(
+                        if (state is ModelDownloadState.Loading) "Loading model..."
+                        else "Model downloaded (1.2 GB on device)"
+                    )
+                },
+                leadingContent = {
+                    if (state is ModelDownloadState.Loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                },
+                trailingContent = {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        enabled = state !is ModelDownloadState.Loading,
+                    ) {
+                        Icon(TablerIcons.Trash, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Delete")
+                    }
+                },
+            )
+        }
+
+        is ModelDownloadState.Ready -> {
+            ListItem(
+                headlineContent = { Text("On-device AI") },
+                supportingContent = { Text("Model ready (1.2 GB on device)") },
+                leadingContent = {
+                    Icon(TablerIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                },
+                trailingContent = {
+                    OutlinedButton(onClick = onDelete) {
+                        Icon(TablerIcons.Trash, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Delete")
+                    }
+                },
+            )
+        }
+
+        is ModelDownloadState.Error -> {
+            ListItem(
+                headlineContent = { Text("On-device AI") },
+                supportingContent = {
+                    Text(state.message, color = MaterialTheme.colorScheme.error)
+                },
+                leadingContent = {
+                    Icon(TablerIcons.Wand, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                },
+                trailingContent = {
+                    FilledTonalButton(onClick = onDownload) {
+                        Text("Retry")
+                    }
+                },
+            )
+        }
     }
 }
 
@@ -886,9 +1146,6 @@ private fun WeeklySummaryRow(
         )
     }
 }
-
-// ── Dialogs ───────────────────────────────────────────────────────────────────
-
 @Composable
 private fun HourPickerDialog(
     title: String,
@@ -976,9 +1233,6 @@ private fun DeleteAllDataDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 private fun formatHour(hour: Int): String {
     val h = hour % 12
     val display = if (h == 0) 12 else h

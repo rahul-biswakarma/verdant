@@ -2,10 +2,12 @@ package com.verdant.feature.habits.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.common.DayCellBuilder
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.repository.LabelRepository
 import com.verdant.core.database.usecase.CalculateStreakUseCase
+import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.Label
@@ -24,6 +26,7 @@ data class HabitsListUiState(
     val habits: List<Habit> = emptyList(),
     val todayEntries: Map<String, HabitEntry> = emptyMap(),
     val streaks: Map<String, Int> = emptyMap(),
+    val recentCells: Map<String, List<DayCell>> = emptyMap(),
     val labels: List<Label> = emptyList(),
     val selectedLabel: String? = null,
     val isLoading: Boolean = true,
@@ -42,19 +45,30 @@ class HabitsListViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val today = LocalDate.now()
+    private val gridStart = today.minusWeeks(4)
     private val _selectedLabel = MutableStateFlow<String?>(null)
     private val _streaks = MutableStateFlow<Map<String, Int>>(emptyMap())
 
     val uiState: StateFlow<HabitsListUiState> = combine(
         habitRepository.observeActiveHabits(),
-        entryRepository.observeAllEntries(today, today),
+        entryRepository.observeAllEntries(gridStart, today),
         labelRepository.observeAll(),
         _selectedLabel,
         _streaks,
     ) { habits, entries, labels, selected, streaks ->
+        val todayEntries = entries.filter { it.date == today }.associateBy { it.habitId }
+        val entriesByHabit = entries.groupBy { it.habitId }
+        val recentCells = habits.associate { habit ->
+            habit.id to DayCellBuilder.buildCells(
+                entries = entriesByHabit[habit.id] ?: emptyList(),
+                start = gridStart,
+                end = today,
+            )
+        }
         HabitsListUiState(
             habits = habits,
-            todayEntries = entries.associateBy { it.habitId },
+            todayEntries = todayEntries,
+            recentCells = recentCells,
             labels = labels,
             selectedLabel = selected,
             streaks = streaks,

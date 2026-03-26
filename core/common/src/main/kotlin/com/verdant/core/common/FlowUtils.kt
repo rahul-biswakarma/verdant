@@ -21,3 +21,20 @@ inline fun <T1, T2, T3, T4, T5, T6, R> combine(
 ) { (a, b, c), (d, e, f) ->
     transform(a, b, c, d, e, f)
 }
+
+inline fun <T1, T2, T3, T4, T5, T6, T7, R> combine(
+    flow1: Flow<T1>,
+    flow2: Flow<T2>,
+    flow3: Flow<T3>,
+    flow4: Flow<T4>,
+    flow5: Flow<T5>,
+    flow6: Flow<T6>,
+    flow7: Flow<T7>,
+    crossinline transform: suspend (T1, T2, T3, T4, T5, T6, T7) -> R,
+): Flow<R> = combine5(
+    combine5(flow1, flow2, flow3) { a, b, c -> Triple(a, b, c) },
+    combine5(flow4, flow5) { d, e -> Pair(d, e) },
+    combine5(flow6, flow7) { f, g -> Pair(f, g) },
+) { (a, b, c), (d, e), (f, g) ->
+    transform(a, b, c, d, e, f, g)
+}

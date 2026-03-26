@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
 }
@@ -17,19 +16,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 }
 
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:network"))
     implementation(project(":core:common"))
+    implementation(project(":core:datastore"))
 
     implementation(libs.retrofit)
-    implementation(libs.mlkit.genai.prompt)
+    implementation(libs.okhttp)
+    implementation(libs.mediapipe.llm)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
 

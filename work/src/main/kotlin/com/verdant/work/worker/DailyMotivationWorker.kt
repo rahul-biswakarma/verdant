@@ -107,7 +107,6 @@ class DailyMotivationWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private suspend fun calculateWeekCompletion(habitIds: List<String>, today: LocalDate): Float {
         if (habitIds.isEmpty()) return 0f

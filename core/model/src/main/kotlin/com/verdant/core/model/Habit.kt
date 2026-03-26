@@ -17,6 +17,7 @@ data class Habit(
     val reminderEnabled: Boolean,
     val reminderTime: String?,
     val reminderDays: Int,
+    val visualizationType: VisualizationType = VisualizationType.CONTRIBUTION_GRID,
     val sortOrder: Int,
     val createdAt: Long,
 )

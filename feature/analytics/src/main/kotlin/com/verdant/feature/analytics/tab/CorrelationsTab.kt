@@ -53,8 +53,6 @@ fun CorrelationsTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-
-        // ── Header card ───────────────────────────────────────────────────────
         SectionCard(title = "Habit Correlations") {
             Text(
                 text  = "Discover which of your habits tend to be done together, " +
@@ -64,8 +62,6 @@ fun CorrelationsTab(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-
-        // ── Content by state ─────────────────────────────────────────────────
         when (state) {
             is CorrelationsState.Idle -> {
                 Column(

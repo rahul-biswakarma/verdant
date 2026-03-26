@@ -119,9 +119,6 @@ private fun resolveCellColor(
     habitColor == MutedSage -> gridCellColor(intensity, isDark)
     else -> lerp(emptyColor, habitColor, intensity.coerceIn(0f, 1f))
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 private fun previewCells(weeks: Int): List<DayCell> {
     val today = LocalDate.now()
     return (0 until weeks * 7).map { i ->

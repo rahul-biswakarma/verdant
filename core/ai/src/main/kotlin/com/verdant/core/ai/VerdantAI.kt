@@ -5,16 +5,13 @@ import com.verdant.core.model.ChatMessage
 import com.verdant.core.model.Habit
 import kotlinx.coroutines.flow.Flow
 
-// ── Supporting types ─────────────────────────────────────────────────────────
-
 /**
- * Availability status of the on-device Gemini Nano model.
+ * Availability status of the on-device AI model (MediaPipe LLM / Gemma 2B).
  *
- * Maps directly to ML Kit GenAI FeatureStatus values:
  *   AVAILABLE     – model is downloaded and ready for inference
  *   DOWNLOADING   – model download is currently in progress
  *   DOWNLOADABLE  – device is supported; model can be downloaded
- *   UNAVAILABLE   – device is not supported or library is absent
+ *   UNAVAILABLE   – device is not supported (< 6 GB RAM) or model load failed
  */
 enum class AIAvailability { AVAILABLE, DOWNLOADING, DOWNLOADABLE, UNAVAILABLE }
 
@@ -48,24 +45,22 @@ data class NudgeContext(
     val currentTime: String,
 )
 
-// ── Interface ────────────────────────────────────────────────────────────────
-
 /**
  * Central AI abstraction for Verdant.
  *
  * ## Implementations
  * | Class              | Backend                 | When used                      |
  * |--------------------|-------------------------|--------------------------------|
- * | [GeminiNanoAI]     | ML Kit on-device model  | Fast / offline operations      |
+ * | [MediaPipeAI]      | MediaPipe LLM (Gemma 2B)| Fast / offline operations      |
  * | [FallbackAI]       | Curated templates       | No model available             |
  * | [CloudAI]          | Claude via Firebase Fn  | Deep analysis, reports, chat   |
  * | [VerdantAIRouter]  | Routes between all three| Single injected entry-point    |
  *
  * ## Routing contract (enforced in [VerdantAIRouter])
  * - **On-device** (`parseHabitDescription`, `generateNudge`, `generateMilestoneMessage`):
- *   Gemini Nano → FallbackAI. Never requires internet.
+ *   MediaPipeAI → FallbackAI. Never requires internet.
  * - **Dual-path** (`generateMotivation`):
- *   Gemini Nano runs immediately; Claude runs concurrently if online.
+ *   MediaPipe runs immediately; Claude runs concurrently if online.
  *   The richer (longer) result is returned within a short timeout.
  * - **Cloud-only** (everything below the separator):
  *   Always routed to [CloudAI]. If offline, throws [AIFeatureUnavailableException]
@@ -74,8 +69,6 @@ data class NudgeContext(
  * All suspend functions are safe to call from any coroutine dispatcher.
  */
 interface VerdantAI {
-
-    // ── On-device methods ─────────────────────────────────────────────────────
 
     /**
      * Parses a free-form habit description into a [ParsedHabit] suitable for
@@ -108,10 +101,6 @@ interface VerdantAI {
      * Callers can use this to show a model-download progress indicator.
      */
     fun isOnDeviceAvailable(): Flow<AIAvailability>
-
-    // ── Cloud-only methods (require internet) ─────────────────────────────────
-    // Default implementations throw [AIFeatureUnavailableException] so that
-    // GeminiNanoAI / FallbackAI do not need to override them.
 
     /**
      * Generates an enhanced motivational message via Claude.
@@ -165,4 +154,40 @@ interface VerdantAI {
         messages: List<ChatMessage>,
         habitData: HabitSummary,
     ): String = throw AIFeatureUnavailableException.noNetwork()
+
+    // ── Finance AI methods ──────────────────────────────────────
+
+    /**
+     * Categorizes a transaction based on merchant name and SMS context.
+     * On-device by default; falls back to keyword rules.
+     */
+    suspend fun categorizeTransaction(
+        merchant: String,
+        amount: Double,
+        smsSnippet: String,
+    ): String = "OTHER"
+
+    /**
+     * Predicts next month's spending using historical data via Cloud AI.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun predictMonthlySpending(history: FinanceHistory): com.verdant.core.model.MonthlyPrediction =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates an AI insight about spending patterns via Cloud AI.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateSpendingInsight(data: SpendingSummaryData): String =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates a cross-product dashboard insight combining habits + finance via Cloud AI.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateDashboardInsight(context: DashboardContext): String =
+        throw AIFeatureUnavailableException.noNetwork()
 }

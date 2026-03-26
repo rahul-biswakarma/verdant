@@ -1,53 +1,20 @@
 package com.verdant.feature.insights
 
 import com.verdant.core.model.AIInsight
+import com.verdant.core.model.ChatState
 import com.verdant.core.model.InsightType
-
-// ── Tab enum ─────────────────────────────────────────────────────────────────
 
 enum class InsightsTab(val label: String) {
     FEED("Feed"),
     COACH("Coach"),
 }
-
-// ── Top-level state ───────────────────────────────────────────────────────────
-
 data class InsightsUiState(
     val selectedTab: InsightsTab = InsightsTab.FEED,
     val feed: FeedState = FeedState(),
     val chat: ChatState = ChatState(),
 )
-
-// ── Insights feed ─────────────────────────────────────────────────────────────
-
 data class FeedState(
     val isLoading: Boolean = true,
     val insights: List<AIInsight> = emptyList(),
     val isEmpty: Boolean = false,
-)
-
-// ── Coach chat ────────────────────────────────────────────────────────────────
-
-/**
- * A single message in the coach conversation.
- *
- * [role] is one of "user" or "assistant" — mirrors [ChatMessage.role].
- * [isStreaming] is true while the assistant is still generating its reply
- * (shows a typing indicator on the last message).
- */
-data class ChatBubble(
-    val id: String,
-    val role: String,       // "user" | "assistant"
-    val content: String,
-    val timestamp: Long,
-    val isStreaming: Boolean = false,
-    val isError: Boolean = false,
-)
-
-data class ChatState(
-    val messages: List<ChatBubble> = emptyList(),
-    val inputText: String = "",
-    val isSending: Boolean = false,
-    /** Shown below the input bar when a network/rate error occurs. */
-    val sendError: String? = null,
 )

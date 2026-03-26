@@ -3,7 +3,7 @@ package com.verdant.widget
 import androidx.compose.ui.graphics.Color
 
 /** Empty-cell color in the grid (matches a dark neutral). */
-internal val CellEmptyColor = Color(0xFF2D3339)
+internal val CellEmptyColor = Color(0xFF2C2C2E)
 
 /**
  * Maps [intensity] ∈ [0,1] to a visual color derived from [baseColor].
@@ -25,9 +25,6 @@ fun intensityColor(baseColor: Color, intensity: Float): Color = when {
     intensity <= 0.75f -> baseColor.copy(alpha = 0.76f)
     else               -> baseColor
 }
-
-// ── JSON helpers ─────────────────────────────────────────────────────────────
-
 /**
  * Serialise a (date → intensity) map to the compact JSON the widget reads.
  * Format: [{"d":"2024-01-15","i":0.75}, ...]

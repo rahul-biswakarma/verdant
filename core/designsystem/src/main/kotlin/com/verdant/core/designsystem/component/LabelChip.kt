@@ -56,9 +56,6 @@ fun LabelChip(
         }
     }
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 private val previewLabels = listOf(
     Label(id = "1", name = "Health", color = 0xFF4CAF50),
     Label(id = "2", name = "Work",   color = 0xFF2196F3),

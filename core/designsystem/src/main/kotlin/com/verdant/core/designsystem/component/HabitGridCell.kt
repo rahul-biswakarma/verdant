@@ -50,9 +50,6 @@ fun HabitGridCell(
             ),
     )
 }
-
-// ── Previews ─────────────────────────────────────────────────────────────────
-
 @Preview(name = "Grid cells – light", showBackground = true, backgroundColor = 0xFFF5F0EB)
 @Composable
 private fun HabitGridCellLightPreview() {

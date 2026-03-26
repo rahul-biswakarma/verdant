@@ -3,6 +3,7 @@ package com.verdant.feature.habits.create
 import com.verdant.core.ai.habit.ParsedHabit
 import com.verdant.core.model.HabitFrequency
 import com.verdant.core.model.TrackingType
+import com.verdant.core.model.VisualizationType
 
 /**
  * Mutable working copy of a habit being created.
@@ -25,6 +26,7 @@ data class HabitDraft(
     val reminderTimes: List<String> = listOf("08:00"),
     val reminderDays: Int = 0x7F,
     val streakGoal: Int? = null,
+    val visualizationType: VisualizationType = VisualizationType.CONTRIBUTION_GRID,
 ) {
     /** Joined reminder times for storage in the Habit model. */
     val reminderTimeJoined: String get() = reminderTimes.joinToString(",")

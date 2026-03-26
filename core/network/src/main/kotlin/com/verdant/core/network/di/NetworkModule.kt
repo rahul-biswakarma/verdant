@@ -16,7 +16,6 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
-// ── Qualifiers ────────────────────────────────────────────────────────────────
 
 /** Tags the Retrofit instance / OkHttpClient that targets the Anthropic API directly. */
 @Qualifier
@@ -34,19 +33,16 @@ annotation class AnthropicRetrofit
 @Retention(AnnotationRetention.BINARY)
 annotation class FirebaseFunctionsRetrofit
 
-// ── Module ────────────────────────────────────────────────────────────────────
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    // TODO: Replace with your deployed Firebase Functions URL before release.
     private const val FIREBASE_FUNCTIONS_BASE_URL =
         "https://us-central1-verdant-app.cloudfunctions.net/"
 
     private const val ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/"
 
-    // ── Shared ────────────────────────────────────────────────────────────────
 
     @Provides
     @Singleton
@@ -56,7 +52,6 @@ object NetworkModule {
         explicitNulls = false
     }
 
-    // ── Anthropic (direct API, API-key auth) ──────────────────────────────────
 
     @Provides
     @Singleton
@@ -81,14 +76,12 @@ object NetworkModule {
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
 
-    /** Legacy direct Claude client kept for optional internal use. */
     @Provides
     @Singleton
     fun provideClaudeApiService(
         @AnthropicRetrofit retrofit: Retrofit,
     ): ClaudeApiService = retrofit.create(ClaudeApiService::class.java)
 
-    // ── Firebase Functions (proxy, Firebase Auth token auth) ──────────────────
 
     @Provides
     @Singleton

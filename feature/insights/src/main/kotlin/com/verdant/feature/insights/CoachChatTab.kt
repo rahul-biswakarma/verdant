@@ -54,6 +54,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import com.verdant.core.model.ChatBubble
+import com.verdant.core.model.ChatState
 
 @Composable
 fun CoachChatTab(
@@ -78,8 +80,6 @@ fun CoachChatTab(
             .fillMaxSize()
             .imePadding(),
     ) {
-
-        // ── Message list ──────────────────────────────────────────────────────
         Box(modifier = Modifier.weight(1f)) {
             if (state.messages.isEmpty()) {
                 CoachEmptyState(modifier = Modifier.fillMaxSize())
@@ -125,8 +125,6 @@ fun CoachChatTab(
                 }
             }
         }
-
-        // ── Input bar ─────────────────────────────────────────────────────────
         Surface(
             tonalElevation = 3.dp,
             color          = MaterialTheme.colorScheme.surface,
@@ -180,9 +178,6 @@ fun CoachChatTab(
         }
     }
 }
-
-// ── Individual bubble ──────────────────────────────────────────────────────────
-
 @Composable
 private fun ChatBubbleItem(
     bubble: ChatBubble,
@@ -251,9 +246,6 @@ private fun ChatBubbleItem(
         }
     }
 }
-
-// ── Assistant avatar ───────────────────────────────────────────────────────────
-
 @Composable
 private fun AssistantAvatar(modifier: Modifier = Modifier) {
     Box(
@@ -271,9 +263,6 @@ private fun AssistantAvatar(modifier: Modifier = Modifier) {
         )
     }
 }
-
-// ── Typing indicator (three pulsing dots) ─────────────────────────────────────
-
 @Composable
 private fun TypingIndicator(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
@@ -323,9 +312,6 @@ private fun TypingIndicator(modifier: Modifier = Modifier) {
         }
     }
 }
-
-// ── Error bubble content ───────────────────────────────────────────────────────
-
 @Composable
 private fun ErrorBubbleContent(
     message: String,
@@ -351,9 +337,6 @@ private fun ErrorBubbleContent(
         }
     }
 }
-
-// ── Empty state ────────────────────────────────────────────────────────────────
-
 @Composable
 private fun CoachEmptyState(modifier: Modifier = Modifier) {
     Box(

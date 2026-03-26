@@ -1,7 +1,7 @@
 package com.verdant.core.ai
 
 /**
- * Routes AI requests between on-device (Gemini Nano via ML Kit GenAI)
+ * Routes AI requests between on-device (MediaPipe LLM Inference)
  * and cloud (Claude API) based on task complexity and connectivity.
  */
 interface AiRouter {
