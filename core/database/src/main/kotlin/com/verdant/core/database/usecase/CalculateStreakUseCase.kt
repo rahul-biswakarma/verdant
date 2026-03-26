@@ -56,6 +56,10 @@ class CalculateStreakUseCase @Inject constructor(
     suspend fun currentStreaks(habitIds: List<String>): Map<String, Int> =
         habitIds.associateWith { currentStreak(it) }
 
+    /** Returns a map of habitId → 30-day completion rate (0..1) for a list of habits. */
+    suspend fun consistencyRates(habitIds: List<String>): Map<String, Float> =
+        habitIds.associateWith { completionRate(it) }
+
     /** Completion rate for the last [days] days (0..1). */
     suspend fun completionRate(habitId: String, days: Int = 30): Float {
         val today = LocalDate.now()

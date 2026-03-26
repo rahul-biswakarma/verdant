@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import com.verdant.core.database.VerdantDatabase
 import com.verdant.core.database.dao.AIInsightDao
-import com.verdant.core.database.migration.MIGRATION_1_2
 import com.verdant.core.database.dao.HabitDao
 import com.verdant.core.database.dao.HabitEntryDao
 import com.verdant.core.database.dao.LabelDao
@@ -27,7 +26,7 @@ object DatabaseModule {
         context,
         VerdantDatabase::class.java,
         "verdant.db",
-    ).addMigrations(MIGRATION_1_2).build()
+    ).addMigrations(VerdantDatabase.MIGRATION_1_2).build()
 
     @Provides
     fun provideHabitDao(db: VerdantDatabase): HabitDao = db.habitDao()

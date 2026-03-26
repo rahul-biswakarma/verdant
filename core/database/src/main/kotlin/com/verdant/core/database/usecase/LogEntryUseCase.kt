@@ -110,13 +110,43 @@ class LogEntryUseCase @Inject constructor(
         )
     }
 
-    /** Mark an entry as intentionally skipped. */
+    /** Mark an entry as intentionally skipped (no reason data). */
     suspend fun skip(habitId: String, date: LocalDate) {
         val now = System.currentTimeMillis()
         val existing = entryRepository.getByHabitAndDate(habitId, date)
         entryRepository.upsert(
             existing?.copy(skipped = true, completed = false, updatedAt = now)
                 ?: newEntry(habitId, date, now).copy(skipped = true),
+        )
+    }
+
+    /** Mark an entry as skipped and save the reason, stress level, energy level, and optional note. */
+    suspend fun skipWithReason(
+        habitId: String,
+        date: LocalDate,
+        missedReason: String?,
+        stressLevel: Int?,
+        energyLevel: Int?,
+        note: String?,
+    ) {
+        val now = System.currentTimeMillis()
+        val existing = entryRepository.getByHabitAndDate(habitId, date)
+        entryRepository.upsert(
+            existing?.copy(
+                skipped = true,
+                completed = false,
+                missedReason = missedReason,
+                stressLevel = stressLevel,
+                energyLevel = energyLevel,
+                note = note?.takeIf { it.isNotBlank() },
+                updatedAt = now,
+            ) ?: newEntry(habitId, date, now).copy(
+                skipped = true,
+                missedReason = missedReason,
+                stressLevel = stressLevel,
+                energyLevel = energyLevel,
+                note = note?.takeIf { it.isNotBlank() },
+            ),
         )
     }
 
@@ -134,6 +164,9 @@ class LogEntryUseCase @Inject constructor(
         note = null,
         category = null,
         skipped = false,
+        missedReason = null,
+        stressLevel = null,
+        energyLevel = null,
         createdAt = now,
         updatedAt = now,
     )
