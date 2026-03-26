@@ -8,12 +8,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,41 +22,42 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.MapPin
+import compose.icons.tablericons.Notes
 import compose.icons.tablericons.PlayerPause
 import compose.icons.tablericons.PlayerPlay
+import compose.icons.tablericons.Send
 import compose.icons.tablericons.Stars
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,18 +68,19 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdant.core.ai.BrainDumpAction
+import com.verdant.core.ai.BrainDumpResult
 import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.StreakBadge
 import com.verdant.core.model.TrackingType
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToHabitDetail: (String) -> Unit = {},
@@ -90,13 +89,13 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val brainDump by viewModel.brainDumpState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var customValueDialog by rememberSaveable { mutableStateOf<String?>(null) }
     var financialDialog by rememberSaveable { mutableStateOf<String?>(null) }
     var financialAmount by rememberSaveable { mutableStateOf("") }
     var financialCategory by rememberSaveable { mutableStateOf("") }
-    var skipDialogItem by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Pending location check-in item — set when user taps check-in without permission
     var pendingLocationItem by rememberSaveable { mutableStateOf<String?>(null) }
@@ -126,7 +125,6 @@ fun HomeScreen(
                         formattedDate = state.formattedDate,
                         completedCount = state.completedCount,
                         totalCount = state.totalCount,
-                        consistencyRate = state.consistencyRate,
                     )
                 }
 
@@ -134,6 +132,17 @@ fun HomeScreen(
                     AiInsightCard(
                         insightText = state.aiInsight,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                }
+
+                item {
+                    BrainDumpBar(
+                        input = brainDump.input,
+                        isLoading = brainDump.isLoading,
+                        error = brainDump.error,
+                        onInputChange = viewModel::onBrainDumpInputChange,
+                        onSubmit = viewModel::submitBrainDump,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -176,17 +185,14 @@ fun HomeScreen(
 
             items(state.todayItems, key = { it.habit.id }) { item ->
                 val cardMod = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
-                val onSkip = { skipDialogItem = item.habit.id }
                 when (item.habit.trackingType) {
                     TrackingType.BINARY -> BinaryHabitCard(
                         item = item, onToggle = { viewModel.toggleBinary(item) },
-                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.QUANTITATIVE -> QuantHabitCard(
                         item = item, onAdd = { viewModel.addQuantitative(item, it) },
                         onCustom = { customValueDialog = item.habit.id },
-                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.DURATION -> DurationHabitCard(
@@ -198,12 +204,10 @@ fun HomeScreen(
                             else viewModel.startTimer(item.habit.id)
                         },
                         onManual = { customValueDialog = item.habit.id },
-                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.FINANCIAL -> FinancialHabitCard(
                         item = item, onLogExpense = { financialDialog = item.habit.id },
-                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.LOCATION -> LocationHabitCard(
@@ -224,7 +228,6 @@ fun HomeScreen(
                                 )
                             }
                         },
-                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                 }
@@ -262,26 +265,14 @@ fun HomeScreen(
         }
     }
 
-    // Skip reason bottom sheet
-    val skipSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    if (skipDialogItem != null) {
-        val item = state.todayItems.find { it.habit.id == skipDialogItem }
-        if (item != null) {
-            ModalBottomSheet(
-                onDismissRequest = { skipDialogItem = null },
-                sheetState = skipSheetState,
-                dragHandle = { BottomSheetDefaults.DragHandle() },
-            ) {
-                SkipReasonSheet(
-                    habitName = item.habit.name,
-                    onSave = { reason, stress, energy, note ->
-                        viewModel.skipWithReason(item, reason, stress, energy, note)
-                        skipDialogItem = null
-                    },
-                    onDismiss = { skipDialogItem = null },
-                )
-            }
-        }
+    // Brain Dump result dialog
+    val brainDumpResults = brainDump.results
+    if (brainDumpResults != null) {
+        BrainDumpResultDialog(
+            results = brainDumpResults,
+            onConfirm = { confirmed -> viewModel.confirmBrainDump(confirmed) },
+            onDismiss = { viewModel.dismissBrainDump() },
+        )
     }
 
     // Financial dialog
@@ -323,6 +314,206 @@ fun HomeScreen(
     }
 }
 
+// ── Brain Dump ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrainDumpBar(
+    input: String,
+    isLoading: Boolean,
+    error: String?,
+    onInputChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(TablerIcons.Notes, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                Text(
+                    "Brain Dump",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = onInputChange,
+                    placeholder = { Text("What did you do today? Just type it out…", style = MaterialTheme.typography.bodySmall) },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(14.dp),
+                    maxLines = 3,
+                    textStyle = MaterialTheme.typography.bodySmall,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { onSubmit() }),
+                )
+                FilledIconButton(
+                    onClick = onSubmit,
+                    enabled = input.isNotBlank() && !isLoading,
+                    modifier = Modifier.size(44.dp),
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(TablerIcons.Send, "Submit brain dump", Modifier.size(18.dp))
+                    }
+                }
+            }
+            if (error != null) {
+                Text(
+                    error,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrainDumpResultDialog(
+    results: List<BrainDumpResult>,
+    onConfirm: (List<BrainDumpResult>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    // Local editable state — one entry per result
+    val included = remember(results) { List(results.size) { mutableStateOf(true) } }
+    val editedValues = remember(results) {
+        results.map { r -> mutableStateOf(r.value?.fmt() ?: "") }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "Logged ${results.size} habit${if (results.size == 1) "" else "s"}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    "Review what I found — uncheck anything that's wrong",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(2.dp))
+                results.forEachIndexed { index, result ->
+                    BrainDumpResultItem(
+                        result = result,
+                        isIncluded = included[index].value,
+                        editedValue = editedValues[index].value,
+                        onToggle = { included[index].value = !included[index].value },
+                        onValueChange = { editedValues[index].value = it },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val confirmed = results.filterIndexed { i, _ -> included[i].value }
+                    .map { result ->
+                        val idx = results.indexOf(result)
+                        val edited = editedValues[idx].value.toDoubleOrNull()
+                        if (result.action == BrainDumpAction.SET_VALUE && edited != null) {
+                            result.copy(value = edited)
+                        } else result
+                    }
+                onConfirm(confirmed)
+            }) { Text("Log it") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun BrainDumpResultItem(
+    result: BrainDumpResult,
+    isIncluded: Boolean,
+    editedValue: String,
+    onToggle: () -> Unit,
+    onValueChange: (String) -> Unit,
+) {
+    val habitColor = Color(result.habit.color)
+    ElevatedCard(
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.elevatedCardElevation(0.5.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Checkbox(checked = isIncluded, onCheckedChange = { onToggle() }, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier.size(36.dp).clip(CircleShape).background(habitColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) { Text(result.habit.icon.ifEmpty { "🌱" }, style = MaterialTheme.typography.bodyMedium) }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    result.habit.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                when (result.action) {
+                    BrainDumpAction.COMPLETE -> Text(
+                        "✓ Done",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    BrainDumpAction.SKIP -> Text(
+                        "Skipped${result.skipReason?.let { " — $it" } ?: ""}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    BrainDumpAction.SET_VALUE -> Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = editedValue,
+                            onValueChange = onValueChange,
+                            modifier = Modifier.width(72.dp).height(40.dp),
+                            textStyle = MaterialTheme.typography.labelSmall,
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            shape = RoundedCornerShape(8.dp),
+                        )
+                        result.habit.unit?.let { unit ->
+                            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } ?: run {
+                            if (result.habit.trackingType == TrackingType.DURATION) {
+                                Text("min", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ── Header ────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -331,11 +522,10 @@ private fun HomeHeader(
     formattedDate: String,
     completedCount: Int,
     totalCount: Int,
-    consistencyRate: Float,
     modifier: Modifier = Modifier,
 ) {
-    val animatedConsistency by animateFloatAsState(targetValue = consistencyRate, animationSpec = tween(600), label = "consistency")
-    val consistencyPct = (animatedConsistency * 100).toInt()
+    val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
+    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = tween(600), label = "progress")
 
     Box(
         modifier = modifier
@@ -364,32 +554,18 @@ private fun HomeHeader(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "$consistencyPct% consistent this month",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
                     text = "$completedCount / $totalCount done today",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
-            Box(contentAlignment = Alignment.Center) {
-                CompletionRing(
-                    progress = animatedConsistency,
-                    color = MaterialTheme.colorScheme.primary,
-                    size = 72.dp,
-                    strokeWidth = 6.dp,
-                )
-                Text(
-                    text = "$consistencyPct%",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                )
-            }
+            CompletionRing(
+                progress = animatedProgress,
+                color = MaterialTheme.colorScheme.primary,
+                size = 72.dp,
+                strokeWidth = 6.dp,
+            )
         }
     }
 }
@@ -433,7 +609,6 @@ private fun HabitCardShell(
     habitColor: Color,
     streak: Int,
     onTap: () -> Unit,
-    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
     actions: @Composable () -> Unit,
 ) {
@@ -451,13 +626,6 @@ private fun HabitCardShell(
                 StreakBadge(count = streak)
             }
             actions()
-            TextButton(
-                onClick = onSkip,
-                modifier = Modifier.align(Alignment.End),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            ) {
-                Text("Skip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
         }
     }
 }
@@ -465,14 +633,14 @@ private fun HabitCardShell(
 // ── Binary ────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val isCompleted = item.entry?.completed == true
     val animatedColor by animateColorAsState(
         targetValue = if (isCompleted) habitColor else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(300), label = "check_color",
     )
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         Button(
             onClick = onToggle, modifier = Modifier.fillMaxWidth().height(44.dp),
             colors = ButtonDefaults.buttonColors(
@@ -491,14 +659,14 @@ private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onSkip: 
 // ── Quantitative ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCustom: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCustom: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val current = item.entry?.value ?: 0.0
     val target = item.habit.targetValue
     val progress = if (target != null && target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f
     val unit = item.habit.unit?.let { " $it" } ?: ""
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${current.fmt()}$unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = habitColor)
@@ -525,13 +693,13 @@ private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCust
 // ── Duration ──────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elapsedSeconds: Int, onStartStop: () -> Unit, onManual: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elapsedSeconds: Int, onStartStop: () -> Unit, onManual: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val current = item.entry?.value ?: 0.0
     val target = item.habit.targetValue
     val progress = if (target != null && target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         if (target != null) {
             LinearProgressIndicator(
                 progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
@@ -568,14 +736,14 @@ private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elaps
 // ── Financial ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val spent = item.entry?.value ?: 0.0
     val budget = item.habit.targetValue
     val progress = if (budget != null && budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else 0f
     val overBudget = progress >= 1f
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         if (budget != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -598,11 +766,11 @@ private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, o
 // ── Location ──────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val checkedIn = item.entry?.completed == true
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             item.entry?.value?.let { Text("${it.fmt()} km today", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f)) } ?: Spacer(Modifier.weight(1f))
             Button(
@@ -651,122 +819,6 @@ private fun WelcomeEmptyState(onCreateHabit: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         ) {
             Text("Create your first habit", style = MaterialTheme.typography.titleMedium, color = Color.White)
-        }
-    }
-}
-
-// ── Skip Reason Bottom Sheet ──────────────────────────────────────────────────
-
-private val SKIP_REASONS = listOf("Too tired", "No time", "Forgot", "Sick", "Not a priority today", "Other")
-
-private val STRESS_EMOJIS = listOf("😌", "🙂", "😐", "😟", "😫")
-private val ENERGY_EMOJIS = listOf("🪫", "😴", "⚡", "🔋", "🚀")
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun SkipReasonSheet(
-    habitName: String,
-    onSave: (reason: String?, stress: Int?, energy: Int?, note: String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var selectedReason by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedStress by rememberSaveable { mutableIntStateOf(0) }  // 0 = none selected
-    var selectedEnergy by rememberSaveable { mutableIntStateOf(0) }
-    var noteText by rememberSaveable { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text("Why are you skipping?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(habitName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-
-        // Reason chips
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SKIP_REASONS.forEach { reason ->
-                FilterChip(
-                    selected = selectedReason == reason,
-                    onClick = { selectedReason = if (selectedReason == reason) null else reason },
-                    label = { Text(reason, style = MaterialTheme.typography.labelMedium) },
-                )
-            }
-        }
-
-        HorizontalDivider()
-
-        // Stress level
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Stress level (optional)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                STRESS_EMOJIS.forEachIndexed { index, emoji ->
-                    val level = index + 1
-                    val isSelected = selectedStress == level
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selectedStress = if (isSelected) 0 else level },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(emoji, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-            }
-        }
-
-        // Energy level
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Energy level (optional)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ENERGY_EMOJIS.forEachIndexed { index, emoji ->
-                    val level = index + 1
-                    val isSelected = selectedEnergy == level
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable { selectedEnergy = if (isSelected) 0 else level },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(emoji, style = MaterialTheme.typography.titleMedium)
-                    }
-                }
-            }
-        }
-
-        // Optional note
-        OutlinedTextField(
-            value = noteText,
-            onValueChange = { noteText = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Note (optional)") },
-            placeholder = { Text("What's going on?") },
-            maxLines = 3,
-            shape = RoundedCornerShape(12.dp),
-        )
-
-        // Buttons
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
-            Button(
-                onClick = {
-                    onSave(
-                        selectedReason,
-                        if (selectedStress > 0) selectedStress else null,
-                        if (selectedEnergy > 0) selectedEnergy else null,
-                        noteText.takeIf { it.isNotBlank() },
-                    )
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-            ) { Text("Skip habit") }
         }
     }
 }

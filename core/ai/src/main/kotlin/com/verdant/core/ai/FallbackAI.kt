@@ -3,6 +3,7 @@ package com.verdant.core.ai
 import com.verdant.core.ai.habit.FallbackHabitParser
 import com.verdant.core.ai.habit.ParsedHabit
 import com.verdant.core.model.Habit
+import com.verdant.core.model.TrackingType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
@@ -17,8 +18,54 @@ import kotlin.math.roundToInt
 class FallbackAI @Inject constructor(
     private val habitParser: FallbackHabitParser,
 ) : VerdantAI {
+
+    // ── Parsing ──────────────────────────────────────────────────────────────
+
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
+
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> {
+        val lower = text.lowercase()
+        val skipWords = listOf("skip", "skipped", "didn't", "didnt", "couldn't", "couldnt", "missed", "not ")
+        val results = mutableListOf<BrainDumpResult>()
+
+        for (habit in habits) {
+            val habitLower = habit.name.lowercase()
+            if (habitLower !in lower) continue
+
+            val idx = lower.indexOf(habitLower)
+            // Context window around the habit name for number/skip detection
+            val window = lower.substring(maxOf(0, idx - 40), minOf(lower.length, idx + habitLower.length + 40))
+
+            val isSkipped = skipWords.any { it in window }
+            if (isSkipped) {
+                // Extract a simple skip reason from the text after the habit name
+                val afterIdx = lower.indexOf(habitLower) + habitLower.length
+                val afterText = text.substring(minOf(afterIdx, text.length)).take(60).trim()
+                val reason = afterText.trimStart(',', ' ', '-').takeIf { it.isNotBlank() }
+                results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.SKIP, skipReason = reason))
+                continue
+            }
+
+            // For value-based habits, try extracting a number from the window
+            if (habit.trackingType == TrackingType.QUANTITATIVE ||
+                habit.trackingType == TrackingType.DURATION ||
+                habit.trackingType == TrackingType.FINANCIAL
+            ) {
+                val number = Regex("""(\d+(?:\.\d+)?)""").find(window)?.groupValues?.get(1)?.toDoubleOrNull()
+                if (number != null) {
+                    results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.SET_VALUE, value = number))
+                    continue
+                }
+            }
+
+            results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.COMPLETE))
+        }
+        return results
+    }
+
+    // ── Motivation ───────────────────────────────────────────────────────────
+
     override suspend fun generateMotivation(context: MotivationContext): String {
         val bestStreakEntry = context.activeStreaks.maxByOrNull { it.value }
         val bestHabit = bestStreakEntry?.let { entry ->
@@ -31,78 +78,87 @@ class FallbackAI @Inject constructor(
 
         return when {
             bestStreak >= 30 && bestHabit != null ->
-                "${bestHabit.name} has been going for $bestStreak days — " +
-                        "that kind of consistency adds up in ways that aren't always visible yet."
+                "Incredible — ${bestHabit.name} is on a $bestStreak-day streak! " +
+                        "That kind of consistency is how lasting change is made."
 
             bestStreak >= 7 && bestHabit != null ->
-                "${bestHabit.name} is at $bestStreak days. " +
-                        "Showing up repeatedly is exactly how habits take root."
+                "Your ${bestHabit.name} streak is at $bestStreak days and counting. " +
+                        "Keep the momentum going — you're building a habit that sticks."
 
             context.weekCompletion >= 0.8f && totalHabits > 0 ->
-                "You've completed $pct% of your habits this week — " +
-                        "that's a genuinely solid foundation to build from."
+                "Brilliant week! You've completed $pct% of your habits so far. " +
+                        "You're showing up consistently — that's what matters most."
 
             context.yesterdayCompletion >= 0.8f ->
-                "Yesterday landed at $yesterdayPct% — a good day. " +
-                        "Today is simply the next opportunity to keep moving."
+                "Great job yesterday — $yesterdayPct% completion! " +
+                        "Today is your chance to build on that streak."
 
             context.yesterdayCompletion < 0.4f && totalHabits > 0 ->
-                "Yesterday had its challenges — that's completely normal. " +
-                        "One small step today is all it takes to stay in motion."
+                "Yesterday was tough, but every day is a fresh start. " +
+                        "Even completing one habit today keeps the momentum alive."
 
             totalHabits == 0 ->
-                "Whenever you're ready, adding your first habit is a meaningful starting point — " +
-                        "even small, regular actions compound over time."
+                "Add your first habit and start building the life you want — " +
+                        "small steps lead to big transformations."
 
             else ->
-                "Progress rarely looks dramatic day-to-day. " +
-                        "What matters is that you're here and showing up."
+                "Consistency is built one day at a time. " +
+                        "Each small action you take today is an investment in your future self."
         }
     }
+
+    // ── Nudge ────────────────────────────────────────────────────────────────
+
     override suspend fun generateNudge(context: NudgeContext): String {
         val habitName = context.habit.name
         val streak = context.currentStreak
-        val timeNote = context.usualCompletionTime?.let { "You usually get to this around $it." }
+        val timeNote = context.usualCompletionTime?.let { "You usually do this around $it." }
 
         return when {
             streak >= 7 ->
-                "$habitName has been part of your last $streak days — " +
-                        (timeNote ?: "even a few minutes counts today.")
+                "Don't break your $streak-day $habitName streak! " +
+                        (timeNote ?: "Just a few minutes is all it takes.")
 
             streak in 2..6 ->
-                "A $streak-day run with $habitName. ${timeNote ?: "How are you feeling about it today?"}".trim()
+                "You're on a $streak-day roll with $habitName. ${timeNote ?: "Keep it going!"}".trim()
 
             streak == 1 ->
-                "You made a start with $habitName yesterday. " +
-                        (timeNote ?: "Ready to build on that?").trim()
+                "Yesterday you started $habitName — keep the chain going today! " +
+                        (timeNote ?: "").trim()
 
             else ->
-                "Whenever feels right — $habitName is waiting. ${timeNote ?: "A small step is still a step."}".trim()
+                "Time to check in on $habitName. ${timeNote ?: "A small step counts!"}".trim()
         }
     }
+
+    // ── Milestone ────────────────────────────────────────────────────────────
+
     override suspend fun generateMilestoneMessage(habit: Habit, milestone: Int): String {
         val name = habit.name
         return when (milestone) {
-            1 -> "Day one of $name — starting is genuinely the hardest part. You're in motion. 🌱"
-            3 -> "Three days of $name. A small pattern is beginning to form. 🌿"
-            7 -> "One week of $name. Seven consecutive choices add up to something real. 🎉"
-            14 -> "Two weeks with $name. The habit is finding its place in your routine. 🌿"
-            21 -> "21 days of $name — the research on habit formation is in your corner now. ✨"
-            30 -> "A full month of $name. That's genuine consistency, not just intention. 🏆"
-            60 -> "Two months of $name. This has become part of how you live. 🔥"
-            90 -> "90 days of $name. Three months of showing up — that's a real practice. 🌟"
-            100 -> "100 days of $name. A hundred small decisions compounded into something meaningful. 💯"
-            365 -> "A year of $name. 365 days of choosing this — that's a quiet kind of extraordinary. 🎊"
+            1 -> "Day one of $name — the first step is always the hardest. You did it! 🌱"
+            3 -> "3 days of $name! A small streak is forming — keep showing up."
+            7 -> "One full week of $name! 🎉 You've proven you can do this."
+            14 -> "Two weeks straight of $name! Your habit is starting to take root. 🌿"
+            21 -> "21 days of $name — research says that's when habits start to stick. Amazing! ✨"
+            30 -> "30-day milestone for $name! 🏆 A full month of commitment — you're unstoppable."
+            60 -> "Two months of $name! 🔥 This habit is now a core part of who you are."
+            90 -> "90 days of $name! 🌟 Three months of discipline — this is mastery in progress."
+            100 -> "100 days of $name! 💯 A landmark achievement. You've built something extraordinary."
+            365 -> "A full year of $name! 🎊 365 days of showing up — that's remarkable dedication."
             else -> when {
                 milestone % 100 == 0 ->
-                    "$milestone days of $name. Every hundred is worth pausing to notice. 🏅"
+                    "$milestone days of $name! 🏅 Every hundred days is a testament to your dedication."
                 milestone % 30 == 0 ->
-                    "${milestone / 30} months of $name. Steady and real. 🌳"
+                    "${milestone / 30} months of $name! 🌳 You're growing stronger every day."
                 else ->
-                    "$milestone days of $name — the consistency is building. 🔥"
+                    "$milestone-day streak for $name! Keep up the incredible work. 🔥"
             }
         }
     }
+
+    // ── Availability ─────────────────────────────────────────────────────────
+
     /** FallbackAI is always "available" — it requires no model download. */
     override fun isOnDeviceAvailable(): Flow<AIAvailability> =
         flowOf(AIAvailability.UNAVAILABLE)

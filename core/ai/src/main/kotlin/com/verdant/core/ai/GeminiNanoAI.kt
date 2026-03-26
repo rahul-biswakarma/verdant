@@ -40,6 +40,13 @@ class GeminiNanoAI @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
 
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> =
+        runCatching {
+            val prompt = buildBrainDumpPrompt(text, habits)
+            val response = runInference(prompt)
+            parseBrainDumpJson(response, habits)
+        }.getOrElse { fallback.parseBrainDump(text, habits) }
+
     // ── Motivation ───────────────────────────────────────────────────────────
 
     override suspend fun generateMotivation(motivationContext: MotivationContext): String =
@@ -75,6 +82,55 @@ class GeminiNanoAI @Inject constructor(
      */
     override fun isOnDeviceAvailable(): Flow<AIAvailability> = flow {
         emit(queryAvailability())
+    }
+
+    // ── Internal – brain dump helpers ─────────────────────────────────────────
+
+    private fun buildBrainDumpPrompt(text: String, habits: List<Habit>): String {
+        val habitList = habits.joinToString("\n") { h ->
+            "- ID: \"${h.id}\", Name: \"${h.name}\", Type: ${h.trackingType.name}"
+        }
+        return """
+            You are a habit tracking assistant. Given a user's activity log and their habit list, identify which habits were mentioned and what happened.
+
+            Available habits:
+            $habitList
+
+            User log: "$text"
+
+            Return a JSON array. For each habit recognised in the log, output one object:
+            - habitId: string (must exactly match one of the IDs above)
+            - action: "COMPLETE" | "SKIP" | "SET_VALUE"
+            - value: number or null  (minutes for DURATION; quantity for QUANTITATIVE; amount for FINANCIAL)
+            - skipReason: string or null  (short reason if action is SKIP)
+
+            Rules:
+            - Only include habits explicitly mentioned
+            - BINARY / LOCATION habits → use "COMPLETE"
+            - DURATION with a time → use "SET_VALUE" with minutes as value
+            - QUANTITATIVE with a number → use "SET_VALUE" with that number
+            - Skipped / missed / didn't / couldn't → use "SKIP"
+            - Return only a valid JSON array, no markdown, no explanation
+        """.trimIndent()
+    }
+
+    private fun parseBrainDumpJson(json: String, habits: List<Habit>): List<BrainDumpResult> {
+        val trimmed = json.trim()
+            .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val array = org.json.JSONArray(trimmed)
+        val habitMap = habits.associateBy { it.id }
+        val results = mutableListOf<BrainDumpResult>()
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            val habit = habitMap[obj.optString("habitId")] ?: continue
+            val action = runCatching {
+                BrainDumpAction.valueOf(obj.optString("action", "COMPLETE"))
+            }.getOrDefault(BrainDumpAction.COMPLETE)
+            val value = if (obj.isNull("value")) null else obj.optDouble("value").takeIf { !it.isNaN() }
+            val skipReason = obj.optString("skipReason").takeIf { it.isNotBlank() }
+            results.add(BrainDumpResult(habit = habit, action = action, value = value, skipReason = skipReason))
+        }
+        return results
     }
 
     // ── Internal – prompt builders ────────────────────────────────────────────
