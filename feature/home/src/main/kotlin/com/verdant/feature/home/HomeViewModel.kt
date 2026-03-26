@@ -10,10 +10,13 @@ import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.usecase.CalculateStreakUseCase
 import com.verdant.core.database.usecase.LogEntryUseCase
+import androidx.compose.ui.graphics.Color
+import com.verdant.core.designsystem.component.OrbitalHabitData
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.isScheduledForDate
+import java.time.temporal.ChronoUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -40,6 +43,7 @@ data class HomeUiState(
     val completedCount: Int = 0,
     val totalCount: Int = 0,
     val todayItems: List<TodayHabitItem> = emptyList(),
+    val eventDrivenItems: List<OrbitalHabitData> = emptyList(),
     val timerRunning: Set<String> = emptySet(),
     val timerSeconds: Map<String, Int> = emptyMap(),
     val aiInsight: String? = null,
@@ -90,7 +94,9 @@ class HomeViewModel @Inject constructor(
         _timerSeconds,
         _aiInsight,
     ) { habits, entries, streaks, timerRunning, timerSeconds, aiInsight ->
-        val todayHabits = habits.filter { it.isScheduledForDate(today) }
+        val todayHabits = habits.filter {
+            it.trackingType != TrackingType.EVENT_DRIVEN && it.isScheduledForDate(today)
+        }
         val entryMap = entries.associateBy { it.habitId }
         val completed = todayHabits.count { habit ->
             val entry = entryMap[habit.id]
@@ -98,6 +104,22 @@ class HomeViewModel @Inject constructor(
                 TrackingType.BINARY -> entry?.completed == true
                 else -> entry?.completed == true
             }
+        }
+        // Build orbital data for EVENT_DRIVEN habits
+        val eventDrivenHabits = habits.filter { it.trackingType == TrackingType.EVENT_DRIVEN }
+        val eventDrivenItems = eventDrivenHabits.map { habit ->
+            val lastDate = entryRepository.getCompletedDates(habit.id).maxOrNull()
+            val daysSinceLast = if (lastDate != null) {
+                ChronoUnit.DAYS.between(lastDate, today).toInt()
+            } else -1
+            OrbitalHabitData(
+                habitId = habit.id,
+                habitName = habit.name,
+                habitIcon = habit.icon,
+                color = Color(habit.color),
+                daysSinceLast = daysSinceLast,
+                maxDaysBeforeUrgent = habit.targetValue?.toInt()?.takeIf { it > 0 } ?: 7,
+            )
         }
         HomeUiState(
             greeting = greeting(),
@@ -111,6 +133,7 @@ class HomeViewModel @Inject constructor(
                     streak = streaks[habit.id] ?: 0,
                 )
             },
+            eventDrivenItems = eventDrivenItems,
             timerRunning = timerRunning,
             timerSeconds = timerSeconds,
             aiInsight = aiInsight,
@@ -224,6 +247,15 @@ class HomeViewModel @Inject constructor(
     fun logFinancial(item: TodayHabitItem, amount: Double, category: String?) {
         viewModelScope.launch {
             logEntryUseCase.logFinancial(item.habit.id, today, amount, category, item.habit.targetValue)
+        }
+    }
+
+    // ── Event-driven ─────────────────────────────────────────────────────────
+
+    /** Logs a completion for an EVENT_DRIVEN habit, snapping its orbit back to center. */
+    fun logEventDriven(habitId: String) {
+        viewModelScope.launch {
+            logEntryUseCase.logBinary(habitId, today, completed = true)
         }
     }
 

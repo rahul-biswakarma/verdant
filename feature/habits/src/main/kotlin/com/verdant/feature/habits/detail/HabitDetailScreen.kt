@@ -71,6 +71,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.component.HabitContributionGrid
+import com.verdant.core.designsystem.component.OrbitalHabitData
+import com.verdant.core.designsystem.component.SingleOrbitalDecayChart
+import com.verdant.core.designsystem.component.toDaysAgoLabel
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
 import java.time.LocalDate
@@ -163,13 +166,28 @@ fun HabitDetailScreen(
             )
 
             // ── Tabs ──────────────────────────────────────────────────────────
+            val isEventDriven = habit.trackingType == TrackingType.EVENT_DRIVEN
             ScrollableTabRow(selectedTabIndex = state.selectedTab, edgePadding = 0.dp, divider = {}, containerColor = Color.Transparent) {
                 Tab(selected = state.selectedTab == 0, onClick = { viewModel.onTabSelected(0) }, text = { Text("History") })
                 Tab(selected = state.selectedTab == 1, onClick = { viewModel.onTabSelected(1) }, text = { Text("Calendar") })
+                if (isEventDriven) {
+                    Tab(selected = state.selectedTab == 2, onClick = { viewModel.onTabSelected(2) }, text = { Text("Orbital") })
+                }
             }
 
             LazyColumn(modifier = Modifier.weight(1f)) {
                 when (state.selectedTab) {
+                    2 -> {
+                        // ── Orbital view (EVENT_DRIVEN) ───────────────────────
+                        item {
+                            OrbitalDetailView(
+                                habit = habit,
+                                daysSinceLast = state.daysSinceLast,
+                                onLogDone = { viewModel.logEventDriven() },
+                                modifier = Modifier.padding(16.dp),
+                            )
+                        }
+                    }
                     0 -> {
                         // ── Contribution grid ─────────────────────────────────
                         item {
@@ -545,6 +563,70 @@ private fun RetroLoggingSheet(
             Spacer(Modifier.weight(1f))
             if (existing != null) {
                 TextButton(onClick = onDelete) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            }
+        }
+    }
+}
+
+// ── Orbital Detail View ────────────────────────────────────────────────────────
+
+@Composable
+private fun OrbitalDetailView(
+    habit: com.verdant.core.model.Habit,
+    daysSinceLast: Int,
+    onLogDone: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val urgency = if (daysSinceLast < 0) 1f else {
+        val maxDays = habit.targetValue?.toInt()?.takeIf { it > 0 } ?: 7
+        (daysSinceLast.toFloat() / maxDays).coerceIn(0f, 1f)
+    }
+    val orbitalData = OrbitalHabitData(
+        habitId = habit.id,
+        habitName = habit.name,
+        habitIcon = habit.icon,
+        color = Color(habit.color),
+        daysSinceLast = daysSinceLast,
+        maxDaysBeforeUrgent = habit.targetValue?.toInt()?.takeIf { it > 0 } ?: 7,
+    )
+
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = "Last done: ${daysSinceLast.toDaysAgoLabel()}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = when {
+                    urgency >= 0.67f -> MaterialTheme.colorScheme.error
+                    urgency >= 0.33f -> Color(0xFFFF9800)
+                    else -> MaterialTheme.colorScheme.primary
+                },
+            )
+
+            SingleOrbitalDecayChart(
+                habit = orbitalData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+            )
+
+            Button(
+                onClick = onLogDone,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(habit.color)),
+            ) {
+                Text(
+                    "Mark as done today",
+                    color = if (Color(habit.color).luminance() > 0.4f) Color.Black else Color.White,
+                )
             }
         }
     }
