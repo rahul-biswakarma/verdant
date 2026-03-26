@@ -1,5 +1,6 @@
 package com.verdant.widget
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -88,4 +89,38 @@ internal object WidgetPreferencesKeys {
     val QUOTE_AUTHOR = stringPreferencesKey("quote_author")
     /** ISO date the current quote was generated — used to detect daily refresh. */
     val QUOTE_DATE   = stringPreferencesKey("quote_date")
+
+    // ── QuickToggleWidget ─────────────────────────────────────────────────────
+    /** Whether today's binary habit is completed. */
+    val TOGGLE_COMPLETED = booleanPreferencesKey("toggle_completed")
+
+    // ── TimerWidget ───────────────────────────────────────────────────────────
+    /** Whether the timer is currently running. */
+    val TIMER_RUNNING       = booleanPreferencesKey("timer_running")
+    /** Epoch seconds when the current timer session started (0 if not running). */
+    val TIMER_START_EPOCH   = longPreferencesKey("timer_start_epoch")
+    /** Accumulated elapsed seconds from previous sessions (before current run). */
+    val TIMER_ELAPSED_SECS  = longPreferencesKey("timer_elapsed_secs")
+    /** Target duration in seconds (derived from habit.targetValue). */
+    val TIMER_TARGET_SECS   = longPreferencesKey("timer_target_secs")
+    /** Intensity level 1–5 selected by the user before logging. */
+    val TIMER_INTENSITY     = intPreferencesKey("timer_intensity")
+
+    // ── ProgressWidget ────────────────────────────────────────────────────────
+    /** Today's logged value (seconds for DURATION, count for QUANTITATIVE). */
+    val PROGRESS_VALUE  = floatPreferencesKey("progress_value")
+    /** Habit target value (0 means no target set). */
+    val PROGRESS_TARGET = floatPreferencesKey("progress_target")
+    /** Unit label string (e.g. "cups", "km", "min"). */
+    val PROGRESS_UNIT   = stringPreferencesKey("progress_unit")
+    // STREAK key is reused for current streak count.
+
+    // ── MultiHabitWidget ──────────────────────────────────────────────────────
+    /** Comma-separated ordered habit IDs chosen during config (up to 5). */
+    val MULTI_HABIT_IDS  = stringPreferencesKey("multi_habit_ids")
+    /**
+     * JSON array of selected habits for today's display — same schema as
+     * CHECKLIST_JSON: [{"id":"..","icon":"..","name":"..","colorL":..,"completed":..,"status":"..","binary":..}]
+     */
+    val MULTI_HABIT_JSON = stringPreferencesKey("multi_habit_json")
 }
