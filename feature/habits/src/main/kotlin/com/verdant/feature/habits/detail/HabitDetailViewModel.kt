@@ -36,10 +36,11 @@ data class HabitDetailUiState(
     val completionRate: Float = 0f,
     val totalEntries: Int = 0,
     val averageValue: Double? = null,
-    val selectedTab: Int = 0,          // 0 = history, 1 = calendar
+    val selectedTab: Int = 0,          // 0 = history, 1 = calendar, 2 = mood (EMOTIONAL only)
     val selectedMonth: LocalDate = LocalDate.now().withDayOfMonth(1),
     val retroEntry: HabitEntry? = null, // entry being edited in bottom sheet
     val retroDate: LocalDate? = null,   // date for which bottom sheet is open
+    val moodYear: Int = LocalDate.now().year,
     val isLoading: Boolean = true,
 )
 
@@ -57,9 +58,10 @@ class HabitDetailViewModel @Inject constructor(
     private val _selectedMonth = MutableStateFlow(LocalDate.now().withDayOfMonth(1))
     private val _retroDate = MutableStateFlow<LocalDate?>(null)
     private val _stats = MutableStateFlow(Triple(0, 0, 0f)) // current, longest, rate
+    private val _moodYear = MutableStateFlow(LocalDate.now().year)
 
-    // 84 days back for the 12-week grid, today as end
-    private val gridStart = LocalDate.now().minusWeeks(12)
+    // Cover a full year for the mood grid; 12-week contribution grid uses the same entries
+    private val gridStart = LocalDate.now().withDayOfYear(1)
     private val gridEnd = LocalDate.now()
 
     private val habitFlow = MutableStateFlow<Habit?>(null)
@@ -95,6 +97,7 @@ class HabitDetailViewModel @Inject constructor(
             selectedMonth = month,
             retroEntry = retroEntry,
             retroDate = retroDate,
+            moodYear = _moodYear.value,
             isLoading = false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HabitDetailUiState())
@@ -143,6 +146,12 @@ class HabitDetailViewModel @Inject constructor(
     fun retroDeleteEntry(entry: HabitEntry) {
         viewModelScope.launch { entryRepository.delete(entry) }
     }
+
+    fun retroLogMood(date: LocalDate, score: Int, note: String?) {
+        viewModelScope.launch { logEntryUseCase.logMood(habitId, date, score, note) }
+    }
+
+    fun onMoodYearChanged(year: Int) = _moodYear.update { year }
 
     // ── Habit actions ────────────────────────────────────────────────────────
 

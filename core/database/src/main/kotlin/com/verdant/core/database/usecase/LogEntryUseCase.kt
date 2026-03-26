@@ -110,6 +110,30 @@ class LogEntryUseCase @Inject constructor(
         )
     }
 
+    /** Log a mood score (1–5) with an optional journal note. Always marks completed = true. */
+    suspend fun logMood(
+        habitId: String,
+        date: LocalDate,
+        score: Int,
+        note: String?,
+    ) {
+        val now = System.currentTimeMillis()
+        val existing = entryRepository.getByHabitAndDate(habitId, date)
+        entryRepository.upsert(
+            existing?.copy(
+                completed = true,
+                value = score.toDouble(),
+                note = note,
+                skipped = false,
+                updatedAt = now,
+            ) ?: newEntry(habitId, date, now).copy(
+                completed = true,
+                value = score.toDouble(),
+                note = note,
+            ),
+        )
+    }
+
     /** Mark an entry as intentionally skipped. */
     suspend fun skip(habitId: String, date: LocalDate) {
         val now = System.currentTimeMillis()

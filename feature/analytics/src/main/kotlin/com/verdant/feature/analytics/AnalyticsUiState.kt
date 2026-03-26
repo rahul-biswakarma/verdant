@@ -3,6 +3,8 @@ package com.verdant.feature.analytics
 import com.verdant.core.ai.Correlation
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
+import com.verdant.core.model.PixelEntry
+import java.time.LocalDate
 
 // ── Tab enum ─────────────────────────────────────────────────────────────────
 
@@ -10,6 +12,7 @@ enum class AnalyticsTab(val label: String) {
     OVERVIEW("Overview"),
     HEATMAPS("Heatmaps"),
     TRENDS("Trends"),
+    MOOD("Mood"),
     CORRELATIONS("Correlations"),
     REPORTS("Reports"),
 }
@@ -23,6 +26,7 @@ data class AnalyticsUiState(
     val overview: OverviewState = OverviewState(),
     val heatmaps: HeatmapsState = HeatmapsState(),
     val trends: TrendsState = TrendsState(),
+    val mood: MoodState = MoodState(),
     val correlations: CorrelationsState = CorrelationsState.Idle,
     val reports: ReportsState = ReportsState.Idle,
 )
@@ -78,6 +82,24 @@ data class TrendsState(
     val series: List<TrendSeries> = emptyList(),
     /** X-axis week labels, e.g. ["Mar 3", "Mar 10", …]; 12 entries */
     val weekLabels: List<String> = emptyList(),
+)
+
+// ── Mood ──────────────────────────────────────────────────────────────────────
+
+data class MoodState(
+    val year: Int = LocalDate.now().year,
+    /** Mood entries for [year], one per day logged. */
+    val entries: List<PixelEntry> = emptyList(),
+    /** Average mood score 1–5 over all logged entries. */
+    val averageMood: Float = 0f,
+    /** Weekly average mood (oldest first, 12 weeks). */
+    val weeklyMoodTrend: List<Float> = emptyList(),
+    /** X-axis labels for weekly trend ("Mar 3", …). */
+    val weekLabels: List<String> = emptyList(),
+    /** Dates where any non-emotional habit was completed (overlay dots). */
+    val completionOverlay: Set<LocalDate> = emptySet(),
+    /** Total days with a mood logged this year. */
+    val daysLogged: Int = 0,
 )
 
 // ── Correlations ──────────────────────────────────────────────────────────────
