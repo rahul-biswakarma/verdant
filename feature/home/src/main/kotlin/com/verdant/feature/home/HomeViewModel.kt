@@ -2,6 +2,8 @@ package com.verdant.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.ai.BrainDumpAction
+import com.verdant.core.ai.BrainDumpResult
 import com.verdant.core.ai.MotivationContext
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.database.repository.HabitEntryRepository
@@ -18,6 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,6 +55,14 @@ data class FinancialDialogState(
     val categoryInput: String = "",
 )
 
+data class BrainDumpState(
+    val input: String = "",
+    val isLoading: Boolean = false,
+    /** Non-null once the AI has parsed a submission; null means the sheet is hidden. */
+    val results: List<BrainDumpResult>? = null,
+    val error: String? = null,
+)
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
@@ -69,6 +80,9 @@ class HomeViewModel @Inject constructor(
 
     private val _streaks = MutableStateFlow<Map<String, Int>>(emptyMap())
     private val _aiInsight = MutableStateFlow<String?>(null)
+
+    private val _brainDump = MutableStateFlow(BrainDumpState())
+    val brainDumpState: StateFlow<BrainDumpState> = _brainDump.asStateFlow()
 
     val uiState: StateFlow<HomeUiState> = com.verdant.core.common.combine(
         habitRepository.observeActiveHabits(),
@@ -221,6 +235,66 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             logEntryUseCase.logLocation(item.habit.id, today, null, null)
         }
+    }
+
+    // ── Brain Dump ───────────────────────────────────────────────────────────
+
+    fun onBrainDumpInputChange(text: String) {
+        _brainDump.update { it.copy(input = text, error = null) }
+    }
+
+    fun submitBrainDump() {
+        val text = _brainDump.value.input.trim()
+        if (text.isBlank()) return
+        _brainDump.update { it.copy(isLoading = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val habits = habitRepository.getAllHabits()
+                    .filter { !it.isArchived && it.isScheduledForDate(today) }
+                if (habits.isEmpty()) {
+                    _brainDump.update { it.copy(isLoading = false, error = "No habits scheduled for today") }
+                    return@launch
+                }
+                val results = verdantAI.parseBrainDump(text, habits)
+                if (results.isEmpty()) {
+                    _brainDump.update { it.copy(isLoading = false, error = "Couldn't match any habits — try mentioning them by name") }
+                } else {
+                    _brainDump.update { it.copy(isLoading = false, results = results) }
+                }
+            } catch (_: Exception) {
+                _brainDump.update { it.copy(isLoading = false, error = "Couldn't parse your log — try again") }
+            }
+        }
+    }
+
+    fun confirmBrainDump(results: List<BrainDumpResult>) {
+        viewModelScope.launch {
+            results.forEach { result ->
+                when (result.action) {
+                    BrainDumpAction.COMPLETE -> when (result.habit.trackingType) {
+                        TrackingType.LOCATION -> logEntryUseCase.logLocation(result.habit.id, today, null, null)
+                        else -> logEntryUseCase.logBinary(result.habit.id, today, true)
+                    }
+                    BrainDumpAction.SKIP -> logEntryUseCase.skip(result.habit.id, today)
+                    BrainDumpAction.SET_VALUE -> {
+                        val value = result.value ?: return@forEach
+                        when (result.habit.trackingType) {
+                            TrackingType.FINANCIAL -> logEntryUseCase.logFinancial(
+                                result.habit.id, today, value, null, result.habit.targetValue,
+                            )
+                            else -> logEntryUseCase.setQuantitative(
+                                result.habit.id, today, value, result.habit.targetValue,
+                            )
+                        }
+                    }
+                }
+            }
+            _brainDump.update { BrainDumpState() }
+        }
+    }
+
+    fun dismissBrainDump() {
+        _brainDump.update { it.copy(results = null) }
     }
 
     override fun onCleared() {

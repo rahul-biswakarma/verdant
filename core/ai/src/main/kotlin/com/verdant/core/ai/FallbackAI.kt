@@ -3,6 +3,7 @@ package com.verdant.core.ai
 import com.verdant.core.ai.habit.FallbackHabitParser
 import com.verdant.core.ai.habit.ParsedHabit
 import com.verdant.core.model.Habit
+import com.verdant.core.model.TrackingType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
@@ -22,6 +23,46 @@ class FallbackAI @Inject constructor(
 
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
+
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> {
+        val lower = text.lowercase()
+        val skipWords = listOf("skip", "skipped", "didn't", "didnt", "couldn't", "couldnt", "missed", "not ")
+        val results = mutableListOf<BrainDumpResult>()
+
+        for (habit in habits) {
+            val habitLower = habit.name.lowercase()
+            if (habitLower !in lower) continue
+
+            val idx = lower.indexOf(habitLower)
+            // Context window around the habit name for number/skip detection
+            val window = lower.substring(maxOf(0, idx - 40), minOf(lower.length, idx + habitLower.length + 40))
+
+            val isSkipped = skipWords.any { it in window }
+            if (isSkipped) {
+                // Extract a simple skip reason from the text after the habit name
+                val afterIdx = lower.indexOf(habitLower) + habitLower.length
+                val afterText = text.substring(minOf(afterIdx, text.length)).take(60).trim()
+                val reason = afterText.trimStart(',', ' ', '-').takeIf { it.isNotBlank() }
+                results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.SKIP, skipReason = reason))
+                continue
+            }
+
+            // For value-based habits, try extracting a number from the window
+            if (habit.trackingType == TrackingType.QUANTITATIVE ||
+                habit.trackingType == TrackingType.DURATION ||
+                habit.trackingType == TrackingType.FINANCIAL
+            ) {
+                val number = Regex("""(\d+(?:\.\d+)?)""").find(window)?.groupValues?.get(1)?.toDoubleOrNull()
+                if (number != null) {
+                    results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.SET_VALUE, value = number))
+                    continue
+                }
+            }
+
+            results.add(BrainDumpResult(habit = habit, action = BrainDumpAction.COMPLETE))
+        }
+        return results
+    }
 
     // ── Motivation ───────────────────────────────────────────────────────────
 
