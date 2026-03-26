@@ -32,4 +32,7 @@ data class HabitEntryEntity(
     val skipped: Boolean,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
+    @ColumnInfo(name = "missed_reason") val missedReason: String? = null,
+    @ColumnInfo(name = "stress_level") val stressLevel: Int? = null,
+    @ColumnInfo(name = "energy_level") val energyLevel: Int? = null,
 )

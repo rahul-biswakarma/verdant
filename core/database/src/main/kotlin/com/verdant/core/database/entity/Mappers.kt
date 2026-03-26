@@ -68,6 +68,9 @@ fun HabitEntryEntity.toDomain() = HabitEntry(
     skipped = skipped,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    missedReason = missedReason,
+    stressLevel = stressLevel,
+    energyLevel = energyLevel,
 )
 
 fun HabitEntry.toEntity() = HabitEntryEntity(
@@ -83,6 +86,9 @@ fun HabitEntry.toEntity() = HabitEntryEntity(
     skipped = skipped,
     createdAt = createdAt,
     updatedAt = updatedAt,
+    missedReason = missedReason,
+    stressLevel = stressLevel,
+    energyLevel = energyLevel,
 )
 
 // ── LabelEntity ↔ Label ───────────────────────────────────────────────────────

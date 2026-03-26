@@ -15,4 +15,7 @@ data class HabitEntry(
     val skipped: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    val missedReason: String? = null,
+    val stressLevel: Int? = null,
+    val energyLevel: Int? = null,
 )
