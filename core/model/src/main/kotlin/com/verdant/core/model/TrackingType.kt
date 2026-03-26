@@ -6,4 +6,6 @@ enum class TrackingType {
     DURATION,
     LOCATION,
     FINANCIAL,
+    EMOTIONAL,
+    EVENT_DRIVEN,
 }

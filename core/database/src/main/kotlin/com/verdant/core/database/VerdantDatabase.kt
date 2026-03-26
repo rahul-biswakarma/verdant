@@ -20,7 +20,7 @@ import com.verdant.core.database.entity.LabelEntity
         LabelEntity::class,
         AIInsightEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
