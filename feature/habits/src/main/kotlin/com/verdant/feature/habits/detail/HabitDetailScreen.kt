@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.component.HabitContributionGrid
+import com.verdant.core.designsystem.component.LiquidProgressVessel
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
 import java.time.LocalDate
@@ -161,6 +162,22 @@ fun HabitDetailScreen(
                 unit = habit.unit,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
+
+            // ── Liquid vessel (QUANTITATIVE habits only) ──────────────────────
+            val quantTarget = if (habit.trackingType == TrackingType.QUANTITATIVE) habit.targetValue else null
+            if (quantTarget != null && quantTarget > 0) {
+                val todayValue = state.entries.find { it.date == LocalDate.now() }?.value ?: 0.0
+                LiquidProgressVessel(
+                    currentValue = todayValue,
+                    targetValue = quantTarget,
+                    color = habitColor,
+                    unit = habit.unit ?: "",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(horizontal = 32.dp, vertical = 12.dp),
+                )
+            }
 
             // ── Tabs ──────────────────────────────────────────────────────────
             ScrollableTabRow(selectedTabIndex = state.selectedTab, edgePadding = 0.dp, divider = {}, containerColor = Color.Transparent) {

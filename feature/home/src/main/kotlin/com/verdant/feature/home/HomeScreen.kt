@@ -67,6 +67,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.component.CompletionRing
+import com.verdant.core.designsystem.component.LiquidProgressVessel
 import com.verdant.core.designsystem.component.StreakBadge
 import com.verdant.core.model.TrackingType
 
@@ -435,14 +436,31 @@ private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCust
 
     HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${current.fmt()}$unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = habitColor)
-                if (target != null) Text("/ ${target.fmt()}$unit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("${current.fmt()}$unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = habitColor)
+                        if (target != null) Text("/ ${target.fmt()}$unit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    LinearProgressIndicator(
+                        progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
+                        color = habitColor, trackColor = habitColor.copy(alpha = 0.15f), strokeCap = StrokeCap.Round,
+                    )
+                }
+                if (target != null && target > 0) {
+                    LiquidProgressVessel(
+                        currentValue = current,
+                        targetValue = target,
+                        color = habitColor,
+                        mini = true,
+                        modifier = Modifier.size(48.dp, 38.dp),
+                    )
+                }
             }
-            LinearProgressIndicator(
-                progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
-                color = habitColor, trackColor = habitColor.copy(alpha = 0.15f), strokeCap = StrokeCap.Round,
-            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(1.0, 5.0, 10.0).forEach { delta ->
