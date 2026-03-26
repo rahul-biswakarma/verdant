@@ -194,7 +194,9 @@ private fun frequencyLabel(habit: Habit): String = when (habit.frequency) {
 private val previewHabitBinary = Habit(
     id = "1", name = "Morning Run", description = "5 km jog", icon = "🏃",
     color = MutedSage.value.toLong(), label = "Health",
-    trackingType = TrackingType.BINARY, unit = null, targetValue = null,
+    trackingType = TrackingType.BINARY,
+    visualizationType = com.verdant.core.model.VisualizationType.PIXEL_GRID,
+    unit = null, targetValue = null, checkpointSteps = emptyList(),
     frequency = HabitFrequency.DAILY, scheduleDays = 0x7F,
     isArchived = false, reminderEnabled = true, reminderTime = "07:00",
     reminderDays = 0x7F, sortOrder = 0, createdAt = 0L,
@@ -203,7 +205,9 @@ private val previewHabitBinary = Habit(
 private val previewHabitQuant = Habit(
     id = "2", name = "Read", description = "Read books", icon = "📚",
     color = 0xFF2196F3, label = null,
-    trackingType = TrackingType.QUANTITATIVE, unit = "pages", targetValue = 30.0,
+    trackingType = TrackingType.QUANTITATIVE,
+    visualizationType = com.verdant.core.model.VisualizationType.PHYSICS_JAR,
+    unit = "pages", targetValue = 30.0, checkpointSteps = emptyList(),
     frequency = HabitFrequency.DAILY, scheduleDays = 0x7F,
     isArchived = false, reminderEnabled = false, reminderTime = null,
     reminderDays = 0, sortOrder = 1, createdAt = 0L,

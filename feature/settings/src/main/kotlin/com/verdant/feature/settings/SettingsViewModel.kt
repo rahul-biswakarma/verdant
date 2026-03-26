@@ -17,6 +17,7 @@ import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.HabitFrequency
 import com.verdant.core.model.TrackingType
+import com.verdant.core.model.defaultVisualization
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -280,6 +281,7 @@ class SettingsViewModel @Inject constructor(
     private fun parseHabitCsvRow(line: String): Habit? = runCatching {
         val cols = parseCsvLine(line)
         if (cols.size < 16) return null
+        val type = TrackingType.valueOf(cols[6])
         Habit(
             id = cols[0],
             name = cols[1],
@@ -287,9 +289,14 @@ class SettingsViewModel @Inject constructor(
             icon = cols[3],
             color = cols[4].toLong(),
             label = cols[5].ifBlank { null },
-            trackingType = TrackingType.valueOf(cols[6]),
+            trackingType = type,
+            visualizationType = runCatching {
+                com.verdant.core.model.VisualizationType.valueOf(cols.getOrElse(16) { "" })
+            }.getOrElse { type.defaultVisualization() },
             unit = cols[7].ifBlank { null },
             targetValue = cols[8].toDoubleOrNull(),
+            checkpointSteps = cols.getOrElse(17) { "" }
+                .split("|").filter { it.isNotBlank() },
             frequency = HabitFrequency.valueOf(cols[9]),
             scheduleDays = cols[10].toInt(),
             isArchived = cols[11].toBooleanStrict(),

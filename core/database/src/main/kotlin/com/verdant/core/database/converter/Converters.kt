@@ -4,6 +4,7 @@ import androidx.room.TypeConverter
 import com.verdant.core.model.HabitFrequency
 import com.verdant.core.model.InsightType
 import com.verdant.core.model.TrackingType
+import com.verdant.core.model.VisualizationType
 import java.time.LocalDate
 
 class Converters {
@@ -44,4 +45,11 @@ class Converters {
 
     @TypeConverter
     fun stringToInsightType(value: String): InsightType = InsightType.valueOf(value)
+
+    @TypeConverter
+    fun visualizationTypeToString(type: VisualizationType): String = type.name
+
+    @TypeConverter
+    fun stringToVisualizationType(value: String): VisualizationType =
+        runCatching { VisualizationType.valueOf(value) }.getOrDefault(VisualizationType.PIXEL_GRID)
 }

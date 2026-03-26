@@ -3,6 +3,8 @@ package com.verdant.feature.habits.create
 import com.verdant.core.ai.habit.ParsedHabit
 import com.verdant.core.model.HabitFrequency
 import com.verdant.core.model.TrackingType
+import com.verdant.core.model.VisualizationType
+import com.verdant.core.model.defaultVisualization
 
 /**
  * Mutable working copy of a habit being created.
@@ -15,8 +17,11 @@ data class HabitDraft(
     val color: Long = 0xFF5A7A60L,
     val label: String = "",
     val trackingType: TrackingType = TrackingType.BINARY,
+    val visualizationType: VisualizationType = VisualizationType.PIXEL_GRID,
     val unit: String = "",
     val targetValue: Double? = null,
+    /** Ordered milestone steps; only used when trackingType == CHECKPOINT. */
+    val checkpointSteps: List<String> = listOf("", "", ""),
     val frequency: HabitFrequency = HabitFrequency.DAILY,
     /** Bitmask: Mon=1, Tue=2, Wed=4, Thu=8, Fri=16, Sat=32, Sun=64 */
     val scheduleDays: Int = 0x7F,
@@ -37,8 +42,10 @@ fun HabitTemplate.toDraft() = HabitDraft(
     color = color,
     label = label,
     trackingType = trackingType,
+    visualizationType = visualizationType,
     unit = unit.orEmpty(),
     targetValue = targetValue,
+    checkpointSteps = checkpointSteps.ifEmpty { listOf("", "", "") },
     frequency = frequency,
     scheduleDays = scheduleDays,
     reminderEnabled = suggestedReminderTime != null,
@@ -54,8 +61,10 @@ fun ParsedHabit.toDraft() = HabitDraft(
     color = color,
     label = label,
     trackingType = trackingType,
+    visualizationType = trackingType.defaultVisualization(),
     unit = unit.orEmpty(),
     targetValue = targetValue,
+    checkpointSteps = listOf("", "", ""),
     frequency = frequency,
     scheduleDays = scheduleDays,
     reminderEnabled = suggestedReminderTimes.isNotEmpty(),

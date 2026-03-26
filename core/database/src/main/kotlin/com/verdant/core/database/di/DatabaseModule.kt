@@ -26,7 +26,9 @@ object DatabaseModule {
         context,
         VerdantDatabase::class.java,
         "verdant.db",
-    ).build()
+    )
+        .addMigrations(VerdantDatabase.MIGRATION_1_2)
+        .build()
 
     @Provides
     fun provideHabitDao(db: VerdantDatabase): HabitDao = db.habitDao()

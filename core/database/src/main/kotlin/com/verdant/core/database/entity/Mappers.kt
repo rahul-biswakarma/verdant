@@ -3,6 +3,8 @@ package com.verdant.core.database.entity
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.Label
+import com.verdant.core.model.VisualizationType
+import com.verdant.core.model.defaultVisualization
 
 // ── HabitEntity ↔ Habit ───────────────────────────────────────────────────────
 
@@ -14,8 +16,11 @@ fun HabitEntity.toDomain() = Habit(
     color = color,
     label = label,
     trackingType = trackingType,
+    visualizationType = visualizationType,
     unit = unit,
     targetValue = targetValue,
+    checkpointSteps = if (checkpointSteps.isBlank()) emptyList()
+                      else checkpointSteps.split("|").filter { it.isNotBlank() },
     frequency = frequency,
     scheduleDays = scheduleDays,
     isArchived = isArchived,
@@ -34,8 +39,10 @@ fun Habit.toEntity() = HabitEntity(
     color = color,
     label = label,
     trackingType = trackingType,
+    visualizationType = visualizationType,
     unit = unit,
     targetValue = targetValue,
+    checkpointSteps = checkpointSteps.joinToString("|"),
     frequency = frequency,
     scheduleDays = scheduleDays,
     isArchived = isArchived,
