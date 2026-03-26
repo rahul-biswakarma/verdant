@@ -50,5 +50,6 @@ class Converters {
     fun visualizationTypeToString(type: VisualizationType): String = type.name
 
     @TypeConverter
-    fun stringToVisualizationType(value: String): VisualizationType = VisualizationType.valueOf(value)
+    fun stringToVisualizationType(value: String): VisualizationType =
+        runCatching { VisualizationType.valueOf(value) }.getOrDefault(VisualizationType.PIXEL_GRID)
 }

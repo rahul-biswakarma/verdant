@@ -16,8 +16,11 @@ data class HabitEntity(
     val color: Long,
     val label: String?,
     @ColumnInfo(name = "tracking_type") val trackingType: TrackingType,
+    @ColumnInfo(name = "visualization_type", defaultValue = "PIXEL_GRID") val visualizationType: VisualizationType,
     val unit: String?,
     @ColumnInfo(name = "target_value") val targetValue: Double?,
+    /** Pipe-separated milestone steps for CHECKPOINT habits; empty string otherwise. */
+    @ColumnInfo(name = "checkpoint_steps", defaultValue = "") val checkpointSteps: String,
     val frequency: HabitFrequency,
     @ColumnInfo(name = "schedule_days") val scheduleDays: Int,
     @ColumnInfo(name = "is_archived") val isArchived: Boolean,

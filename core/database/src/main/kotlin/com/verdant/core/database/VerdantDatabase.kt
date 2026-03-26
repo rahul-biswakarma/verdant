@@ -33,10 +33,14 @@ abstract class VerdantDatabase : RoomDatabase() {
     abstract fun aiInsightDao(): AIInsightDao
 
     companion object {
+        /** v1 → v2: add visualization_type and checkpoint_steps to habits table. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
-                    "ALTER TABLE habits ADD COLUMN visualization_type TEXT NOT NULL DEFAULT 'CONTRIBUTION_GRID'"
+                    "ALTER TABLE habits ADD COLUMN visualization_type TEXT NOT NULL DEFAULT 'PIXEL_GRID'"
+                )
+                db.execSQL(
+                    "ALTER TABLE habits ADD COLUMN checkpoint_steps TEXT NOT NULL DEFAULT ''"
                 )
             }
         }
