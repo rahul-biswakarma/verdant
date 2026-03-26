@@ -274,7 +274,9 @@ internal fun TrackingTypeSection(
 ) {
     val types = listOf(
         TrackingType.BINARY to "Check off",
-        TrackingType.NUMERIC to "Numeric",
+        TrackingType.QUANTITATIVE to "Count",
+        TrackingType.DURATION to "Time",
+        TrackingType.FINANCIAL to "Money",
     )
 
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -291,27 +293,53 @@ internal fun TrackingTypeSection(
         }
     }
 
-    if (trackingType == TrackingType.NUMERIC) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    when (trackingType) {
+        TrackingType.QUANTITATIVE -> {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = targetValue?.fmt() ?: "",
+                    onValueChange = { onTargetChange(it.toDoubleOrNull()) },
+                    label = { Text("Target") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+                OutlinedTextField(
+                    value = unit,
+                    onValueChange = onUnitChange,
+                    label = { Text("Unit") },
+                    placeholder = { Text("e.g., glasses, pages") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                )
+            }
+        }
+        TrackingType.DURATION -> {
             OutlinedTextField(
                 value = targetValue?.fmt() ?: "",
                 onValueChange = { onTargetChange(it.toDoubleOrNull()) },
-                label = { Text("Target") },
-                modifier = Modifier.weight(1f),
+                label = { Text("Target (minutes)") },
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
+        }
+        TrackingType.FINANCIAL -> {
             OutlinedTextField(
-                value = unit,
-                onValueChange = onUnitChange,
-                label = { Text("Unit") },
-                placeholder = { Text("e.g., glasses, min, ₹") },
-                modifier = Modifier.weight(1f),
+                value = targetValue?.fmt() ?: "",
+                onValueChange = { onTargetChange(it.toDoubleOrNull()) },
+                label = { Text("Budget") },
+                prefix = { Text("\u20B9") },
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
         }
+        else -> {}
     }
 }
 

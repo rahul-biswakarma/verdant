@@ -4,5 +4,5 @@ enum class VisualizationType {
     CONTRIBUTION_GRID,
     COMPLETION_RING,
     STREAK_RING,
-    PROGRESS_FILL,
+    PHYSICS_JAR,
 }

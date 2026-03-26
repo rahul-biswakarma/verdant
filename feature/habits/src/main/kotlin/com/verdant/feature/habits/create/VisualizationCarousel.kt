@@ -28,7 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.component.CompletionRing
-import com.verdant.core.designsystem.component.ProgressFill
+import com.verdant.core.designsystem.component.PhysicsJar
 import com.verdant.core.designsystem.component.StreakRing
 import com.verdant.core.model.VisualizationType
 
@@ -55,9 +55,9 @@ private val visualizationOptions = listOf(
         description = "Streak focus",
     ),
     VisualizationOption(
-        type = VisualizationType.PROGRESS_FILL,
-        label = "Fill Bar",
-        description = "Track progress",
+        type = VisualizationType.PHYSICS_JAR,
+        label = "Liquid Jar",
+        description = "Fill it up",
     ),
 )
 
@@ -166,7 +166,7 @@ private fun VisualizationCard(
                         size = 56.dp,
                         strokeWidth = 5.dp,
                     )
-                    VisualizationType.PROGRESS_FILL -> ProgressFill(
+                    VisualizationType.PHYSICS_JAR -> PhysicsJar(
                         progress = 0.65f,
                         color = habitColor,
                         size = 56.dp,
