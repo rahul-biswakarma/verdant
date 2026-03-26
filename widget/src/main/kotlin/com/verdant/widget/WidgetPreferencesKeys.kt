@@ -1,5 +1,6 @@
 package com.verdant.widget
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -88,4 +89,23 @@ internal object WidgetPreferencesKeys {
     val QUOTE_AUTHOR = stringPreferencesKey("quote_author")
     /** ISO date the current quote was generated — used to detect daily refresh. */
     val QUOTE_DATE   = stringPreferencesKey("quote_date")
+
+    // ── QuickToggleWidget ─────────────────────────────────────────────────────
+    /** Whether the habit has been completed today. */
+    val QUICK_TOGGLE_COMPLETED = booleanPreferencesKey("quick_toggle_completed")
+
+    // ── TimerWidget ───────────────────────────────────────────────────────────
+    /** System.currentTimeMillis() when the timer was started; 0 = stopped. */
+    val TIMER_START_MS      = longPreferencesKey("timer_start_ms")
+    /** Accumulated seconds from previous (completed) timer sessions today. */
+    val TIMER_TOTAL_SECONDS = intPreferencesKey("timer_total_seconds")
+
+    // ── MultiHabitWidget ──────────────────────────────────────────────────────
+    /** Comma-separated list of habit IDs selected for this widget instance. */
+    val MULTI_HABIT_IDS  = stringPreferencesKey("multi_habit_ids")
+    /**
+     * Multi-habit checklist JSON (same schema as CHECKLIST_JSON) but only for
+     * the configured habits: [{"id":"...","icon":"🏃","name":"Run","colorL":...,"completed":true,...}]
+     */
+    val MULTI_HABIT_JSON = stringPreferencesKey("multi_habit_json")
 }

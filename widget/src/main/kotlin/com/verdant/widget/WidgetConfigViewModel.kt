@@ -23,19 +23,29 @@ class WidgetConfigViewModel @Inject constructor(
     habitRepository: HabitRepository,
 ) : ViewModel() {
 
-    private val _selectedHabitId = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
-    private val _colorTheme = kotlinx.coroutines.flow.MutableStateFlow("habit")
+    private val _selectedHabitId   = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    private val _selectedHabitIds  = kotlinx.coroutines.flow.MutableStateFlow<Set<String>>(emptySet())
+    private val _colorTheme  = kotlinx.coroutines.flow.MutableStateFlow("habit")
     private val _gridDensity = kotlinx.coroutines.flow.MutableStateFlow("comfortable")
 
     val habits: StateFlow<List<Habit>> = habitRepository
         .observeActiveHabits()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val selectedHabitId: StateFlow<String?> = _selectedHabitId
-    val colorTheme: StateFlow<String> = _colorTheme
+    val selectedHabitId:  StateFlow<String?>     = _selectedHabitId
+    val selectedHabitIds: StateFlow<Set<String>> = _selectedHabitIds
+    val colorTheme:  StateFlow<String> = _colorTheme
     val gridDensity: StateFlow<String> = _gridDensity
 
     fun selectHabit(habitId: String) = _selectedHabitId.tryEmit(habitId)
+
+    fun toggleMultiHabit(habitId: String) {
+        val current = _selectedHabitIds.value
+        _selectedHabitIds.tryEmit(
+            if (habitId in current) current - habitId else current + habitId
+        )
+    }
+
     fun setColorTheme(theme: String) = _colorTheme.tryEmit(theme)
     fun setGridDensity(density: String) = _gridDensity.tryEmit(density)
 }
