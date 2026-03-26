@@ -284,9 +284,9 @@ private fun StatsRow(
         modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        StatCard("🔥", "$currentStreak", "Current streak", "days")
+        StatCard("✅", "${(completionRate * 100).toInt()}%", "Consistency", "30 days", primary = true)
+        StatCard("🔥", "$currentStreak", "Streak", "days")
         StatCard("🏆", "$longestStreak", "Best streak", "days")
-        StatCard("✅", "${(completionRate * 100).toInt()}%", "30-day rate", "")
         StatCard("📊", "$totalEntries", "Total done", "")
         if (averageValue != null) {
             StatCard("📈", "%.1f".format(averageValue), "Average", unit ?: "")
@@ -295,12 +295,15 @@ private fun StatsRow(
 }
 
 @Composable
-private fun StatCard(emoji: String, value: String, label: String, suffix: String) {
+private fun StatCard(emoji: String, value: String, label: String, suffix: String, primary: Boolean = false) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(
+            containerColor = if (primary) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        ),
         elevation = CardDefaults.cardElevation(0.dp),
-        modifier = Modifier.width(90.dp),
+        modifier = Modifier.width(if (primary) 100.dp else 90.dp),
     ) {
         Column(
             modifier = Modifier.padding(10.dp),
@@ -308,7 +311,12 @@ private fun StatCard(emoji: String, value: String, label: String, suffix: String
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(emoji, style = MaterialTheme.typography.titleMedium)
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                value,
+                style = if (primary) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = if (primary) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            )
             Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             if (suffix.isNotBlank()) Text(suffix, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

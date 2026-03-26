@@ -30,6 +30,7 @@ data class TodayHabitItem(
     val habit: Habit,
     val entry: HabitEntry?,
     val streak: Int,
+    val consistencyRate: Float = 0f,
 )
 
 data class HomeUiState(
@@ -37,6 +38,7 @@ data class HomeUiState(
     val formattedDate: String = "",
     val completedCount: Int = 0,
     val totalCount: Int = 0,
+    val consistencyRate: Float = 0f,
     val todayItems: List<TodayHabitItem> = emptyList(),
     val timerRunning: Set<String> = emptySet(),
     val timerSeconds: Map<String, Int> = emptyMap(),
@@ -68,6 +70,7 @@ class HomeViewModel @Inject constructor(
     private val timerJobs = mutableMapOf<String, Job>()
 
     private val _streaks = MutableStateFlow<Map<String, Int>>(emptyMap())
+    private val _consistencyRates = MutableStateFlow<Map<String, Float>>(emptyMap())
     private val _aiInsight = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<HomeUiState> = com.verdant.core.common.combine(
@@ -87,16 +90,21 @@ class HomeViewModel @Inject constructor(
                 else -> entry?.completed == true
             }
         }
+        val rates = _consistencyRates.value
+        val avgConsistency = if (todayHabits.isEmpty()) 0f
+            else todayHabits.map { rates[it.id] ?: 0f }.average().toFloat()
         HomeUiState(
             greeting = greeting(),
             formattedDate = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
             completedCount = completed,
             totalCount = todayHabits.size,
+            consistencyRate = avgConsistency,
             todayItems = todayHabits.map { habit ->
                 TodayHabitItem(
                     habit = habit,
                     entry = entryMap[habit.id],
                     streak = streaks[habit.id] ?: 0,
+                    consistencyRate = rates[habit.id] ?: 0f,
                 )
             },
             timerRunning = timerRunning,
@@ -117,8 +125,9 @@ class HomeViewModel @Inject constructor(
             val habits = habitRepository.observeActiveHabits()
             habits.collect { list ->
                 val todayHabits = list.filter { it.isScheduledForDate(today) }
-                val newStreaks = calculateStreakUseCase.currentStreaks(todayHabits.map { it.id })
-                _streaks.value = newStreaks
+                val ids = todayHabits.map { it.id }
+                _streaks.value = calculateStreakUseCase.currentStreaks(ids)
+                _consistencyRates.value = calculateStreakUseCase.consistencyRates(ids)
             }
         }
     }
@@ -212,6 +221,20 @@ class HomeViewModel @Inject constructor(
     fun logFinancial(item: TodayHabitItem, amount: Double, category: String?) {
         viewModelScope.launch {
             logEntryUseCase.logFinancial(item.habit.id, today, amount, category, item.habit.targetValue)
+        }
+    }
+
+    // ── Skip ─────────────────────────────────────────────────────────────────
+
+    fun skipWithReason(
+        item: TodayHabitItem,
+        missedReason: String?,
+        stressLevel: Int?,
+        energyLevel: Int?,
+        note: String?,
+    ) {
+        viewModelScope.launch {
+            logEntryUseCase.skipWithReason(item.habit.id, today, missedReason, stressLevel, energyLevel, note)
         }
     }
 

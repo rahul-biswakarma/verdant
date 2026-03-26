@@ -59,6 +59,9 @@ fun HabitEntryEntity.toDomain() = HabitEntry(
     note = note,
     category = category,
     skipped = skipped,
+    missedReason = missedReason,
+    stressLevel = stressLevel,
+    energyLevel = energyLevel,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
@@ -74,6 +77,9 @@ fun HabitEntry.toEntity() = HabitEntryEntity(
     note = note,
     category = category,
     skipped = skipped,
+    missedReason = missedReason,
+    stressLevel = stressLevel,
+    energyLevel = energyLevel,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )

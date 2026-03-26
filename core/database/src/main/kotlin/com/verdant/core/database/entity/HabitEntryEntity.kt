@@ -30,6 +30,9 @@ data class HabitEntryEntity(
     val note: String?,
     val category: String?,
     val skipped: Boolean,
+    @ColumnInfo(name = "missed_reason") val missedReason: String?,
+    @ColumnInfo(name = "stress_level") val stressLevel: Int?,
+    @ColumnInfo(name = "energy_level") val energyLevel: Int?,
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )

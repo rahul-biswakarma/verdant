@@ -8,9 +8,12 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,23 +35,30 @@ import compose.icons.tablericons.PlayerPause
 import compose.icons.tablericons.PlayerPlay
 import compose.icons.tablericons.Stars
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -61,6 +71,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -70,6 +81,7 @@ import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.StreakBadge
 import com.verdant.core.model.TrackingType
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToHabitDetail: (String) -> Unit = {},
@@ -84,6 +96,7 @@ fun HomeScreen(
     var financialDialog by rememberSaveable { mutableStateOf<String?>(null) }
     var financialAmount by rememberSaveable { mutableStateOf("") }
     var financialCategory by rememberSaveable { mutableStateOf("") }
+    var skipDialogItem by rememberSaveable { mutableStateOf<String?>(null) }
 
     // Pending location check-in item — set when user taps check-in without permission
     var pendingLocationItem by rememberSaveable { mutableStateOf<String?>(null) }
@@ -113,6 +126,7 @@ fun HomeScreen(
                         formattedDate = state.formattedDate,
                         completedCount = state.completedCount,
                         totalCount = state.totalCount,
+                        consistencyRate = state.consistencyRate,
                     )
                 }
 
@@ -162,14 +176,17 @@ fun HomeScreen(
 
             items(state.todayItems, key = { it.habit.id }) { item ->
                 val cardMod = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
+                val onSkip = { skipDialogItem = item.habit.id }
                 when (item.habit.trackingType) {
                     TrackingType.BINARY -> BinaryHabitCard(
                         item = item, onToggle = { viewModel.toggleBinary(item) },
+                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.QUANTITATIVE -> QuantHabitCard(
                         item = item, onAdd = { viewModel.addQuantitative(item, it) },
                         onCustom = { customValueDialog = item.habit.id },
+                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.DURATION -> DurationHabitCard(
@@ -181,10 +198,12 @@ fun HomeScreen(
                             else viewModel.startTimer(item.habit.id)
                         },
                         onManual = { customValueDialog = item.habit.id },
+                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.FINANCIAL -> FinancialHabitCard(
                         item = item, onLogExpense = { financialDialog = item.habit.id },
+                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                     TrackingType.LOCATION -> LocationHabitCard(
@@ -205,6 +224,7 @@ fun HomeScreen(
                                 )
                             }
                         },
+                        onSkip = onSkip,
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
                 }
@@ -239,6 +259,28 @@ fun HomeScreen(
                 },
                 dismissButton = { TextButton(onClick = { customValueDialog = null }) { Text("Cancel") } },
             )
+        }
+    }
+
+    // Skip reason bottom sheet
+    val skipSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    if (skipDialogItem != null) {
+        val item = state.todayItems.find { it.habit.id == skipDialogItem }
+        if (item != null) {
+            ModalBottomSheet(
+                onDismissRequest = { skipDialogItem = null },
+                sheetState = skipSheetState,
+                dragHandle = { BottomSheetDefaults.DragHandle() },
+            ) {
+                SkipReasonSheet(
+                    habitName = item.habit.name,
+                    onSave = { reason, stress, energy, note ->
+                        viewModel.skipWithReason(item, reason, stress, energy, note)
+                        skipDialogItem = null
+                    },
+                    onDismiss = { skipDialogItem = null },
+                )
+            }
         }
     }
 
@@ -289,10 +331,11 @@ private fun HomeHeader(
     formattedDate: String,
     completedCount: Int,
     totalCount: Int,
+    consistencyRate: Float,
     modifier: Modifier = Modifier,
 ) {
-    val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
-    val animatedProgress by animateFloatAsState(targetValue = progress, animationSpec = tween(600), label = "progress")
+    val animatedConsistency by animateFloatAsState(targetValue = consistencyRate, animationSpec = tween(600), label = "consistency")
+    val consistencyPct = (animatedConsistency * 100).toInt()
 
     Box(
         modifier = modifier
@@ -321,18 +364,32 @@ private fun HomeHeader(
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "$completedCount / $totalCount done today",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    text = "$consistencyPct% consistent this month",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.primary,
                 )
+                Text(
+                    text = "$completedCount / $totalCount done today",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            CompletionRing(
-                progress = animatedProgress,
-                color = MaterialTheme.colorScheme.primary,
-                size = 72.dp,
-                strokeWidth = 6.dp,
-            )
+            Box(contentAlignment = Alignment.Center) {
+                CompletionRing(
+                    progress = animatedConsistency,
+                    color = MaterialTheme.colorScheme.primary,
+                    size = 72.dp,
+                    strokeWidth = 6.dp,
+                )
+                Text(
+                    text = "$consistencyPct%",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }
@@ -376,6 +433,7 @@ private fun HabitCardShell(
     habitColor: Color,
     streak: Int,
     onTap: () -> Unit,
+    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
     actions: @Composable () -> Unit,
 ) {
@@ -393,6 +451,13 @@ private fun HabitCardShell(
                 StreakBadge(count = streak)
             }
             actions()
+            TextButton(
+                onClick = onSkip,
+                modifier = Modifier.align(Alignment.End),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            ) {
+                Text("Skip", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -400,14 +465,14 @@ private fun HabitCardShell(
 // ── Binary ────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val isCompleted = item.entry?.completed == true
     val animatedColor by animateColorAsState(
         targetValue = if (isCompleted) habitColor else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(300), label = "check_color",
     )
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
         Button(
             onClick = onToggle, modifier = Modifier.fillMaxWidth().height(44.dp),
             colors = ButtonDefaults.buttonColors(
@@ -426,14 +491,14 @@ private fun BinaryHabitCard(item: TodayHabitItem, onToggle: () -> Unit, onTap: (
 // ── Quantitative ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCustom: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCustom: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val current = item.entry?.value ?: 0.0
     val target = item.habit.targetValue
     val progress = if (target != null && target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f
     val unit = item.habit.unit?.let { " $it" } ?: ""
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${current.fmt()}$unit", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium, color = habitColor)
@@ -460,13 +525,13 @@ private fun QuantHabitCard(item: TodayHabitItem, onAdd: (Double) -> Unit, onCust
 // ── Duration ──────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elapsedSeconds: Int, onStartStop: () -> Unit, onManual: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elapsedSeconds: Int, onStartStop: () -> Unit, onManual: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val current = item.entry?.value ?: 0.0
     val target = item.habit.targetValue
     val progress = if (target != null && target > 0) (current / target).toFloat().coerceIn(0f, 1f) else 0f
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
         if (target != null) {
             LinearProgressIndicator(
                 progress = { progress }, modifier = Modifier.fillMaxWidth().height(5.dp).clip(CircleShape),
@@ -503,14 +568,14 @@ private fun DurationHabitCard(item: TodayHabitItem, timerRunning: Boolean, elaps
 // ── Financial ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val spent = item.entry?.value ?: 0.0
     val budget = item.habit.targetValue
     val progress = if (budget != null && budget > 0) (spent / budget).toFloat().coerceIn(0f, 1f) else 0f
     val overBudget = progress >= 1f
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
         if (budget != null) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -533,11 +598,11 @@ private fun FinancialHabitCard(item: TodayHabitItem, onLogExpense: () -> Unit, o
 // ── Location ──────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
+private fun LocationHabitCard(item: TodayHabitItem, onCheckIn: () -> Unit, onSkip: () -> Unit, onTap: () -> Unit, modifier: Modifier = Modifier) {
     val habitColor = Color(item.habit.color)
     val checkedIn = item.entry?.completed == true
 
-    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, modifier = modifier) {
+    HabitCardShell(icon = item.habit.icon, name = item.habit.name, label = item.habit.label, habitColor = habitColor, streak = item.streak, onTap = onTap, onSkip = onSkip, modifier = modifier) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             item.entry?.value?.let { Text("${it.fmt()} km today", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f)) } ?: Spacer(Modifier.weight(1f))
             Button(
@@ -586,6 +651,122 @@ private fun WelcomeEmptyState(onCreateHabit: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         ) {
             Text("Create your first habit", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        }
+    }
+}
+
+// ── Skip Reason Bottom Sheet ──────────────────────────────────────────────────
+
+private val SKIP_REASONS = listOf("Too tired", "No time", "Forgot", "Sick", "Not a priority today", "Other")
+
+private val STRESS_EMOJIS = listOf("😌", "🙂", "😐", "😟", "😫")
+private val ENERGY_EMOJIS = listOf("🪫", "😴", "⚡", "🔋", "🚀")
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SkipReasonSheet(
+    habitName: String,
+    onSave: (reason: String?, stress: Int?, energy: Int?, note: String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var selectedReason by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedStress by rememberSaveable { mutableIntStateOf(0) }  // 0 = none selected
+    var selectedEnergy by rememberSaveable { mutableIntStateOf(0) }
+    var noteText by rememberSaveable { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(bottom = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("Why are you skipping?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(habitName, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // Reason chips
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            SKIP_REASONS.forEach { reason ->
+                FilterChip(
+                    selected = selectedReason == reason,
+                    onClick = { selectedReason = if (selectedReason == reason) null else reason },
+                    label = { Text(reason, style = MaterialTheme.typography.labelMedium) },
+                )
+            }
+        }
+
+        HorizontalDivider()
+
+        // Stress level
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Stress level (optional)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                STRESS_EMOJIS.forEachIndexed { index, emoji ->
+                    val level = index + 1
+                    val isSelected = selectedStress == level
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { selectedStress = if (isSelected) 0 else level },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+
+        // Energy level
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Energy level (optional)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ENERGY_EMOJIS.forEachIndexed { index, emoji ->
+                    val level = index + 1
+                    val isSelected = selectedEnergy == level
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { selectedEnergy = if (isSelected) 0 else level },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+            }
+        }
+
+        // Optional note
+        OutlinedTextField(
+            value = noteText,
+            onValueChange = { noteText = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Note (optional)") },
+            placeholder = { Text("What's going on?") },
+            maxLines = 3,
+            shape = RoundedCornerShape(12.dp),
+        )
+
+        // Buttons
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            Button(
+                onClick = {
+                    onSave(
+                        selectedReason,
+                        if (selectedStress > 0) selectedStress else null,
+                        if (selectedEnergy > 0) selectedEnergy else null,
+                        noteText.takeIf { it.isNotBlank() },
+                    )
+                },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+            ) { Text("Skip habit") }
         }
     }
 }
