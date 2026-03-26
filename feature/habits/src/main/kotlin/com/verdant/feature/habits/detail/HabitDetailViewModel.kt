@@ -11,6 +11,7 @@ import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
+import java.time.temporal.ChronoUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -36,11 +37,13 @@ data class HabitDetailUiState(
     val completionRate: Float = 0f,
     val totalEntries: Int = 0,
     val averageValue: Double? = null,
-    val selectedTab: Int = 0,          // 0 = history, 1 = calendar
+    val selectedTab: Int = 0,          // 0 = history, 1 = calendar, 2 = orbital (EVENT_DRIVEN only)
     val selectedMonth: LocalDate = LocalDate.now().withDayOfMonth(1),
     val retroEntry: HabitEntry? = null, // entry being edited in bottom sheet
     val retroDate: LocalDate? = null,   // date for which bottom sheet is open
     val isLoading: Boolean = true,
+    /** Days since last completion; -1 = never. Only meaningful for EVENT_DRIVEN habits. */
+    val daysSinceLast: Int = -1,
 )
 
 @HiltViewModel
@@ -82,6 +85,11 @@ class HabitDetailViewModel @Inject constructor(
         val retroEntry = retroDate?.let {
             entries.firstOrNull { e -> e.date == it }
         }
+        val daysSinceLast = if (habit.trackingType == TrackingType.EVENT_DRIVEN) {
+            val allCompleted = entryRepository.getCompletedDates(habitId)
+            val lastDate = allCompleted.maxOrNull()
+            if (lastDate != null) ChronoUnit.DAYS.between(lastDate, LocalDate.now()).toInt() else -1
+        } else -1
         HabitDetailUiState(
             habit = habit,
             entries = entries.sortedByDescending { it.date }.take(14),
@@ -96,6 +104,7 @@ class HabitDetailViewModel @Inject constructor(
             retroEntry = retroEntry,
             retroDate = retroDate,
             isLoading = false,
+            daysSinceLast = daysSinceLast,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HabitDetailUiState())
 
@@ -142,6 +151,13 @@ class HabitDetailViewModel @Inject constructor(
 
     fun retroDeleteEntry(entry: HabitEntry) {
         viewModelScope.launch { entryRepository.delete(entry) }
+    }
+
+    // ── Event-driven ─────────────────────────────────────────────────────────
+
+    /** Logs a completion for an EVENT_DRIVEN habit today, resetting its orbit. */
+    fun logEventDriven() {
+        viewModelScope.launch { logEntryUseCase.logBinary(habitId, LocalDate.now(), completed = true) }
     }
 
     // ── Habit actions ────────────────────────────────────────────────────────

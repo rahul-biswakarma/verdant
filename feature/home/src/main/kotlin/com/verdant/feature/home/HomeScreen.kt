@@ -67,7 +67,10 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.component.CompletionRing
+import com.verdant.core.designsystem.component.OrbitalDecayChart
+import com.verdant.core.designsystem.component.OrbitalHabitData
 import com.verdant.core.designsystem.component.StreakBadge
+import com.verdant.core.designsystem.component.toDaysAgoLabel
 import com.verdant.core.model.TrackingType
 
 @Composable
@@ -157,6 +160,18 @@ fun HomeScreen(
                             }
                         }
                     }
+                }
+            }
+
+            // ── Orbital View (EVENT_DRIVEN habits) ──────────────────────────
+            if (state.eventDrivenItems.isNotEmpty()) {
+                item {
+                    OrbitalViewSection(
+                        habits = state.eventDrivenItems,
+                        onLogDone = { habitId -> viewModel.logEventDriven(habitId) },
+                        onNavigateToDetail = onNavigateToHabitDetail,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
                 }
             }
 
@@ -277,6 +292,69 @@ fun HomeScreen(
                     TextButton(onClick = { financialDialog = null; financialAmount = ""; financialCategory = "" }) { Text("Cancel") }
                 },
             )
+        }
+    }
+}
+
+// ── Orbital View Section ──────────────────────────────────────────────────────
+
+@Composable
+private fun OrbitalViewSection(
+    habits: List<OrbitalHabitData>,
+    onLogDone: (String) -> Unit,
+    onNavigateToDetail: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.elevatedCardElevation(1.dp),
+    ) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("🪐", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Recurring habits",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            OrbitalDecayChart(
+                habits = habits,
+                modifier = Modifier.fillMaxWidth().height(260.dp),
+            )
+            // Habit list with "Done" buttons below the chart
+            habits.forEach { habit ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(habit.habitIcon.ifEmpty { "🌀" }, style = MaterialTheme.typography.titleMedium)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            habit.habitName,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            habit.daysSinceLast.toDaysAgoLabel(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    FilledTonalButton(
+                        onClick = { onLogDone(habit.habitId) },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Text("Done", style = MaterialTheme.typography.labelMedium)
+                    }
+                }
+            }
         }
     }
 }
