@@ -22,6 +22,7 @@ fun HabitEntity.toDomain() = Habit(
     reminderEnabled = reminderEnabled,
     reminderTime = reminderTime,
     reminderDays = reminderDays,
+    visualizationType = visualizationType,
     sortOrder = sortOrder,
     createdAt = createdAt,
 )
@@ -42,6 +43,7 @@ fun Habit.toEntity() = HabitEntity(
     reminderEnabled = reminderEnabled,
     reminderTime = reminderTime,
     reminderDays = reminderDays,
+    visualizationType = visualizationType,
     sortOrder = sortOrder,
     createdAt = createdAt,
 )

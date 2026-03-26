@@ -9,6 +9,7 @@ import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitFrequency
 import com.verdant.core.model.Label
 import com.verdant.core.model.TrackingType
+import com.verdant.core.model.VisualizationType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,15 +21,29 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
 
+// ── Phase-based state machine ────────────────────────────────────────────────
+
+sealed interface CreateHabitPhase {
+    /** Phase 1: Large text area + mic + templates. No draft yet. */
+    data class ConversationalEntry(
+        val inputText: String = "",
+    ) : CreateHabitPhase
+
+    /** Phase 2: Preview card + unified tracking/visualization picker. */
+    data class VisualizationPicker(
+        val draft: HabitDraft,
+        val selectedVisualization: VisualizationType,
+        val suggestedVisualization: VisualizationType,
+        val tweakExpanded: Boolean = false,
+        val reminderExpanded: Boolean = false,
+        val moreOptionsExpanded: Boolean = false,
+    ) : CreateHabitPhase
+}
+
 data class CreateHabitUiState(
-    val aiInput: String = "",
+    val phase: CreateHabitPhase = CreateHabitPhase.ConversationalEntry(),
     val isAiLoading: Boolean = false,
     val aiError: String? = null,
-    val draft: HabitDraft? = null,
-    /** Which collapsible sections are expanded. */
-    val trackingExpanded: Boolean = false,
-    val reminderExpanded: Boolean = false,
-    val moreOptionsExpanded: Boolean = false,
     val isSaving: Boolean = false,
     val savedSuccessfully: Boolean = false,
 )
@@ -46,21 +61,41 @@ class CreateHabitViewModel @Inject constructor(
     val labels: StateFlow<List<Label>> = labelRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    // ── AI input ────────────────────────────────────────────────────────────
+    // ── Phase 1: Conversational Entry ─────────────────────────────────────
 
     fun onAiInputChange(text: String) {
-        _uiState.update { it.copy(aiInput = text, aiError = null) }
+        val phase = _uiState.value.phase
+        if (phase is CreateHabitPhase.ConversationalEntry) {
+            _uiState.update {
+                it.copy(
+                    phase = phase.copy(inputText = text),
+                    aiError = null,
+                )
+            }
+        }
     }
 
     fun onSubmitAiInput() {
-        val text = _uiState.value.aiInput.trim()
+        val phase = _uiState.value.phase as? CreateHabitPhase.ConversationalEntry ?: return
+        val text = phase.inputText.trim()
         if (text.isBlank()) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isAiLoading = true, aiError = null) }
             runCatching { verdantAI.parseHabitDescription(text) }
                 .onSuccess { parsed ->
-                    _uiState.update { it.copy(isAiLoading = false, draft = parsed.toDraft()) }
+                    val draft = parsed.toDraft()
+                    val suggested = suggestVisualization(draft.trackingType)
+                    _uiState.update {
+                        it.copy(
+                            isAiLoading = false,
+                            phase = CreateHabitPhase.VisualizationPicker(
+                                draft = draft,
+                                selectedVisualization = suggested,
+                                suggestedVisualization = suggested,
+                            ),
+                        )
+                    }
                 }
                 .onFailure { error ->
                     _uiState.update {
@@ -73,13 +108,45 @@ class CreateHabitViewModel @Inject constructor(
         }
     }
 
-    // ── Template selection ───────────────────────────────────────────────────
-
     fun onTemplateSelected(template: HabitTemplate) {
-        _uiState.update { it.copy(draft = template.toDraft()) }
+        val draft = template.toDraft()
+        val suggested = suggestVisualization(draft.trackingType)
+        _uiState.update {
+            it.copy(
+                phase = CreateHabitPhase.VisualizationPicker(
+                    draft = draft,
+                    selectedVisualization = suggested,
+                    suggestedVisualization = suggested,
+                ),
+            )
+        }
     }
 
-    // ── Draft editing ────────────────────────────────────────────────────────
+    fun onCreateManually() {
+        val draft = HabitDraft()
+        val suggested = suggestVisualization(draft.trackingType)
+        _uiState.update {
+            it.copy(
+                phase = CreateHabitPhase.VisualizationPicker(
+                    draft = draft,
+                    selectedVisualization = suggested,
+                    suggestedVisualization = suggested,
+                    tweakExpanded = true,
+                ),
+            )
+        }
+    }
+
+    fun onStartOver() {
+        _uiState.update {
+            it.copy(
+                phase = CreateHabitPhase.ConversationalEntry(),
+                aiError = null,
+            )
+        }
+    }
+
+    // ── Phase 2/3: Draft editing ──────────────────────────────────────────
 
     fun onDraftNameChange(name: String) = updateDraft { it.copy(name = name) }
     fun onDraftDescriptionChange(desc: String) = updateDraft { it.copy(description = desc) }
@@ -96,29 +163,75 @@ class CreateHabitViewModel @Inject constructor(
     fun onDraftReminderDaysChange(days: Int) = updateDraft { it.copy(reminderDays = days) }
     fun onDraftStreakGoalChange(goal: Int?) = updateDraft { it.copy(streakGoal = goal) }
 
-    // ── Section toggles ──────────────────────────────────────────────────────
+    // ── Section toggles ──────────────────────────────────────────────────
 
-    fun onToggleTracking() = _uiState.update { it.copy(trackingExpanded = !it.trackingExpanded) }
-    fun onToggleReminder() = _uiState.update { it.copy(reminderExpanded = !it.reminderExpanded) }
-    fun onToggleMoreOptions() = _uiState.update { it.copy(moreOptionsExpanded = !it.moreOptionsExpanded) }
-
-    /** Ensure a draft always exists for the form-first approach. */
-    fun ensureDraft() {
-        if (_uiState.value.draft == null) {
-            _uiState.update { it.copy(draft = HabitDraft()) }
+    fun onToggleTweakDetails() {
+        _uiState.update { state ->
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(phase = phase.copy(tweakExpanded = !phase.tweakExpanded))
+            } else state
         }
     }
 
-    // ── Save ─────────────────────────────────────────────────────────────────
+    fun onToggleReminder() {
+        _uiState.update { state ->
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(phase = phase.copy(reminderExpanded = !phase.reminderExpanded))
+            } else state
+        }
+    }
+
+    fun onToggleMoreOptions() {
+        _uiState.update { state ->
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(phase = phase.copy(moreOptionsExpanded = !phase.moreOptionsExpanded))
+            } else state
+        }
+    }
+
+    // ── Tracking + Visualization selection ─────────────────────────────────
+
+    fun onTrackingVisualizationSelected(trackingType: TrackingType, vizType: VisualizationType) {
+        _uiState.update { state ->
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(
+                    phase = phase.copy(
+                        draft = phase.draft.copy(trackingType = trackingType),
+                        selectedVisualization = vizType,
+                    ),
+                )
+            } else state
+        }
+    }
+
+    fun onVisualizationSelected(type: VisualizationType) {
+        _uiState.update { state ->
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(phase = phase.copy(selectedVisualization = type))
+            } else state
+        }
+    }
+
+    // ── Save ─────────────────────────────────────────────────────────────
 
     fun onSaveHabit() {
-        val draft = _uiState.value.draft ?: return
+        val draft = currentDraft() ?: return
         if (draft.name.isBlank()) return
+
+        val vizType = when (val phase = _uiState.value.phase) {
+            is CreateHabitPhase.VisualizationPicker -> phase.selectedVisualization
+            else -> VisualizationType.CONTRIBUTION_GRID
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true) }
             runCatching {
-                habitRepository.insert(draft.toHabit())
+                habitRepository.insert(draft.copy(visualizationType = vizType).toHabit())
             }.onSuccess {
                 _uiState.update { it.copy(isSaving = false, savedSuccessfully = true) }
             }.onFailure {
@@ -135,9 +248,19 @@ class CreateHabitViewModel @Inject constructor(
         }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+
+    private fun currentDraft(): HabitDraft? = when (val phase = _uiState.value.phase) {
+        is CreateHabitPhase.VisualizationPicker -> phase.draft
+        is CreateHabitPhase.ConversationalEntry -> null
+    }
+
     private fun updateDraft(transform: (HabitDraft) -> HabitDraft) {
         _uiState.update { state ->
-            state.copy(draft = state.draft?.let(transform))
+            val phase = state.phase
+            if (phase is CreateHabitPhase.VisualizationPicker) {
+                state.copy(phase = phase.copy(draft = transform(phase.draft)))
+            } else state
         }
     }
 }
@@ -158,6 +281,7 @@ private fun HabitDraft.toHabit() = Habit(
     reminderEnabled = reminderEnabled,
     reminderTime = reminderTimeJoined.takeIf { reminderEnabled },
     reminderDays = if (reminderEnabled) reminderDays else 0,
+    visualizationType = visualizationType,
     sortOrder = 0,
     createdAt = System.currentTimeMillis(),
 )
