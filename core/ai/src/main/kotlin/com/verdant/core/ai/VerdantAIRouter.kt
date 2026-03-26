@@ -21,43 +21,45 @@ import javax.inject.Singleton
  *
  * | Operation                           | Primary          | Fallback        |
  * |-------------------------------------|------------------|-----------------|
- * | parseHabitDescription               | MediaPipeAI      | FallbackAI      |
- * | generateNudge / generateMilestone   | MediaPipeAI      | FallbackAI      |
- * | generateMotivation                  | MediaPipe+Claude†| FallbackAI      |
+ * | parseHabitDescription               | GeminiNanoAI     | FallbackAI      |
+ * | generateNudge / generateMilestone   | GeminiNanoAI     | FallbackAI      |
+ * | generateMotivation                  | Gemini + Claude† | FallbackAI      |
  * | generateDailyMotivationEnhanced     | CloudAI          | error: NO_NET   |
  * | generateWeeklyReport                | CloudAI          | error: NO_NET   |
  * | generateMonthlyReport               | CloudAI          | error: NO_NET   |
  * | findPatterns / findCorrelations     | CloudAI          | error: NO_NET   |
  * | chatWithCoach                       | CloudAI          | error: NO_NET   |
  *
- * † **Dual-path motivation**: MediaPipe and Claude run concurrently; the richer
+ * † **Dual-path motivation**: Gemini Nano and Claude run concurrently; the richer
  * (longer) result is returned if Claude responds within [CLOUD_MOTIVATION_TIMEOUT_MS].
- * If the device is offline or Claude fails, the MediaPipe result is used.
+ * If the device is offline or Claude fails, the Gemini Nano result is used.
  */
 @Singleton
 class VerdantAIRouter @Inject constructor(
     @ApplicationContext private val appContext: Context,
-    private val mediaPipeAI: MediaPipeAI,
+    private val geminiNanoAI: GeminiNanoAI,
     private val fallbackAI: FallbackAI,
     private val cloudAI: CloudAI,
 ) : VerdantAI {
 
+    // ── On-device ─────────────────────────────────────────────────────────────
 
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
-        mediaPipeAI.parseHabitDescription(text)
+        geminiNanoAI.parseHabitDescription(text)
 
     override suspend fun generateNudge(context: NudgeContext): String =
-        mediaPipeAI.generateNudge(context)
+        geminiNanoAI.generateNudge(context)
 
     override suspend fun generateMilestoneMessage(habit: Habit, milestone: Int): String =
-        mediaPipeAI.generateMilestoneMessage(habit, milestone)
+        geminiNanoAI.generateMilestoneMessage(habit, milestone)
 
     override fun isOnDeviceAvailable(): Flow<AIAvailability> =
-        mediaPipeAI.isOnDeviceAvailable()
+        geminiNanoAI.isOnDeviceAvailable()
 
+    // ── Dual-path motivation ──────────────────────────────────────────────────
 
     /**
-     * Runs MediaPipe and Claude concurrently. Returns whichever produces the longer
+     * Runs Gemini Nano and Claude concurrently. Returns whichever produces the longer
      * (richer) message, subject to a [CLOUD_MOTIVATION_TIMEOUT_MS] timeout for Claude.
      *
      * The on-device result is always available immediately; the cloud call is a
@@ -66,8 +68,8 @@ class VerdantAIRouter @Inject constructor(
     override suspend fun generateMotivation(context: MotivationContext): String =
         coroutineScope {
             // Start on-device immediately — always succeeds (may fall back to templates)
-            val localDeferred = async {
-                runCatching { mediaPipeAI.generateMotivation(context) }.getOrNull()
+            val geminiDeferred = async {
+                runCatching { geminiNanoAI.generateMotivation(context) }.getOrNull()
             }
 
             // Only start cloud call if we have a real network connection
@@ -81,14 +83,15 @@ class VerdantAIRouter @Inject constructor(
                 }
             } else null
 
-            val localResult = localDeferred.await()
+            val geminiResult = geminiDeferred.await()
             val cloudResult = cloudDeferred?.await()
 
             // Prefer the longer result; fall back through the chain
-            selectRicher(cloudResult, localResult)
+            selectRicher(cloudResult, geminiResult)
                 ?: fallbackAI.generateMotivation(context)
         }
 
+    // ── Cloud-only — guard and delegate ──────────────────────────────────────
 
     override suspend fun generateDailyMotivationEnhanced(context: MotivationContext): String {
         requireNetwork()
@@ -123,33 +126,17 @@ class VerdantAIRouter @Inject constructor(
         return cloudAI.chatWithCoach(messages, habitData)
     }
 
-    // ── Finance AI routing ───────────────────────────────────────
-
-    override suspend fun categorizeTransaction(
-        merchant: String,
-        amount: Double,
-        smsSnippet: String,
-    ): String = runCatching {
-        mediaPipeAI.categorizeTransaction(merchant, amount, smsSnippet)
-    }.getOrDefault("OTHER")
-
-    override suspend fun predictMonthlySpending(
-        history: FinanceHistory,
-    ): com.verdant.core.model.MonthlyPrediction {
+    override suspend fun generateHabitStackSuggestion(context: HabitStackContext): String {
         requireNetwork()
-        return cloudAI.predictMonthlySpending(history)
+        return cloudAI.generateHabitStackSuggestion(context)
     }
 
-    override suspend fun generateSpendingInsight(data: SpendingSummaryData): String {
+    override suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis {
         requireNetwork()
-        return cloudAI.generateSpendingInsight(data)
+        return cloudAI.generateBehavioralSynthesis(data)
     }
 
-    override suspend fun generateDashboardInsight(context: DashboardContext): String {
-        requireNetwork()
-        return cloudAI.generateDashboardInsight(context)
-    }
-
+    // ── Network utilities ─────────────────────────────────────────────────────
 
     private fun isNetworkAvailable(): Boolean {
         val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -163,6 +150,7 @@ class VerdantAIRouter @Inject constructor(
         if (!isNetworkAvailable()) throw AIFeatureUnavailableException.noNetwork()
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     /**
      * Returns the non-null string with more content (measured by character count),
@@ -180,7 +168,7 @@ class VerdantAIRouter @Inject constructor(
     }
 
     private companion object {
-        /** Maximum time to wait for Claude's motivation response before using local result. */
+        /** Maximum time to wait for Claude's motivation response before using Gemini Nano result. */
         const val CLOUD_MOTIVATION_TIMEOUT_MS = 4_000L
     }
 }

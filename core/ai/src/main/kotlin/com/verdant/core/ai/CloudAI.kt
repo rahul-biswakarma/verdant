@@ -36,6 +36,9 @@ class CloudAI @Inject constructor(
     private val fallbackAI: FallbackAI,
     private val json: Json,
 ) : VerdantAI {
+
+    // ── On-device methods — delegate to FallbackAI (never called by the router) ──
+
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         fallbackAI.parseHabitDescription(text)
 
@@ -50,6 +53,9 @@ class CloudAI @Inject constructor(
 
     override fun isOnDeviceAvailable(): Flow<AIAvailability> =
         flowOf(AIAvailability.UNAVAILABLE)
+
+    // ── Cloud-only methods ────────────────────────────────────────────────────
+
     override suspend fun generateDailyMotivationEnhanced(context: MotivationContext): String {
         // Build a minimal AggregatedHabitData from MotivationContext for daily payloads
         val habitJson = buildMinimalHabitJson(context)
@@ -128,6 +134,25 @@ class CloudAI @Inject constructor(
         val response = callInsight("coach_reply", habitJson, message = lastUserMessage)
         return response.content
     }
+
+    override suspend fun generateHabitStackSuggestion(context: HabitStackContext): String {
+        val habitJson = buildHabitStackContextJson(context)
+        val stackJson = buildStackContextJson(context)
+        val response = callInsightWithStack("habit_stack", habitJson, stackContext = stackJson)
+        return response.content
+    }
+
+    override suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis {
+        val habitJson = buildBehavioralSynthesisJson(data)
+        val response = callInsight("weekly_behavioral_synthesis", habitJson)
+        return BehavioralSynthesis(
+            insight = response.content,
+            relatedHabitIds = response.relatedHabitIds,
+        )
+    }
+
+    // ── Internal helpers ──────────────────────────────────────────────────────
+
     private suspend fun callInsight(
         type: String,
         habitJson: JsonObject,
@@ -135,6 +160,16 @@ class CloudAI @Inject constructor(
     ) = wrapErrors {
         apiService.generateInsight(
             InsightRequest(type = type, habitData = habitJson, message = message),
+        )
+    }
+
+    private suspend fun callInsightWithStack(
+        type: String,
+        habitJson: JsonObject,
+        stackContext: JsonObject,
+    ) = wrapErrors {
+        apiService.generateInsight(
+            InsightRequest(type = type, habitData = habitJson, stackContext = stackContext),
         )
     }
 
@@ -214,6 +249,75 @@ class CloudAI @Inject constructor(
           "overallCompletionThisMonth":${summary.recentCompletionRate},
           "topStreaks":[],
           "periodDays":${summary.periodDays}
+        }"""
+        return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /**
+     * Builds a minimal JSON object representing a [HabitStackContext] as the main
+     * habit data payload for habit_stack calls (contains both anchor + target habits).
+     */
+    private fun buildHabitStackContextJson(context: HabitStackContext): JsonObject {
+        val habits = listOf(context.anchorHabit, context.targetHabit)
+        val habitsArray = habits.joinToString(",") { habit ->
+            val rate = if (habit.id == context.anchorHabit.id) context.anchorCompletionRate
+                       else context.targetCompletionRate
+            """{"id":"${habit.id}","name":"${habit.name.sanitise()}","icon":"${habit.icon}","trackingType":"${habit.trackingType.name}","completionRate":$rate,"currentStreak":0}"""
+        }
+        val raw = """{
+          "habits":[$habitsArray],
+          "overallCompletionToday":0,
+          "overallCompletionThisWeek":${context.anchorCompletionRate},
+          "overallCompletionThisMonth":${context.anchorCompletionRate},
+          "topStreaks":[],
+          "periodDays":14
+        }"""
+        return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /** Serialises the [HabitStackContext] anchor/target pairing as the stackContext field. */
+    private fun buildStackContextJson(context: HabitStackContext): JsonObject {
+        val timeField = context.anchorConsistentTime
+            ?.let { ""","anchorConsistentTime":"$it"""" }
+            ?: ""
+        val raw = """{
+          "anchorHabitId":"${context.anchorHabit.id}",
+          "anchorHabitName":"${context.anchorHabit.name.sanitise()}",
+          "anchorHabitIcon":"${context.anchorHabit.icon}",
+          "anchorCompletionRate":${context.anchorCompletionRate}$timeField,
+          "targetHabitId":"${context.targetHabit.id}",
+          "targetHabitName":"${context.targetHabit.name.sanitise()}",
+          "targetHabitIcon":"${context.targetHabit.icon}",
+          "targetCompletionRate":${context.targetCompletionRate}
+        }"""
+        return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /**
+     * Builds the JSON payload for [generateBehavioralSynthesis], enriching each
+     * [HabitSummaryItem] with contextual signals when available.
+     */
+    private fun buildBehavioralSynthesisJson(data: BehavioralSynthesisData): JsonObject {
+        val habitsArray = data.habits.joinToString(",") { habit ->
+            val signals = data.contextualSignals[habit.id]
+            val stressField = signals?.avgStressOnMiss
+                ?.let { ""","avgStressOnMiss":$it""" } ?: ""
+            val energyField = signals?.avgEnergyOnComplete
+                ?.let { ""","avgEnergyOnComplete":$it""" } ?: ""
+            val missField = signals?.topMissedReason
+                ?.let { ""","topMissedReason":"${it.sanitise()}"""" } ?: ""
+            val summaryItem = data.aggregatedData.habits.firstOrNull { it.id == habit.id }
+            val rate = summaryItem?.completionRate ?: 0f
+            val streak = summaryItem?.currentStreak ?: 0
+            """{"id":"${habit.id}","name":"${habit.name.sanitise()}","icon":"${habit.icon}","trackingType":"${habit.trackingType.name}","completionRate":$rate,"currentStreak":$streak$stressField$energyField$missField}"""
+        }
+        val raw = """{
+          "habits":[$habitsArray],
+          "overallCompletionToday":${data.aggregatedData.overallCompletionToday},
+          "overallCompletionThisWeek":${data.aggregatedData.overallCompletionThisWeek},
+          "overallCompletionThisMonth":${data.aggregatedData.overallCompletionThisMonth},
+          "topStreaks":[],
+          "periodDays":${data.periodDays}
         }"""
         return json.parseToJsonElement(raw.trimIndent()).jsonObject
     }

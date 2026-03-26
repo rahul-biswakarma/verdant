@@ -4,6 +4,8 @@ import com.verdant.core.common.AggregatedHabitData
 import com.verdant.core.model.Habit
 import java.time.LocalDate
 
+// ── Exception ─────────────────────────────────────────────────────────────────
+
 /**
  * Thrown by cloud-only [VerdantAI] methods when the feature cannot be completed.
  *
@@ -38,6 +40,8 @@ class AIFeatureUnavailableException(
     }
 }
 
+// ── Weekly report ─────────────────────────────────────────────────────────────
+
 data class WeeklyReportData(
     val weekStart: LocalDate,
     val weekEnd: LocalDate,
@@ -54,6 +58,8 @@ data class WeeklyReport(
     val highlights: List<String>,
 )
 
+// ── Monthly report ────────────────────────────────────────────────────────────
+
 data class MonthlyReportData(
     val monthStart: LocalDate,
     val monthEnd: LocalDate,
@@ -69,6 +75,8 @@ data class MonthlyReport(
     val highlights: List<String>,
 )
 
+// ── Pattern analysis ──────────────────────────────────────────────────────────
+
 data class PatternData(
     val habits: List<Habit>,
     val aggregatedData: AggregatedHabitData,
@@ -83,6 +91,8 @@ data class Pattern(
     /** IDs of habits involved in this pattern */
     val relatedHabitIds: List<String>,
 )
+
+// ── Correlation analysis ──────────────────────────────────────────────────────
 
 data class CorrelationData(
     val habits: List<Habit>,
@@ -100,6 +110,8 @@ data class Correlation(
     val description: String,
 )
 
+// ── Coach chat ────────────────────────────────────────────────────────────────
+
 /**
  * Compact habit summary passed as context to the AI coach.
  *
@@ -113,33 +125,64 @@ data class HabitSummary(
     val periodDays: Int = 7,
 )
 
-// ── Finance AI data classes ──────────────────────────────────────────────────
+// ── Fogg Habit Stacking ───────────────────────────────────────────────────────
 
-data class FinanceHistory(
-    /** Monthly totals for the last 3–6 months: (yearMonth string → totalSpent) */
-    val monthlyTotals: Map<String, Double>,
-    /** Category trends: (categoryName → list of monthly amounts, most recent last) */
-    val categoryTrends: Map<String, List<Double>>,
-    /** Current month's total so far */
-    val currentMonthSpent: Double,
-    /** Number of months of history available */
-    val monthsOfData: Int,
+/**
+ * Context for generating a Fogg habit-stack formula.
+ *
+ * The stack pairs a high-consistency **anchor** habit (≥ 90% completion) with a
+ * new or struggling **target** habit. Claude produces a formula like:
+ * "After I [anchor], I will [target] for just 2 minutes."
+ *
+ * @param anchorHabit              The consistent habit that acts as the behavioural cue.
+ * @param anchorCompletionRate     0–1 completion rate for the anchor habit.
+ * @param anchorConsistentTime     "HH:mm" if the user reliably completes the anchor at a
+ *                                 fixed time, null otherwise.
+ * @param targetHabit              The new or struggling habit to attach to the anchor.
+ * @param targetCompletionRate     0–1 completion rate for the target habit.
+ */
+data class HabitStackContext(
+    val anchorHabit: Habit,
+    val anchorCompletionRate: Float,
+    val anchorConsistentTime: String?,
+    val targetHabit: Habit,
+    val targetCompletionRate: Float,
 )
 
-data class SpendingSummaryData(
-    val totalSpent: Double,
-    val totalIncome: Double,
-    val categoryBreakdown: Map<String, Double>,
-    val topMerchants: List<String>,
-    val monthOverMonthChange: Double?,
-    val periodDays: Int = 30,
+// ── Weekly Behavioral Synthesis ───────────────────────────────────────────────
+
+/**
+ * Input for the weekly cross-domain behavioral synthesis insight.
+ *
+ * Combines the standard [AggregatedHabitData] with optional per-habit contextual
+ * signals (stress, energy, missed reasons) from Phase 1 entry annotations.
+ * These signals are populated when available and null-safe when absent.
+ */
+data class BehavioralSynthesisData(
+    val habits: List<Habit>,
+    val aggregatedData: AggregatedHabitData,
+    /** Per-habit contextual signals indexed by habit ID. Populated from Phase 1 data if available. */
+    val contextualSignals: Map<String, HabitContextSignals> = emptyMap(),
+    val periodDays: Int = 7,
 )
 
 /**
- * Cross-product context for the unified dashboard insight.
- * Combines habit performance with financial summary.
+ * Contextual signals for a single habit derived from entry-level annotations.
+ * All fields are averages across the aggregation period.
  */
-data class DashboardContext(
-    val habitSummary: HabitSummary?,
-    val financeSummary: SpendingSummaryData?,
+data class HabitContextSignals(
+    /** Average self-reported stress level (1–10) on days the habit was missed. */
+    val avgStressOnMiss: Float? = null,
+    /** Average self-reported energy level (1–10) on days the habit was completed. */
+    val avgEnergyOnComplete: Float? = null,
+    /** The most frequently reported reason for missing this habit. */
+    val topMissedReason: String? = null,
+)
+
+/** Result of the weekly behavioral synthesis — a single cross-domain insight string. */
+data class BehavioralSynthesis(
+    /** The insight text (1–2 sentences, MI-toned, specific to the user's data). */
+    val insight: String,
+    /** IDs of the habits referenced in the insight. */
+    val relatedHabitIds: List<String>,
 )
