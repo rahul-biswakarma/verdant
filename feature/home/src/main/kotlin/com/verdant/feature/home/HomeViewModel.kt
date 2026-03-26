@@ -2,7 +2,9 @@ package com.verdant.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.verdant.core.ai.BrainDumpAction
 import com.verdant.core.ai.MotivationContext
+import com.verdant.core.ai.ParsedBrainDump
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
@@ -45,6 +47,13 @@ data class HomeUiState(
     val hasAnyHabits: Boolean = true,
 )
 
+data class BrainDumpUiState(
+    val text: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val result: ParsedBrainDump? = null,
+)
+
 // Displayed in the "Log expense" dialog
 data class FinancialDialogState(
     val habitId: String,
@@ -69,6 +78,9 @@ class HomeViewModel @Inject constructor(
 
     private val _streaks = MutableStateFlow<Map<String, Int>>(emptyMap())
     private val _aiInsight = MutableStateFlow<String?>(null)
+
+    private val _brainDump = MutableStateFlow(BrainDumpUiState())
+    val brainDumpState: StateFlow<BrainDumpUiState> = _brainDump
 
     val uiState: StateFlow<HomeUiState> = com.verdant.core.common.combine(
         habitRepository.observeActiveHabits(),
@@ -221,6 +233,55 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             logEntryUseCase.logLocation(item.habit.id, today, null, null)
         }
+    }
+
+    // ── Brain Dump ────────────────────────────────────────────────────────────
+
+    fun onBrainDumpTextChange(text: String) {
+        _brainDump.update { it.copy(text = text, error = null) }
+    }
+
+    fun onBrainDumpSubmit() {
+        val text = _brainDump.value.text.trim()
+        if (text.isBlank()) return
+        viewModelScope.launch {
+            _brainDump.update { it.copy(isLoading = true, error = null, result = null) }
+            val habits = habitRepository.getAllHabits()
+                .filter { !it.isArchived && it.isScheduledForDate(today) }
+            runCatching { verdantAI.parseBrainDump(text, habits) }
+                .onSuccess { parsed ->
+                    _brainDump.update { it.copy(isLoading = false, result = parsed) }
+                }
+                .onFailure { e ->
+                    _brainDump.update {
+                        it.copy(isLoading = false, error = e.message ?: "Could not parse your entry")
+                    }
+                }
+        }
+    }
+
+    fun onBrainDumpConfirm() {
+        val result = _brainDump.value.result ?: return
+        viewModelScope.launch {
+            val itemMap = uiState.value.todayItems.associateBy { it.habit.name }
+            result.entries.forEach { entry ->
+                val item = itemMap[entry.habitName] ?: return@forEach
+                when (entry.action) {
+                    BrainDumpAction.SKIPPED -> logEntryUseCase.skip(item.habit.id, today)
+                    BrainDumpAction.LOGGED -> when {
+                        entry.value != null -> logEntryUseCase.addQuantitative(
+                            item.habit.id, today, entry.value, item.habit.targetValue,
+                        )
+                        else -> logEntryUseCase.logBinary(item.habit.id, today, true)
+                    }
+                }
+            }
+            _brainDump.value = BrainDumpUiState() // reset
+        }
+    }
+
+    fun onBrainDumpDismiss() {
+        _brainDump.update { it.copy(result = null, error = null) }
     }
 
     override fun onCleared() {

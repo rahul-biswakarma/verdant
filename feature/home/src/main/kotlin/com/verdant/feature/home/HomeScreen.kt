@@ -4,9 +4,14 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,26 +29,32 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.MapPin
 import compose.icons.tablericons.PlayerPause
 import compose.icons.tablericons.PlayerPlay
+import compose.icons.tablericons.Send
 import compose.icons.tablericons.Stars
+import compose.icons.tablericons.X
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,13 +70,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdant.core.ai.BrainDumpAction
 import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.StreakBadge
 import com.verdant.core.model.TrackingType
@@ -78,6 +93,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val brainDump by viewModel.brainDumpState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     var customValueDialog by rememberSaveable { mutableStateOf<String?>(null) }
@@ -121,6 +137,55 @@ fun HomeScreen(
                         insightText = state.aiInsight,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     )
+                }
+
+                item {
+                    BrainDumpBar(
+                        text = brainDump.text,
+                        isLoading = brainDump.isLoading,
+                        onTextChange = viewModel::onBrainDumpTextChange,
+                        onSubmit = viewModel::onBrainDumpSubmit,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = brainDump.result != null || brainDump.error != null,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        if (brainDump.result != null) {
+                            BrainDumpResultCard(
+                                result = brainDump.result!!,
+                                onConfirm = viewModel::onBrainDumpConfirm,
+                                onDismiss = viewModel::onBrainDumpDismiss,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        } else if (brainDump.error != null) {
+                            Card(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                Row(
+                                    Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        brainDump.error!!,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    IconButton(onClick = viewModel::onBrainDumpDismiss) {
+                                        Icon(TablerIcons.X, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -586,6 +651,223 @@ private fun WelcomeEmptyState(onCreateHabit: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         ) {
             Text("Create your first habit", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        }
+    }
+}
+
+// ── Brain Dump ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrainDumpBar(
+    text: String,
+    isLoading: Boolean,
+    onTextChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "What did you do today? Just type it out...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodySmall,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Send,
+                ),
+                keyboardActions = KeyboardActions(onSend = {
+                    keyboard?.hide()
+                    onSubmit()
+                }),
+                maxLines = 4,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
+                shape = RoundedCornerShape(12.dp),
+            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                FilledIconButton(
+                    onClick = {
+                        keyboard?.hide()
+                        onSubmit()
+                    },
+                    modifier = Modifier.size(36.dp),
+                    enabled = text.isNotBlank(),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Icon(TablerIcons.Send, "Log", Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrainDumpResultCard(
+    result: com.verdant.core.ai.ParsedBrainDump,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.elevatedCardElevation(2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(TablerIcons.Stars, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Ready to log",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(TablerIcons.X, "Dismiss", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            if (result.entries.isEmpty()) {
+                Text(
+                    "No matching habits found. Try mentioning your habit names more explicitly.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                result.entries.forEach { entry ->
+                    val isSkipped = entry.action == BrainDumpAction.SKIPPED
+                    val entryColor = if (isSkipped) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(entryColor.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                if (isSkipped) TablerIcons.X else TablerIcons.Check,
+                                null,
+                                Modifier.size(14.dp),
+                                tint = entryColor,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                entry.habitName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            val detail = buildString {
+                                if (isSkipped) {
+                                    append("Skipped")
+                                    entry.skipReason?.let { append(" — $it") }
+                                } else {
+                                    append("Logged")
+                                    if (entry.value != null) {
+                                        val v = entry.value
+                                        val vStr = if (v == v.toLong().toDouble()) v.toLong().toString() else "%.1f".format(v)
+                                        append(" $vStr")
+                                        entry.unit?.let { append(" $it") }
+                                    }
+                                }
+                            }
+                            Text(
+                                detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(entryColor.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                if (isSkipped) "Skip" else "Done",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = entryColor,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (result.unmatchedMentions.isNotEmpty()) {
+                Text(
+                    "Not matched: ${result.unmatchedMentions.joinToString(", ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+
+            if (result.entries.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Discard")
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(2f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(TablerIcons.Check, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Confirm & Log")
+                    }
+                }
+            }
         }
     }
 }

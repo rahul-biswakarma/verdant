@@ -40,6 +40,13 @@ class GeminiNanoAI @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
 
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
+        runCatching {
+            val prompt = buildBrainDumpPrompt(text, habits)
+            val response = runInference(prompt)
+            parseBrainDumpJson(response, habits)
+        }.getOrElse { fallback.parseBrainDump(text, habits) }
+
     // ── Motivation ───────────────────────────────────────────────────────────
 
     override suspend fun generateMotivation(motivationContext: MotivationContext): String =
@@ -125,6 +132,71 @@ class GeminiNanoAI @Inject constructor(
         Habit: "${habit.name}"
         Milestone: $milestone consecutive days completed
     """.trimIndent()
+
+    // ── Internal – brain-dump prompt + JSON parser ────────────────────────────
+
+    private fun buildBrainDumpPrompt(text: String, habits: List<Habit>): String {
+        val habitList = habits.joinToString("\n") { "- ${it.name} (${it.trackingType.name.lowercase()})" }
+        return """
+            You are a habit logging assistant. Parse the user's diary entry and match it to their known habits.
+
+            Known habits:
+            $habitList
+
+            User entry: "$text"
+
+            Return a JSON object with exactly this shape:
+            {
+              "entries": [
+                {
+                  "habitName": "<exact habit name from the list above>",
+                  "action": "<LOGGED or SKIPPED>",
+                  "value": <number or null>,
+                  "unit": "<string or null>",
+                  "skipReason": "<short reason if skipped, else null>"
+                }
+              ],
+              "unmatchedMentions": ["<things mentioned but not in the habit list>"]
+            }
+
+            Rules:
+            - Only include habits that are clearly mentioned.
+            - Use SKIPPED if the user says they missed/skipped/didn't do it.
+            - Extract numeric values and units when present (e.g. "20 min" → value:20, unit:"min").
+            - Return only valid JSON with no markdown, no explanation.
+        """.trimIndent()
+    }
+
+    private fun parseBrainDumpJson(response: String, habits: List<Habit>): ParsedBrainDump {
+        val clean = response.trim()
+            .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val json = org.json.JSONObject(clean)
+
+        val entriesArray = json.optJSONArray("entries") ?: return ParsedBrainDump(emptyList(), emptyList())
+        val habitNames = habits.map { it.name }
+
+        val entries = (0 until entriesArray.length()).mapNotNull { i ->
+            val obj = entriesArray.optJSONObject(i) ?: return@mapNotNull null
+            val name = obj.optString("habitName").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            // Fuzzy-match: accept if the returned name matches (case-insensitive) or is a substring
+            val matched = habitNames.firstOrNull {
+                it.equals(name, ignoreCase = true) || it.contains(name, ignoreCase = true) || name.contains(it, ignoreCase = true)
+            } ?: return@mapNotNull null
+            val action = if (obj.optString("action").uppercase() == "SKIPPED") BrainDumpAction.SKIPPED else BrainDumpAction.LOGGED
+            ParsedBrainDumpEntry(
+                habitName = matched,
+                action = action,
+                value = obj.optDouble("value").takeIf { !it.isNaN() },
+                unit = obj.optString("unit").takeIf { it.isNotBlank() && it != "null" },
+                skipReason = obj.optString("skipReason").takeIf { it.isNotBlank() && it != "null" },
+            )
+        }
+
+        val unmatched = (0 until (json.optJSONArray("unmatchedMentions")?.length() ?: 0))
+            .mapNotNull { json.optJSONArray("unmatchedMentions")?.optString(it) }
+
+        return ParsedBrainDump(entries = entries, unmatchedMentions = unmatched)
+    }
 
     // ── Internal – ML Kit inference (reflection) ──────────────────────────────
 

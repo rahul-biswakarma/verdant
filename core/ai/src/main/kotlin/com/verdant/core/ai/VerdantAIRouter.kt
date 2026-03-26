@@ -47,6 +47,10 @@ class VerdantAIRouter @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         geminiNanoAI.parseHabitDescription(text)
 
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
+        runCatching { geminiNanoAI.parseBrainDump(text, habits) }
+            .getOrElse { fallbackAI.parseBrainDump(text, habits) }
+
     override suspend fun generateNudge(context: NudgeContext): String =
         geminiNanoAI.generateNudge(context)
 

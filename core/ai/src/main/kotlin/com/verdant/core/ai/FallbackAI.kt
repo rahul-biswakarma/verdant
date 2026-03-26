@@ -6,6 +6,7 @@ import com.verdant.core.model.Habit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -22,6 +23,43 @@ class FallbackAI @Inject constructor(
 
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
+
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump {
+        val lower = text.lowercase()
+        val skipKeywords = listOf("skip", "skipped", "missed", "didn't", "didnt", "couldn't", "couldnt", "no ")
+
+        val entries = habits.mapNotNull { habit ->
+            val habitLower = habit.name.lowercase()
+            val nameIdx = lower.indexOf(habitLower)
+            if (nameIdx == -1) {
+                // Try matching any significant word from the habit name
+                val words = habitLower.split(" ").filter { it.length > 3 }
+                if (words.none { it in lower }) return@mapNotNull null
+                words.firstOrNull { it in lower }?.let { lower.indexOf(it) } ?: return@mapNotNull null
+            }
+            val foundIdx = lower.indexOf(habitLower).takeIf { it != -1 }
+                ?: lower.indexOf(habit.name.lowercase().split(" ").first { it.length > 3 })
+
+            val isSkipped = skipKeywords.any { kw ->
+                val kwIdx = lower.indexOf(kw)
+                kwIdx != -1 && abs(kwIdx - foundIdx) < 60
+            }
+
+            // Try to extract a numeric value near the habit mention
+            val valueMatch = Regex("""(\d+(?:\.\d+)?)\s*(min|minutes?|hour|hr|km|reps?|times?|x|glasses?|pages?|ml|mg|g\b)""")
+                .find(lower.substring(maxOf(0, foundIdx - 10), minOf(lower.length, foundIdx + 60)))
+
+            ParsedBrainDumpEntry(
+                habitName = habit.name,
+                action = if (isSkipped) BrainDumpAction.SKIPPED else BrainDumpAction.LOGGED,
+                value = valueMatch?.groupValues?.get(1)?.toDoubleOrNull(),
+                unit = valueMatch?.groupValues?.get(2)?.trimEnd('s'),
+                skipReason = null,
+            )
+        }
+
+        return ParsedBrainDump(entries = entries, unmatchedMentions = emptyList())
+    }
 
     // ── Motivation ───────────────────────────────────────────────────────────
 
