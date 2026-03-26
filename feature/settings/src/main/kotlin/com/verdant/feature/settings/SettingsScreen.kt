@@ -6,6 +6,10 @@ import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Bell
 import compose.icons.tablericons.Check
+import compose.icons.tablericons.ChevronDown
 import compose.icons.tablericons.Download
 import compose.icons.tablericons.InfoCircle
 import compose.icons.tablericons.Login
@@ -63,10 +68,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -162,6 +169,13 @@ fun SettingsScreen(
         )
     }
 
+    // Accordion expanded state — Account and Appearance open by default
+    var accountExpanded by rememberSaveable { mutableStateOf(true) }
+    var appearanceExpanded by rememberSaveable { mutableStateOf(true) }
+    var notificationsExpanded by rememberSaveable { mutableStateOf(false) }
+    var dataPrivacyExpanded by rememberSaveable { mutableStateOf(false) }
+    var aboutExpanded by rememberSaveable { mutableStateOf(false) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -177,15 +191,20 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .padding(vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // ── Account ───────────────────────────────────────────────────────
-            item { SectionHeader("Account", TablerIcons.User) }
-
             item {
-                SettingsGroup {
+                AccordionSection(
+                    title = "Account",
+                    icon = TablerIcons.User,
+                    expanded = accountExpanded,
+                    onToggle = { accountExpanded = !accountExpanded },
+                    badge = if (uiState.isSignedIn) uiState.userName?.split(" ")?.firstOrNull() else null,
+                ) {
                     if (uiState.isSignedIn) {
-                        // Signed-in: show user info + sign out
                         ListItem(
                             headlineContent = {
                                 Text(
@@ -197,7 +216,6 @@ fun SettingsScreen(
                                 { Text(email) }
                             },
                             leadingContent = {
-                                // Initials avatar
                                 val initials = (uiState.userName ?: "U")
                                     .split(" ")
                                     .take(2)
@@ -231,7 +249,6 @@ fun SettingsScreen(
                             },
                         )
                     } else {
-                        // Not signed in: show sign-in prompt
                         ListItem(
                             headlineContent = { Text("Sign in") },
                             supportingContent = {
@@ -254,13 +271,15 @@ fun SettingsScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
-
             // ── Appearance ────────────────────────────────────────────────────
-            item { SectionHeader("Appearance", TablerIcons.Settings) }
-
             item {
-                SettingsGroup {
+                AccordionSection(
+                    title = "Appearance",
+                    icon = TablerIcons.Settings,
+                    expanded = appearanceExpanded,
+                    onToggle = { appearanceExpanded = !appearanceExpanded },
+                    badge = uiState.themeMode.name.lowercase().replaceFirstChar { it.uppercase() },
+                ) {
                     ThemeModeRow(
                         current = uiState.themeMode,
                         onSelect = viewModel::setThemeMode,
@@ -278,13 +297,15 @@ fun SettingsScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
-
             // ── Notifications ─────────────────────────────────────────────────
-            item { SectionHeader("Notifications", TablerIcons.Bell) }
-
             item {
-                SettingsGroup {
+                AccordionSection(
+                    title = "Notifications",
+                    icon = TablerIcons.Bell,
+                    expanded = notificationsExpanded,
+                    onToggle = { notificationsExpanded = !notificationsExpanded },
+                    badge = if (uiState.notificationsEnabled) "On" else "Off",
+                ) {
                     SwitchRow(
                         title = "Enable notifications",
                         subtitle = "Master toggle for all Verdant alerts",
@@ -342,13 +363,14 @@ fun SettingsScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
-
             // ── Data & Privacy ────────────────────────────────────────────────
-            item { SectionHeader("Data & Privacy", TablerIcons.ShieldLock) }
-
             item {
-                SettingsGroup {
+                AccordionSection(
+                    title = "Data & Privacy",
+                    icon = TablerIcons.ShieldLock,
+                    expanded = dataPrivacyExpanded,
+                    onToggle = { dataPrivacyExpanded = !dataPrivacyExpanded },
+                ) {
                     // Export
                     ListItem(
                         headlineContent = { Text("Export data") },
@@ -460,13 +482,14 @@ fun SettingsScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
-
             // ── About ─────────────────────────────────────────────────────────
-            item { SectionHeader("About", TablerIcons.InfoCircle) }
-
             item {
-                SettingsGroup {
+                AccordionSection(
+                    title = "About",
+                    icon = TablerIcons.InfoCircle,
+                    expanded = aboutExpanded,
+                    onToggle = { aboutExpanded = !aboutExpanded },
+                ) {
                     val versionName = try {
                         context.packageManager
                             .getPackageInfo(context.packageName, 0).versionName ?: "1.0.0"
@@ -549,37 +572,27 @@ fun SettingsScreen(
                 }
             }
 
-            item { Spacer(Modifier.height(32.dp)) }
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
 
-// ── Section components ────────────────────────────────────────────────────────
+// ── Accordion ─────────────────────────────────────────────────────────────────
 
 @Composable
-private fun SectionHeader(title: String, icon: ImageVector) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
+private fun AccordionSection(
+    title: String,
+    icon: ImageVector,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    badge: String? = null,
+    content: @Composable () -> Unit,
+) {
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "chevron_$title",
+    )
 
-@Composable
-private fun SettingsGroup(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -587,9 +600,64 @@ private fun SettingsGroup(content: @Composable () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
     ) {
-        content()
+        // Header row — always visible, tap to toggle
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onToggle)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            if (badge != null && !expanded) {
+                Text(
+                    text = badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            Icon(
+                imageVector = TablerIcons.ChevronDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(18.dp)
+                    .rotate(chevronRotation),
+            )
+        }
+
+        // Collapsible content
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically(),
+        ) {
+            Column {
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
+                content()
+            }
+        }
     }
 }
+
+// ── Row components ────────────────────────────────────────────────────────────
 
 @Composable
 private fun SwitchRow(
