@@ -44,12 +44,17 @@ interface VerdantApiService {
 
 @Serializable
 data class InsightRequest(
-    /** One of: daily_motivation | pattern | correlation | weekly_summary | monthly_summary | suggestion | coach_reply */
+    /**
+     * One of: daily_motivation | pattern | correlation | weekly_summary | monthly_summary |
+     * suggestion | coach_reply | habit_stack | weekly_behavioral_synthesis
+     */
     val type: String,
     /** Compact habit data payload produced by HabitDataAggregator */
     @SerialName("habitData") val habitData: JsonObject,
     /** Required only for coach_reply type */
     val message: String? = null,
+    /** Required only for habit_stack type */
+    @SerialName("stackContext") val stackContext: JsonObject? = null,
 )
 
 @Serializable

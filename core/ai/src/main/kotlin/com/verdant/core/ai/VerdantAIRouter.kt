@@ -126,6 +126,16 @@ class VerdantAIRouter @Inject constructor(
         return cloudAI.chatWithCoach(messages, habitData)
     }
 
+    override suspend fun generateHabitStackSuggestion(context: HabitStackContext): String {
+        requireNetwork()
+        return cloudAI.generateHabitStackSuggestion(context)
+    }
+
+    override suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis {
+        requireNetwork()
+        return cloudAI.generateBehavioralSynthesis(data)
+    }
+
     // ── Network utilities ─────────────────────────────────────────────────────
 
     private fun isNetworkAvailable(): Boolean {

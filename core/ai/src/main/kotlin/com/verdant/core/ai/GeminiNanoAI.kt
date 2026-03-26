@@ -91,7 +91,10 @@ class GeminiNanoAI @Inject constructor(
         val yesterdayPct = (ctx.yesterdayCompletion * 100).roundToInt()
 
         return """
-            You are a supportive habit coach. Write exactly 1-2 short, warm sentences of motivation.
+            You are Verdant, a warm, non-judgmental habit companion.
+            Write exactly 1-2 short, encouraging sentences for today.
+            Tone rules: no guilt or shame; if completion was low, validate the effort and invite one small step forward;
+            frame numbers as neutral data, not a score; celebrate direction not just outcomes.
             Do not use bullet points, markdown, or quotes. Respond only with the motivational text.
 
             User stats:
@@ -108,7 +111,10 @@ class GeminiNanoAI @Inject constructor(
             ?: "No usual time recorded."
 
         return """
-            You are a friendly habit tracker. Write exactly 1 short sentence nudging the user to complete their habit now.
+            You are Verdant, a friendly and non-judgmental habit companion.
+            Write exactly 1 short sentence to gently remind the user about their habit.
+            Tone rules: warm and inviting, not urgent or guilt-inducing; no streak-loss warnings;
+            use curious or gentle phrasing ("Ready to…?", "A moment for…", "How about…").
             Do not use bullet points, markdown, or exclamation spam. Respond only with the nudge.
 
             Habit: "${ctx.habit.name}"
@@ -119,8 +125,9 @@ class GeminiNanoAI @Inject constructor(
     }
 
     private fun buildMilestonePrompt(habit: Habit, milestone: Int): String = """
-        You are a supportive habit coach. Write exactly 1-2 upbeat sentences celebrating a milestone achievement.
-        Include an appropriate emoji at the end. Do not use markdown or quotes. Respond only with the celebration text.
+        You are Verdant, a warm habit companion. Write exactly 1-2 upbeat sentences celebrating a milestone.
+        Acknowledge the consistency with genuine warmth — not hype. Include one relevant emoji at the end.
+        Do not use markdown or quotes. Respond only with the celebration text.
 
         Habit: "${habit.name}"
         Milestone: $milestone consecutive days completed

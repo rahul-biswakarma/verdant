@@ -7,7 +7,9 @@ export type InsightType =
   | 'weekly_summary'
   | 'monthly_summary'
   | 'suggestion'
-  | 'coach_reply';
+  | 'coach_reply'
+  | 'habit_stack'
+  | 'weekly_behavioral_synthesis';
 
 export type ReportType = 'weekly' | 'monthly';
 
@@ -18,6 +20,8 @@ export interface InsightRequest {
   habitData: HabitDataPayload;
   /** Only used for coach_reply type */
   message?: string;
+  /** Only used for habit_stack type */
+  stackContext?: HabitStackContext;
 }
 
 export interface InsightResponse {
@@ -71,6 +75,12 @@ export interface HabitSummaryItem {
   /** Mean value for QUANTITATIVE/DURATION/FINANCIAL habits */
   avgValue?: number;
   unit?: string;
+  /** Average self-reported stress level on days this habit was missed (1–10; from Phase 1 context data) */
+  avgStressOnMiss?: number;
+  /** Average self-reported energy level on days this habit was completed (1–10; from Phase 1 context data) */
+  avgEnergyOnComplete?: number;
+  /** Most common reason the user reported for missing this habit */
+  topMissedReason?: string;
 }
 
 export interface StreakItem {
@@ -83,4 +93,21 @@ export interface DailyCompletion {
   /** ISO date YYYY-MM-DD */
   date: string;
   completionRate: number;
+}
+
+// ── Habit Stack context (used with habit_stack InsightType) ───────────────────
+
+export interface HabitStackContext {
+  /** The anchor habit (high consistency — used as the "cue") */
+  anchorHabitId: string;
+  anchorHabitName: string;
+  anchorHabitIcon: string;
+  anchorCompletionRate: number;
+  /** Typical time-of-day the user completes the anchor habit (HH:mm), if known */
+  anchorConsistentTime?: string;
+  /** The target habit (new or struggling) to stack onto the anchor */
+  targetHabitId: string;
+  targetHabitName: string;
+  targetHabitIcon: string;
+  targetCompletionRate: number;
 }

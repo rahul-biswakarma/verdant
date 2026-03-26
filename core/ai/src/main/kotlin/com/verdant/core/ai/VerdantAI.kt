@@ -157,6 +157,9 @@ interface VerdantAI {
     /**
      * Sends a multi-turn conversation to the AI coach with habit context.
      *
+     * The coach uses COM-B diagnostics and Motivational Interviewing tone to address
+     * the user's specific behavioural barrier (Capability, Opportunity, or Motivation).
+     *
      * @param messages   Conversation history (earliest first).
      * @param habitData  Compact context about the user's recent habit performance.
      * @throws AIFeatureUnavailableException if offline or rate-limited.
@@ -165,4 +168,30 @@ interface VerdantAI {
         messages: List<ChatMessage>,
         habitData: HabitSummary,
     ): String = throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates a Fogg habit-stack formula pairing a consistent anchor habit with a
+     * new or struggling target habit.
+     *
+     * Example output: "After I make my morning coffee, I will do 2 minutes of stretching.
+     * Both habits share a natural morning window, making the anchor cue reliable."
+     *
+     * Only called for habits where [HabitStackContext.anchorCompletionRate] ≥ 0.9 (90%+).
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateHabitStackSuggestion(context: HabitStackContext): String =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates a weekly cross-domain behavioral synthesis insight.
+     *
+     * Analyses correlations between habits and contextual signals (stress, energy,
+     * missed reasons) to produce a specific, MI-toned observation such as:
+     * "On days you skip supplements AND stress is high, your cycling drops 40%."
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis =
+        throw AIFeatureUnavailableException.noNetwork()
 }
