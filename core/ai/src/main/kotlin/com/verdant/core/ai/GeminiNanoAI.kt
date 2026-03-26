@@ -40,7 +40,7 @@ class GeminiNanoAI @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
 
-    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> =
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
         runCatching {
             val prompt = buildBrainDumpPrompt(text, habits)
             val response = runInference(prompt)
@@ -84,55 +84,6 @@ class GeminiNanoAI @Inject constructor(
         emit(queryAvailability())
     }
 
-    // ── Internal – brain dump helpers ─────────────────────────────────────────
-
-    private fun buildBrainDumpPrompt(text: String, habits: List<Habit>): String {
-        val habitList = habits.joinToString("\n") { h ->
-            "- ID: \"${h.id}\", Name: \"${h.name}\", Type: ${h.trackingType.name}"
-        }
-        return """
-            You are a habit tracking assistant. Given a user's activity log and their habit list, identify which habits were mentioned and what happened.
-
-            Available habits:
-            $habitList
-
-            User log: "$text"
-
-            Return a JSON array. For each habit recognised in the log, output one object:
-            - habitId: string (must exactly match one of the IDs above)
-            - action: "COMPLETE" | "SKIP" | "SET_VALUE"
-            - value: number or null  (minutes for DURATION; quantity for QUANTITATIVE; amount for FINANCIAL)
-            - skipReason: string or null  (short reason if action is SKIP)
-
-            Rules:
-            - Only include habits explicitly mentioned
-            - BINARY / LOCATION habits → use "COMPLETE"
-            - DURATION with a time → use "SET_VALUE" with minutes as value
-            - QUANTITATIVE with a number → use "SET_VALUE" with that number
-            - Skipped / missed / didn't / couldn't → use "SKIP"
-            - Return only a valid JSON array, no markdown, no explanation
-        """.trimIndent()
-    }
-
-    private fun parseBrainDumpJson(json: String, habits: List<Habit>): List<BrainDumpResult> {
-        val trimmed = json.trim()
-            .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
-        val array = org.json.JSONArray(trimmed)
-        val habitMap = habits.associateBy { it.id }
-        val results = mutableListOf<BrainDumpResult>()
-        for (i in 0 until array.length()) {
-            val obj = array.getJSONObject(i)
-            val habit = habitMap[obj.optString("habitId")] ?: continue
-            val action = runCatching {
-                BrainDumpAction.valueOf(obj.optString("action", "COMPLETE"))
-            }.getOrDefault(BrainDumpAction.COMPLETE)
-            val value = if (obj.isNull("value")) null else obj.optDouble("value").takeIf { !it.isNaN() }
-            val skipReason = obj.optString("skipReason").takeIf { it.isNotBlank() }
-            results.add(BrainDumpResult(habit = habit, action = action, value = value, skipReason = skipReason))
-        }
-        return results
-    }
-
     // ── Internal – prompt builders ────────────────────────────────────────────
 
     private fun buildMotivationPrompt(ctx: MotivationContext): String {
@@ -147,10 +98,7 @@ class GeminiNanoAI @Inject constructor(
         val yesterdayPct = (ctx.yesterdayCompletion * 100).roundToInt()
 
         return """
-            You are Verdant, a warm, non-judgmental habit companion.
-            Write exactly 1-2 short, encouraging sentences for today.
-            Tone rules: no guilt or shame; if completion was low, validate the effort and invite one small step forward;
-            frame numbers as neutral data, not a score; celebrate direction not just outcomes.
+            You are a supportive habit coach. Write exactly 1-2 short, warm sentences of motivation.
             Do not use bullet points, markdown, or quotes. Respond only with the motivational text.
 
             User stats:
@@ -167,10 +115,7 @@ class GeminiNanoAI @Inject constructor(
             ?: "No usual time recorded."
 
         return """
-            You are Verdant, a friendly and non-judgmental habit companion.
-            Write exactly 1 short sentence to gently remind the user about their habit.
-            Tone rules: warm and inviting, not urgent or guilt-inducing; no streak-loss warnings;
-            use curious or gentle phrasing ("Ready to…?", "A moment for…", "How about…").
+            You are a friendly habit tracker. Write exactly 1 short sentence nudging the user to complete their habit now.
             Do not use bullet points, markdown, or exclamation spam. Respond only with the nudge.
 
             Habit: "${ctx.habit.name}"
@@ -181,13 +126,77 @@ class GeminiNanoAI @Inject constructor(
     }
 
     private fun buildMilestonePrompt(habit: Habit, milestone: Int): String = """
-        You are Verdant, a warm habit companion. Write exactly 1-2 upbeat sentences celebrating a milestone.
-        Acknowledge the consistency with genuine warmth — not hype. Include one relevant emoji at the end.
-        Do not use markdown or quotes. Respond only with the celebration text.
+        You are a supportive habit coach. Write exactly 1-2 upbeat sentences celebrating a milestone achievement.
+        Include an appropriate emoji at the end. Do not use markdown or quotes. Respond only with the celebration text.
 
         Habit: "${habit.name}"
         Milestone: $milestone consecutive days completed
     """.trimIndent()
+
+    // ── Internal – brain-dump prompt + JSON parser ────────────────────────────
+
+    private fun buildBrainDumpPrompt(text: String, habits: List<Habit>): String {
+        val habitList = habits.joinToString("\n") { "- ${it.name} (${it.trackingType.name.lowercase()})" }
+        return """
+            You are a habit logging assistant. Parse the user's diary entry and match it to their known habits.
+
+            Known habits:
+            $habitList
+
+            User entry: "$text"
+
+            Return a JSON object with exactly this shape:
+            {
+              "entries": [
+                {
+                  "habitName": "<exact habit name from the list above>",
+                  "action": "<LOGGED or SKIPPED>",
+                  "value": <number or null>,
+                  "unit": "<string or null>",
+                  "skipReason": "<short reason if skipped, else null>"
+                }
+              ],
+              "unmatchedMentions": ["<things mentioned but not in the habit list>"]
+            }
+
+            Rules:
+            - Only include habits that are clearly mentioned.
+            - Use SKIPPED if the user says they missed/skipped/didn't do it.
+            - Extract numeric values and units when present (e.g. "20 min" → value:20, unit:"min").
+            - Return only valid JSON with no markdown, no explanation.
+        """.trimIndent()
+    }
+
+    private fun parseBrainDumpJson(response: String, habits: List<Habit>): ParsedBrainDump {
+        val clean = response.trim()
+            .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+        val json = org.json.JSONObject(clean)
+
+        val entriesArray = json.optJSONArray("entries") ?: return ParsedBrainDump(emptyList(), emptyList())
+        val habitNames = habits.map { it.name }
+
+        val entries = (0 until entriesArray.length()).mapNotNull { i ->
+            val obj = entriesArray.optJSONObject(i) ?: return@mapNotNull null
+            val name = obj.optString("habitName").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            // Fuzzy-match: accept if the returned name matches (case-insensitive) or is a substring
+            val matched = habitNames.firstOrNull {
+                it.equals(name, ignoreCase = true) || it.contains(name, ignoreCase = true) || name.contains(it, ignoreCase = true)
+            } ?: return@mapNotNull null
+            val action = if (obj.optString("action").uppercase() == "SKIPPED") BrainDumpAction.SKIPPED else BrainDumpAction.LOGGED
+            ParsedBrainDumpEntry(
+                habitName = matched,
+                action = action,
+                value = obj.optDouble("value").takeIf { !it.isNaN() },
+                unit = obj.optString("unit").takeIf { it.isNotBlank() && it != "null" },
+                skipReason = obj.optString("skipReason").takeIf { it.isNotBlank() && it != "null" },
+            )
+        }
+
+        val unmatched = (0 until (json.optJSONArray("unmatchedMentions")?.length() ?: 0))
+            .mapNotNull { json.optJSONArray("unmatchedMentions")?.optString(it) }
+
+        return ParsedBrainDump(entries = entries, unmatchedMentions = unmatched)
+    }
 
     // ── Internal – ML Kit inference (reflection) ──────────────────────────────
 

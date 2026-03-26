@@ -3,8 +3,8 @@ package com.verdant.feature.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.verdant.core.ai.BrainDumpAction
-import com.verdant.core.ai.BrainDumpResult
 import com.verdant.core.ai.MotivationContext
+import com.verdant.core.ai.ParsedBrainDump
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
@@ -20,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,7 +32,6 @@ data class TodayHabitItem(
     val habit: Habit,
     val entry: HabitEntry?,
     val streak: Int,
-    val consistencyRate: Float = 0f,
 )
 
 data class HomeUiState(
@@ -41,7 +39,6 @@ data class HomeUiState(
     val formattedDate: String = "",
     val completedCount: Int = 0,
     val totalCount: Int = 0,
-    val consistencyRate: Float = 0f,
     val todayItems: List<TodayHabitItem> = emptyList(),
     val timerRunning: Set<String> = emptySet(),
     val timerSeconds: Map<String, Int> = emptyMap(),
@@ -50,19 +47,18 @@ data class HomeUiState(
     val hasAnyHabits: Boolean = true,
 )
 
+data class BrainDumpUiState(
+    val text: String = "",
+    val isLoading: Boolean = false,
+    val error: String? = null,
+    val result: ParsedBrainDump? = null,
+)
+
 // Displayed in the "Log expense" dialog
 data class FinancialDialogState(
     val habitId: String,
     val amountInput: String = "",
     val categoryInput: String = "",
-)
-
-data class BrainDumpState(
-    val input: String = "",
-    val isLoading: Boolean = false,
-    /** Non-null once the AI has parsed a submission; null means the sheet is hidden. */
-    val results: List<BrainDumpResult>? = null,
-    val error: String? = null,
 )
 
 @HiltViewModel
@@ -81,11 +77,10 @@ class HomeViewModel @Inject constructor(
     private val timerJobs = mutableMapOf<String, Job>()
 
     private val _streaks = MutableStateFlow<Map<String, Int>>(emptyMap())
-    private val _consistencyRates = MutableStateFlow<Map<String, Float>>(emptyMap())
     private val _aiInsight = MutableStateFlow<String?>(null)
 
-    private val _brainDump = MutableStateFlow(BrainDumpState())
-    val brainDumpState: StateFlow<BrainDumpState> = _brainDump.asStateFlow()
+    private val _brainDump = MutableStateFlow(BrainDumpUiState())
+    val brainDumpState: StateFlow<BrainDumpUiState> = _brainDump
 
     val uiState: StateFlow<HomeUiState> = com.verdant.core.common.combine(
         habitRepository.observeActiveHabits(),
@@ -104,21 +99,16 @@ class HomeViewModel @Inject constructor(
                 else -> entry?.completed == true
             }
         }
-        val rates = _consistencyRates.value
-        val avgConsistency = if (todayHabits.isEmpty()) 0f
-            else todayHabits.map { rates[it.id] ?: 0f }.average().toFloat()
         HomeUiState(
             greeting = greeting(),
             formattedDate = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d")),
             completedCount = completed,
             totalCount = todayHabits.size,
-            consistencyRate = avgConsistency,
             todayItems = todayHabits.map { habit ->
                 TodayHabitItem(
                     habit = habit,
                     entry = entryMap[habit.id],
                     streak = streaks[habit.id] ?: 0,
-                    consistencyRate = rates[habit.id] ?: 0f,
                 )
             },
             timerRunning = timerRunning,
@@ -139,9 +129,8 @@ class HomeViewModel @Inject constructor(
             val habits = habitRepository.observeActiveHabits()
             habits.collect { list ->
                 val todayHabits = list.filter { it.isScheduledForDate(today) }
-                val ids = todayHabits.map { it.id }
-                _streaks.value = calculateStreakUseCase.currentStreaks(ids)
-                _consistencyRates.value = calculateStreakUseCase.consistencyRates(ids)
+                val newStreaks = calculateStreakUseCase.currentStreaks(todayHabits.map { it.id })
+                _streaks.value = newStreaks
             }
         }
     }
@@ -238,20 +227,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // ── Skip ─────────────────────────────────────────────────────────────────
-
-    fun skipWithReason(
-        item: TodayHabitItem,
-        missedReason: String?,
-        stressLevel: Int?,
-        energyLevel: Int?,
-        note: String?,
-    ) {
-        viewModelScope.launch {
-            logEntryUseCase.skipWithReason(item.habit.id, today, missedReason, stressLevel, energyLevel, note)
-        }
-    }
-
     // ── Location ─────────────────────────────────────────────────────────────
 
     fun checkIn(item: TodayHabitItem) {
@@ -260,64 +235,53 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // ── Brain Dump ───────────────────────────────────────────────────────────
+    // ── Brain Dump ────────────────────────────────────────────────────────────
 
-    fun onBrainDumpInputChange(text: String) {
-        _brainDump.update { it.copy(input = text, error = null) }
+    fun onBrainDumpTextChange(text: String) {
+        _brainDump.update { it.copy(text = text, error = null) }
     }
 
-    fun submitBrainDump() {
-        val text = _brainDump.value.input.trim()
+    fun onBrainDumpSubmit() {
+        val text = _brainDump.value.text.trim()
         if (text.isBlank()) return
-        _brainDump.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
-            try {
-                val habits = habitRepository.getAllHabits()
-                    .filter { !it.isArchived && it.isScheduledForDate(today) }
-                if (habits.isEmpty()) {
-                    _brainDump.update { it.copy(isLoading = false, error = "No habits scheduled for today") }
-                    return@launch
+            _brainDump.update { it.copy(isLoading = true, error = null, result = null) }
+            val habits = habitRepository.getAllHabits()
+                .filter { !it.isArchived && it.isScheduledForDate(today) }
+            runCatching { verdantAI.parseBrainDump(text, habits) }
+                .onSuccess { parsed ->
+                    _brainDump.update { it.copy(isLoading = false, result = parsed) }
                 }
-                val results = verdantAI.parseBrainDump(text, habits)
-                if (results.isEmpty()) {
-                    _brainDump.update { it.copy(isLoading = false, error = "Couldn't match any habits — try mentioning them by name") }
-                } else {
-                    _brainDump.update { it.copy(isLoading = false, results = results) }
+                .onFailure { e ->
+                    _brainDump.update {
+                        it.copy(isLoading = false, error = e.message ?: "Could not parse your entry")
+                    }
                 }
-            } catch (_: Exception) {
-                _brainDump.update { it.copy(isLoading = false, error = "Couldn't parse your log — try again") }
-            }
         }
     }
 
-    fun confirmBrainDump(results: List<BrainDumpResult>) {
+    fun onBrainDumpConfirm() {
+        val result = _brainDump.value.result ?: return
         viewModelScope.launch {
-            results.forEach { result ->
-                when (result.action) {
-                    BrainDumpAction.COMPLETE -> when (result.habit.trackingType) {
-                        TrackingType.LOCATION -> logEntryUseCase.logLocation(result.habit.id, today, null, null)
-                        else -> logEntryUseCase.logBinary(result.habit.id, today, true)
-                    }
-                    BrainDumpAction.SKIP -> logEntryUseCase.skip(result.habit.id, today)
-                    BrainDumpAction.SET_VALUE -> {
-                        val value = result.value ?: return@forEach
-                        when (result.habit.trackingType) {
-                            TrackingType.FINANCIAL -> logEntryUseCase.logFinancial(
-                                result.habit.id, today, value, null, result.habit.targetValue,
-                            )
-                            else -> logEntryUseCase.setQuantitative(
-                                result.habit.id, today, value, result.habit.targetValue,
-                            )
-                        }
+            val itemMap = uiState.value.todayItems.associateBy { it.habit.name }
+            result.entries.forEach { entry ->
+                val item = itemMap[entry.habitName] ?: return@forEach
+                when (entry.action) {
+                    BrainDumpAction.SKIPPED -> logEntryUseCase.skip(item.habit.id, today)
+                    BrainDumpAction.LOGGED -> when {
+                        entry.value != null -> logEntryUseCase.addQuantitative(
+                            item.habit.id, today, entry.value, item.habit.targetValue,
+                        )
+                        else -> logEntryUseCase.logBinary(item.habit.id, today, true)
                     }
                 }
             }
-            _brainDump.update { BrainDumpState() }
+            _brainDump.value = BrainDumpUiState() // reset
         }
     }
 
-    fun dismissBrainDump() {
-        _brainDump.update { it.copy(results = null) }
+    fun onBrainDumpDismiss() {
+        _brainDump.update { it.copy(result = null, error = null) }
     }
 
     override fun onCleared() {

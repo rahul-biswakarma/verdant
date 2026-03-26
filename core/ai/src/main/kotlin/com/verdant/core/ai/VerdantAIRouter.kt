@@ -47,8 +47,9 @@ class VerdantAIRouter @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         geminiNanoAI.parseHabitDescription(text)
 
-    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> =
-        geminiNanoAI.parseBrainDump(text, habits)
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
+        runCatching { geminiNanoAI.parseBrainDump(text, habits) }
+            .getOrElse { fallbackAI.parseBrainDump(text, habits) }
 
     override suspend fun generateNudge(context: NudgeContext): String =
         geminiNanoAI.generateNudge(context)
@@ -127,16 +128,6 @@ class VerdantAIRouter @Inject constructor(
     ): String {
         requireNetwork()
         return cloudAI.chatWithCoach(messages, habitData)
-    }
-
-    override suspend fun generateHabitStackSuggestion(context: HabitStackContext): String {
-        requireNetwork()
-        return cloudAI.generateHabitStackSuggestion(context)
-    }
-
-    override suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis {
-        requireNetwork()
-        return cloudAI.generateBehavioralSynthesis(data)
     }
 
     // ── Network utilities ─────────────────────────────────────────────────────

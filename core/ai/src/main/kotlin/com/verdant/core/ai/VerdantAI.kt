@@ -113,6 +113,16 @@ interface VerdantAI {
     suspend fun generateMilestoneMessage(habit: Habit, milestone: Int): String
 
     /**
+     * Parses a free-form "brain dump" into a list of habit log actions.
+     *
+     * The [habits] list is provided so the AI can match mentions to real habit names
+     * rather than guessing. Always on-device — never requires internet.
+     *
+     * Example input: "Practiced guitar for 20 min, took supplements, skipped cycling because tired"
+     */
+    suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump
+
+    /**
      * Hot flow that emits the current on-device model availability status.
      * Callers can use this to show a model-download progress indicator.
      */

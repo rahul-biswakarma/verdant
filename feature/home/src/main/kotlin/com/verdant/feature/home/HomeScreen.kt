@@ -4,9 +4,14 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,42 +27,40 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.MapPin
-import compose.icons.tablericons.Notes
 import compose.icons.tablericons.PlayerPause
 import compose.icons.tablericons.PlayerPlay
 import compose.icons.tablericons.Send
 import compose.icons.tablericons.Stars
+import compose.icons.tablericons.X
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,8 +70,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,7 +81,6 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.ai.BrainDumpAction
-import com.verdant.core.ai.BrainDumpResult
 import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.StreakBadge
 import com.verdant.core.model.TrackingType
@@ -137,13 +141,51 @@ fun HomeScreen(
 
                 item {
                     BrainDumpBar(
-                        input = brainDump.input,
+                        text = brainDump.text,
                         isLoading = brainDump.isLoading,
-                        error = brainDump.error,
-                        onInputChange = viewModel::onBrainDumpInputChange,
-                        onSubmit = viewModel::submitBrainDump,
+                        onTextChange = viewModel::onBrainDumpTextChange,
+                        onSubmit = viewModel::onBrainDumpSubmit,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                     )
+                }
+
+                item {
+                    AnimatedVisibility(
+                        visible = brainDump.result != null || brainDump.error != null,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        if (brainDump.result != null) {
+                            BrainDumpResultCard(
+                                result = brainDump.result!!,
+                                onConfirm = viewModel::onBrainDumpConfirm,
+                                onDismiss = viewModel::onBrainDumpDismiss,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        } else if (brainDump.error != null) {
+                            Card(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                                shape = RoundedCornerShape(16.dp),
+                            ) {
+                                Row(
+                                    Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        brainDump.error!!,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    IconButton(onClick = viewModel::onBrainDumpDismiss) {
+                                        Icon(TablerIcons.X, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -265,16 +307,6 @@ fun HomeScreen(
         }
     }
 
-    // Brain Dump result dialog
-    val brainDumpResults = brainDump.results
-    if (brainDumpResults != null) {
-        BrainDumpResultDialog(
-            results = brainDumpResults,
-            onConfirm = { confirmed -> viewModel.confirmBrainDump(confirmed) },
-            onDismiss = { viewModel.dismissBrainDump() },
-        )
-    }
-
     // Financial dialog
     if (financialDialog != null) {
         val item = state.todayItems.find { it.habit.id == financialDialog }
@@ -310,206 +342,6 @@ fun HomeScreen(
                     TextButton(onClick = { financialDialog = null; financialAmount = ""; financialCategory = "" }) { Text("Cancel") }
                 },
             )
-        }
-    }
-}
-
-// ── Brain Dump ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun BrainDumpBar(
-    input: String,
-    isLoading: Boolean,
-    error: String?,
-    onInputChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Icon(TablerIcons.Notes, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                Text(
-                    "Brain Dump",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = onInputChange,
-                    placeholder = { Text("What did you do today? Just type it out…", style = MaterialTheme.typography.bodySmall) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(14.dp),
-                    maxLines = 3,
-                    textStyle = MaterialTheme.typography.bodySmall,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { onSubmit() }),
-                )
-                FilledIconButton(
-                    onClick = onSubmit,
-                    enabled = input.isNotBlank() && !isLoading,
-                    modifier = Modifier.size(44.dp),
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(TablerIcons.Send, "Submit brain dump", Modifier.size(18.dp))
-                    }
-                }
-            }
-            if (error != null) {
-                Text(
-                    error,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BrainDumpResultDialog(
-    results: List<BrainDumpResult>,
-    onConfirm: (List<BrainDumpResult>) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    // Local editable state — one entry per result
-    val included = remember(results) { List(results.size) { mutableStateOf(true) } }
-    val editedValues = remember(results) {
-        results.map { r -> mutableStateOf(r.value?.fmt() ?: "") }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                "Logged ${results.size} habit${if (results.size == 1) "" else "s"}",
-                style = MaterialTheme.typography.titleMedium,
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    "Review what I found — uncheck anything that's wrong",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(2.dp))
-                results.forEachIndexed { index, result ->
-                    BrainDumpResultItem(
-                        result = result,
-                        isIncluded = included[index].value,
-                        editedValue = editedValues[index].value,
-                        onToggle = { included[index].value = !included[index].value },
-                        onValueChange = { editedValues[index].value = it },
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val confirmed = results.filterIndexed { i, _ -> included[i].value }
-                    .map { result ->
-                        val idx = results.indexOf(result)
-                        val edited = editedValues[idx].value.toDoubleOrNull()
-                        if (result.action == BrainDumpAction.SET_VALUE && edited != null) {
-                            result.copy(value = edited)
-                        } else result
-                    }
-                onConfirm(confirmed)
-            }) { Text("Log it") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun BrainDumpResultItem(
-    result: BrainDumpResult,
-    isIncluded: Boolean,
-    editedValue: String,
-    onToggle: () -> Unit,
-    onValueChange: (String) -> Unit,
-) {
-    val habitColor = Color(result.habit.color)
-    ElevatedCard(
-        shape = RoundedCornerShape(14.dp),
-        elevation = CardDefaults.elevatedCardElevation(0.5.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Checkbox(checked = isIncluded, onCheckedChange = { onToggle() }, modifier = Modifier.size(20.dp))
-            Box(
-                modifier = Modifier.size(36.dp).clip(CircleShape).background(habitColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) { Text(result.habit.icon.ifEmpty { "🌱" }, style = MaterialTheme.typography.bodyMedium) }
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    result.habit.name,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                when (result.action) {
-                    BrainDumpAction.COMPLETE -> Text(
-                        "✓ Done",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                    BrainDumpAction.SKIP -> Text(
-                        "Skipped${result.skipReason?.let { " — $it" } ?: ""}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    BrainDumpAction.SET_VALUE -> Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        OutlinedTextField(
-                            value = editedValue,
-                            onValueChange = onValueChange,
-                            modifier = Modifier.width(72.dp).height(40.dp),
-                            textStyle = MaterialTheme.typography.labelSmall,
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(8.dp),
-                        )
-                        result.habit.unit?.let { unit ->
-                            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } ?: run {
-                            if (result.habit.trackingType == TrackingType.DURATION) {
-                                Text("min", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -819,6 +651,223 @@ private fun WelcomeEmptyState(onCreateHabit: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         ) {
             Text("Create your first habit", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        }
+    }
+}
+
+// ── Brain Dump ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun BrainDumpBar(
+    text: String,
+    isLoading: Boolean,
+    onTextChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+        elevation = CardDefaults.cardElevation(0.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        "What did you do today? Just type it out...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodySmall,
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Send,
+                ),
+                keyboardActions = KeyboardActions(onSend = {
+                    keyboard?.hide()
+                    onSubmit()
+                }),
+                maxLines = 4,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                ),
+                shape = RoundedCornerShape(12.dp),
+            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            } else {
+                FilledIconButton(
+                    onClick = {
+                        keyboard?.hide()
+                        onSubmit()
+                    },
+                    modifier = Modifier.size(36.dp),
+                    enabled = text.isNotBlank(),
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    ),
+                ) {
+                    Icon(TablerIcons.Send, "Log", Modifier.size(16.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrainDumpResultCard(
+    result: com.verdant.core.ai.ParsedBrainDump,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    ElevatedCard(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.elevatedCardElevation(2.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(TablerIcons.Stars, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Ready to log",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                    Icon(TablerIcons.X, "Dismiss", Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            if (result.entries.isEmpty()) {
+                Text(
+                    "No matching habits found. Try mentioning your habit names more explicitly.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else {
+                result.entries.forEach { entry ->
+                    val isSkipped = entry.action == BrainDumpAction.SKIPPED
+                    val entryColor = if (isSkipped) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(entryColor.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                if (isSkipped) TablerIcons.X else TablerIcons.Check,
+                                null,
+                                Modifier.size(14.dp),
+                                tint = entryColor,
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                entry.habitName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            val detail = buildString {
+                                if (isSkipped) {
+                                    append("Skipped")
+                                    entry.skipReason?.let { append(" — $it") }
+                                } else {
+                                    append("Logged")
+                                    if (entry.value != null) {
+                                        val v = entry.value
+                                        val vStr = if (v == v.toLong().toDouble()) v.toLong().toString() else "%.1f".format(v)
+                                        append(" $vStr")
+                                        entry.unit?.let { append(" $it") }
+                                    }
+                                }
+                            }
+                            Text(
+                                detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(entryColor.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                if (isSkipped) "Skip" else "Done",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = entryColor,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (result.unmatchedMentions.isNotEmpty()) {
+                Text(
+                    "Not matched: ${result.unmatchedMentions.joinToString(", ")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
+            }
+
+            if (result.entries.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                        Text("Discard")
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        modifier = Modifier.weight(2f),
+                        shape = RoundedCornerShape(12.dp),
+                    ) {
+                        Icon(TablerIcons.Check, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Confirm & Log")
+                    }
+                }
+            }
         }
     }
 }
