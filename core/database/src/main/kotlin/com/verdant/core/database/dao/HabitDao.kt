@@ -39,6 +39,9 @@ interface HabitDao {
     @Query("UPDATE habits SET is_archived = 0 WHERE id = :id")
     suspend fun unarchive(id: String)
 
+    @Query("UPDATE habits SET target_value = :newTarget WHERE id = :id")
+    suspend fun updateTarget(id: String, newTarget: Double)
+
     @Query("DELETE FROM habits")
     suspend fun deleteAll()
 }

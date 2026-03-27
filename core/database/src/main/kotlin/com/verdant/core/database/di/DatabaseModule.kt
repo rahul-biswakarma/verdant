@@ -13,6 +13,7 @@ import com.verdant.core.database.dao.DeviceStatDao
 import com.verdant.core.database.dao.EmotionalContextDao
 import com.verdant.core.database.dao.HabitDao
 import com.verdant.core.database.dao.HabitEntryDao
+import com.verdant.core.database.dao.HabitTargetHistoryDao
 import com.verdant.core.database.dao.HealthRecordDao
 import com.verdant.core.database.dao.LabelDao
 import com.verdant.core.database.dao.LifeScoreDao
@@ -66,5 +67,6 @@ object DatabaseModule {
     @Provides fun provideDeviceSignalDao(db: VerdantDatabase): DeviceSignalDao = db.deviceSignalDao()
     @Provides fun provideCrossCorrelationDao(db: VerdantDatabase): CrossCorrelationDao = db.crossCorrelationDao()
     @Provides fun provideStreakCacheDao(db: VerdantDatabase): StreakCacheDao = db.streakCacheDao()
+    @Provides fun provideHabitTargetHistoryDao(db: VerdantDatabase): HabitTargetHistoryDao = db.habitTargetHistoryDao()
     @Provides fun providePendingAIRequestDao(db: VerdantDatabase): PendingAIRequestDao = db.pendingAIRequestDao()
 }

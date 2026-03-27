@@ -16,6 +16,7 @@ import com.verdant.core.database.dao.DeviceStatDao
 import com.verdant.core.database.dao.EmotionalContextDao
 import com.verdant.core.database.dao.HabitDao
 import com.verdant.core.database.dao.HabitEntryDao
+import com.verdant.core.database.dao.HabitTargetHistoryDao
 import com.verdant.core.database.dao.HealthRecordDao
 import com.verdant.core.database.dao.LabelDao
 import com.verdant.core.database.dao.LifeScoreDao
@@ -104,6 +105,7 @@ abstract class VerdantDatabase : RoomDatabase() {
     abstract fun deviceSignalDao(): DeviceSignalDao
     abstract fun crossCorrelationDao(): CrossCorrelationDao
     abstract fun streakCacheDao(): StreakCacheDao
+    abstract fun habitTargetHistoryDao(): HabitTargetHistoryDao
     abstract fun pendingAIRequestDao(): PendingAIRequestDao
 
     companion object {
