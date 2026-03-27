@@ -26,4 +26,6 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.database)
+    implementation(libs.kotlinx.coroutines.play.services)
 }
