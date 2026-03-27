@@ -21,8 +21,14 @@ interface PendingAIRequestDao {
     @Query("DELETE FROM pending_ai_requests WHERE id = :id")
     suspend fun delete(id: String)
 
+    @Query("SELECT * FROM pending_ai_requests WHERE attempt_count < :maxRetries ORDER BY created_at ASC")
+    suspend fun getPending(maxRetries: Int): List<PendingAIRequestEntity>
+
     @Query("DELETE FROM pending_ai_requests WHERE attempt_count >= :maxAttempts")
     suspend fun deleteFailedRequests(maxAttempts: Int)
+
+    @Query("DELETE FROM pending_ai_requests WHERE created_at < :cutoff")
+    suspend fun deleteOlderThan(cutoff: Long)
 
     @Query("DELETE FROM pending_ai_requests")
     suspend fun deleteAll()
