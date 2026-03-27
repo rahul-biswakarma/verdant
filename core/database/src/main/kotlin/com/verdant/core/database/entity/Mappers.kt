@@ -56,6 +56,7 @@ fun HabitEntity.toDomain() = Habit(
     reminderDays = reminderDays,
     sortOrder = sortOrder,
     createdAt = createdAt,
+    outdoorActivity = outdoorActivity,
 )
 
 fun Habit.toEntity() = HabitEntity(
@@ -78,6 +79,7 @@ fun Habit.toEntity() = HabitEntity(
     reminderDays = reminderDays,
     sortOrder = sortOrder,
     createdAt = createdAt,
+    outdoorActivity = outdoorActivity,
 )
 
 // ── HabitEntryEntity ↔ HabitEntry ────────────────────────────────────────────
