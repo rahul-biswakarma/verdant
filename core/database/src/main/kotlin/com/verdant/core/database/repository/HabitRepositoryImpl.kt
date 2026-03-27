@@ -41,6 +41,9 @@ class HabitRepositoryImpl @Inject constructor(
     override suspend fun getAllHabits(): List<Habit> =
         habitDao.getAll().map { it.toDomain() }
 
+    override suspend fun updateTarget(id: String, newTarget: Double) =
+        habitDao.updateTarget(id, newTarget)
+
     override suspend fun deleteAllHabits() =
         habitDao.deleteAll()
 }

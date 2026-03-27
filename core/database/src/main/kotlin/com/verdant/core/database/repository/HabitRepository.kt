@@ -14,6 +14,7 @@ interface HabitRepository {
     suspend fun delete(habit: Habit)
     suspend fun archive(id: String)
     suspend fun unarchive(id: String)
+    suspend fun updateTarget(id: String, newTarget: Double)
     suspend fun deleteAllHabits()
 }
 
