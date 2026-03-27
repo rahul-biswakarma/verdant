@@ -30,4 +30,5 @@ data class TransactionEntity(
     @ColumnInfo(name = "parse_confidence") val parseConfidence: Float = 1f,
     @ColumnInfo(name = "user_verified") val userVerified: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "recurring_group_id") val recurringGroupId: String? = null,
 )

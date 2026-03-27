@@ -73,8 +73,12 @@ import com.verdant.core.model.TrackingType
 
 @Composable
 fun HomeScreen(
+    onNavigateToHabits: () -> Unit = {},
+    onNavigateToFinance: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onNavigateToHabitDetail: (String) -> Unit = {},
     onCreateHabit: () -> Unit = {},
+    onNavigateToLifeDashboard: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {

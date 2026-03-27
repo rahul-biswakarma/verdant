@@ -27,7 +27,9 @@ data class HabitEntity(
     @ColumnInfo(name = "reminder_enabled") val reminderEnabled: Boolean,
     @ColumnInfo(name = "reminder_time") val reminderTime: String?,
     @ColumnInfo(name = "reminder_days") val reminderDays: Int,
-    @ColumnInfo(name = "visualization_type", defaultValue = "CONTRIBUTION_GRID") val visualizationType: VisualizationType = VisualizationType.CONTRIBUTION_GRID,
     @ColumnInfo(name = "sort_order") val sortOrder: Int,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    @ColumnInfo(name = "auto_track_source") val autoTrackSource: String? = null,
+    @ColumnInfo(name = "geofence_enabled", defaultValue = "0") val geofenceEnabled: Boolean = false,
+    @ColumnInfo(name = "outdoor_activity", defaultValue = "0") val outdoorActivity: Boolean = false,
 )

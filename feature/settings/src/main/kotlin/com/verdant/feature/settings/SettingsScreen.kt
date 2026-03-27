@@ -106,6 +106,8 @@ private val daysOfWeek = listOf(
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     onNavigateToOnboarding: () -> Unit = {},
+    onNavigateToDataSources: () -> Unit = {},
+    onNavigateToDataAudit: () -> Unit = {},
     webClientId: String = "",
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -371,6 +373,26 @@ fun SettingsScreen(
                     expanded = dataPrivacyExpanded,
                     onToggle = { dataPrivacyExpanded = !dataPrivacyExpanded },
                 ) {
+                    // Data Sources
+                    ListItem(
+                        headlineContent = { Text("Data sources") },
+                        supportingContent = { Text("Configure health, device, and context data") },
+                        leadingContent = {
+                            Icon(TablerIcons.Settings, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { onNavigateToDataSources() },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Data Audit
+                    ListItem(
+                        headlineContent = { Text("Data audit") },
+                        supportingContent = { Text("View collected data and record counts") },
+                        leadingContent = {
+                            Icon(TablerIcons.InfoCircle, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { onNavigateToDataAudit() },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     // Export
                     ListItem(
                         headlineContent = { Text("Export data") },

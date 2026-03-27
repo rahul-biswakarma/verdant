@@ -213,4 +213,38 @@ interface VerdantAI {
      */
     suspend fun generateBehavioralSynthesis(data: BehavioralSynthesisData): BehavioralSynthesis =
         throw AIFeatureUnavailableException.noNetwork()
+
+    // ── Life System methods (Phase 3+) ──────────────────────────────────────
+
+    /**
+     * Generates a 7-day life forecast narrative based on cross-domain data.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateLifeForecast(context: LifeForecastContext): LifeForecast =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates a health insight from aggregated health data.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generateHealthInsight(data: HealthSummaryData): String =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Predicts habit sustainability based on historical data.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun predictHabitSustainability(data: HabitHistoryData): SustainabilityPrediction =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Discovers cross-domain correlations from multi-source data.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun findCrossDomainCorrelations(data: CrossDomainData): List<com.verdant.core.model.CrossCorrelation> =
+        throw AIFeatureUnavailableException.noNetwork()
 }

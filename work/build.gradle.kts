@@ -25,6 +25,11 @@ dependencies {
     implementation(project(":core:datastore"))
     implementation(project(":core:common"))
     implementation(project(":core:sms"))
+    implementation(project(":core:health"))
+    implementation(project(":core:devicestats"))
+    implementation(project(":core:context"))
+    implementation(project(":core:prediction"))
+    implementation(project(":core:emotional"))
 
     implementation(libs.workmanager)
     implementation(libs.hilt.work)
