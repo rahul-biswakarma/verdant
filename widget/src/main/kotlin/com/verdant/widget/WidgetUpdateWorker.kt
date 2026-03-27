@@ -65,9 +65,16 @@ class WidgetUpdateWorker @AssistedInject constructor(
         updateMiniHeatmapWidgets(manager, today)
         updateStreakWidgets(manager, allHabits)
         updateQuoteWidgets(manager, today, allHabits, entryByHabit)
+        updateQuickToggleWidgets(manager, entryByHabit, today)
+        updateTimerWidgets(manager, allHabits)
+        updateHabitStreakWidgets(manager)
+        updateMultiHabitWidgets(manager, allHabits, entryByHabit, today)
 
         return Result.success()
     }
+
+    // ── Pre-action: log / toggle before data refresh ─────────────────────────
+
     private suspend fun handlePreActions() {
         val quickHabitId = inputData.getString(KEY_QUICK_LOG_HABIT_ID)
         if (quickHabitId != null) {
@@ -83,7 +90,70 @@ class WidgetUpdateWorker @AssistedInject constructor(
             val existing = entryRepository.getByHabitAndDate(toggleHabitId, date)
             logEntryUseCase.logBinary(toggleHabitId, date, completed = !(existing?.completed ?: false))
         }
+
+        // Timer start/stop: update Glance timer prefs for the matching widget instance
+        val timerAction  = inputData.getString(KEY_TIMER_ACTION)
+        val timerHabitId = inputData.getString(KEY_TIMER_LOG_HABIT_ID)
+        if (timerAction != null && timerHabitId != null) {
+            val date     = inputData.getString(KEY_TIMER_LOG_DATE)
+                ?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()
+            val actionTs = inputData.getLong(KEY_TIMER_ACTION_TS, System.currentTimeMillis())
+
+            val manager  = GlanceAppWidgetManager(context)
+            val timerIds = manager.getGlanceIds(TimerWidget::class.java)
+            for (glanceId in timerIds) {
+                runCatching {
+                    val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                    if (prefs[WidgetPreferencesKeys.HABIT_ID] != timerHabitId) return@runCatching
+
+                    updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                        val startMs   = p[WidgetPreferencesKeys.TIMER_START_MS]      ?: 0L
+                        val totalSecs = p[WidgetPreferencesKeys.TIMER_TOTAL_SECONDS] ?: 0
+                        p.toMutablePreferences().apply {
+                            when (timerAction) {
+                                TimerActionReceiver.ACTION_START -> {
+                                    this[WidgetPreferencesKeys.TIMER_START_MS] = actionTs
+                                }
+                                TimerActionReceiver.ACTION_STOP -> {
+                                    if (startMs > 0L) {
+                                        val elapsed = ((actionTs - startMs) / 1000L).toInt()
+                                        this[WidgetPreferencesKeys.TIMER_TOTAL_SECONDS] = totalSecs + elapsed
+                                    }
+                                    this[WidgetPreferencesKeys.TIMER_START_MS] = 0L
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // On stop: log accumulated duration and reset
+            if (timerAction == TimerActionReceiver.ACTION_STOP) {
+                val manager2  = GlanceAppWidgetManager(context)
+                val timerIds2 = manager2.getGlanceIds(TimerWidget::class.java)
+                for (glanceId in timerIds2) {
+                    runCatching {
+                        val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                        if (prefs[WidgetPreferencesKeys.HABIT_ID] != timerHabitId) return@runCatching
+                        val totalSecs = prefs[WidgetPreferencesKeys.TIMER_TOTAL_SECONDS] ?: 0
+                        if (totalSecs > 0) {
+                            val habit = habitRepository.getById(timerHabitId)
+                            logEntryUseCase.setQuantitative(timerHabitId, date, totalSecs.toDouble(), habit?.targetValue)
+                            // Reset accumulated time after logging
+                            updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                                p.toMutablePreferences().apply {
+                                    this[WidgetPreferencesKeys.TIMER_TOTAL_SECONDS] = 0
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
+
+    // ── HabitGridWidget ───────────────────────────────────────────────────────
+
     private suspend fun updateHabitGridWidgets(manager: GlanceAppWidgetManager, today: LocalDate) {
         val ids = manager.getGlanceIds(HabitGridWidget::class.java)
         for (glanceId in ids) {
@@ -109,8 +179,6 @@ class WidgetUpdateWorker @AssistedInject constructor(
                 val weekTotal = todayDow
                 val weekDone  = entries.count { it.date >= weekStart && it.completed }
                 val streak    = calculateStreakUseCase.currentStreak(habitId)
-                val bestSingle = calculateStreakUseCase.longestStreak(habitId)
-                val totalComp  = entries.count { it.completed }
 
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
                     p.toMutablePreferences().apply {
@@ -122,14 +190,15 @@ class WidgetUpdateWorker @AssistedInject constructor(
                         this[WidgetPreferencesKeys.GRID_JSON]     = buildGridJson(gridCells)
                         this[WidgetPreferencesKeys.WEEK_DONE]     = weekDone
                         this[WidgetPreferencesKeys.WEEK_TOTAL]    = weekTotal
-                        this[WidgetPreferencesKeys.TOTAL_COMPLETIONS]      = totalComp
-                        this[WidgetPreferencesKeys.BEST_EVER_STREAK_SINGLE] = bestSingle
                     }
                 }
                 HabitGridWidget().update(context, glanceId)
             }
         }
     }
+
+    // ── ChecklistWidget ───────────────────────────────────────────────────────
+
     private suspend fun updateChecklistWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -174,6 +243,9 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
+
+    // ── SummaryWidget ─────────────────────────────────────────────────────────
+
     private suspend fun updateSummaryWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -207,6 +279,9 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
+
+    // ── BarChartWidget ────────────────────────────────────────────────────────
+
     private suspend fun updateBarChartWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -249,6 +324,9 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
+
+    // ── RadialRingWidget ──────────────────────────────────────────────────────
+
     private suspend fun updateRadialRingWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -286,6 +364,9 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
+
+    // ── MiniHeatmapWidget ─────────────────────────────────────────────────────
+
     private suspend fun updateMiniHeatmapWidgets(
         manager: GlanceAppWidgetManager,
         today: LocalDate,
@@ -339,6 +420,9 @@ class WidgetUpdateWorker @AssistedInject constructor(
             }
         }
     }
+
+    // ── StreakWidget ──────────────────────────────────────────────────────────
+
     private suspend fun updateStreakWidgets(
         manager: GlanceAppWidgetManager,
         allHabits: List<Habit>,
@@ -368,73 +452,22 @@ class WidgetUpdateWorker @AssistedInject constructor(
             })
         }
 
-        // Build weekly completion days (Mon–Sun) for streak widget
-        val today = LocalDate.now()
-        val todayDow = today.dayOfWeek.value
-        val weekStart = today.minusDays((todayDow - 1).toLong())
-        val weekEntries = entryRepository.observeAllEntries(weekStart, today).first()
-        val entriesByDate = weekEntries.groupBy { it.date }
-
-        val weekDaysJson = JSONArray()
-        val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-        for (dayIdx in 0 until 7) {
-            val date = weekStart.plusDays(dayIdx.toLong())
-            val isFuture = date.isAfter(today)
-            val isToday = date == today
-            val dayBit = 1 shl dayIdx
-            val scheduled = allHabits.filter { it.scheduleDays and dayBit != 0 }
-            val dayEntries = entriesByDate[date] ?: emptyList()
-            val doneCount = dayEntries.count { it.completed }
-            val totalCount = scheduled.size
-            val allDone = totalCount > 0 && doneCount >= totalCount
-            val partial = totalCount > 0 && doneCount > 0 && !allDone
-
-            weekDaysJson.put(JSONObject().apply {
-                put("day", dayLabels[dayIdx])
-                put("done", allDone && !isFuture)
-                put("partial", partial && !isFuture)
-                put("future", isFuture)
-                put("today", isToday)
-            })
-        }
-
-        // Total completions and best streak across all habits
-        val totalCompletions = allHabits.sumOf { habit ->
-            runCatching {
-                entryRepository.observeEntries(habit.id, LocalDate.of(2020, 1, 1), today).first()
-                    .count { it.completed }
-            }.getOrDefault(0)
-        }
-
-        // Top habit for measurable display
-        val topHabit = top3.firstOrNull()
-        val topEntry = topHabit?.let { entryRepository.getByHabitAndDate(it.id, today) }
-
         for (glanceId in ids) {
             runCatching {
                 updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
                     p.toMutablePreferences().apply {
-                        this[WidgetPreferencesKeys.TOP_STREAKS_JSON]    = jsonArray.toString()
-                        this[WidgetPreferencesKeys.BEST_EVER_NAME]      = bestName
-                        this[WidgetPreferencesKeys.BEST_EVER_STREAK]    = bestStreak
-                        this[WidgetPreferencesKeys.WEEK_DAYS_JSON]      = weekDaysJson.toString()
-                        this[WidgetPreferencesKeys.TOTAL_COMPLETIONS]   = totalCompletions
-                        this[WidgetPreferencesKeys.TODAY_DONE]          = weekEntries.count { it.date == today && it.completed }
-                        this[WidgetPreferencesKeys.TODAY_TOTAL]         = allHabits.count { it.scheduleDays and (1 shl (todayDow - 1)) != 0 }
-                        if (topHabit != null) {
-                            this[WidgetPreferencesKeys.HABIT_NAME]  = topHabit.name
-                            this[WidgetPreferencesKeys.HABIT_ICON]  = topHabit.icon.ifEmpty { "🌱" }
-                            this[WidgetPreferencesKeys.HABIT_COLOR] = topHabit.color
-                            this[WidgetPreferencesKeys.UNIT_LABEL]  = topHabit.unit ?: ""
-                            this[WidgetPreferencesKeys.CURRENT_VALUE] = topEntry?.value?.toFloat() ?: 0f
-                            this[WidgetPreferencesKeys.TARGET_VALUE]  = topHabit.targetValue?.toFloat() ?: 0f
-                        }
+                        this[WidgetPreferencesKeys.TOP_STREAKS_JSON]  = jsonArray.toString()
+                        this[WidgetPreferencesKeys.BEST_EVER_NAME]    = bestName
+                        this[WidgetPreferencesKeys.BEST_EVER_STREAK]  = bestStreak
                     }
                 }
                 StreakWidget().update(context, glanceId)
             }
         }
     }
+
+    // ── QuoteWidget ───────────────────────────────────────────────────────────
+
     /**
      * Generates the daily quote card for all [QuoteWidget] instances.
      *
@@ -569,6 +602,143 @@ class WidgetUpdateWorker @AssistedInject constructor(
             weekCompletion = weekCompletion,
         )
     }
+
+    // ── QuickToggleWidget ─────────────────────────────────────────────────────
+
+    private suspend fun updateQuickToggleWidgets(
+        manager: GlanceAppWidgetManager,
+        entryByHabit: Map<String, HabitEntry>,
+        today: LocalDate,
+    ) {
+        val ids = manager.getGlanceIds(QuickToggleWidget::class.java)
+        for (glanceId in ids) {
+            runCatching {
+                val prefs   = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                val habitId = prefs[WidgetPreferencesKeys.HABIT_ID] ?: return@runCatching
+                val habit   = habitRepository.getById(habitId) ?: return@runCatching
+                val completed = entryByHabit[habitId]?.completed ?: false
+
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                    p.toMutablePreferences().apply {
+                        this[WidgetPreferencesKeys.HABIT_NAME]             = habit.name
+                        this[WidgetPreferencesKeys.HABIT_ICON]             = habit.icon.ifEmpty { "🌱" }
+                        this[WidgetPreferencesKeys.HABIT_COLOR]            = habit.color
+                        this[WidgetPreferencesKeys.QUICK_TOGGLE_COMPLETED] = completed
+                    }
+                }
+                QuickToggleWidget().update(context, glanceId)
+            }
+        }
+    }
+
+    // ── TimerWidget ───────────────────────────────────────────────────────────
+
+    private suspend fun updateTimerWidgets(
+        manager: GlanceAppWidgetManager,
+        allHabits: List<Habit>,
+    ) {
+        val ids = manager.getGlanceIds(TimerWidget::class.java)
+        for (glanceId in ids) {
+            runCatching {
+                val prefs   = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                val habitId = prefs[WidgetPreferencesKeys.HABIT_ID] ?: return@runCatching
+                val habit   = allHabits.firstOrNull { it.id == habitId }
+                            ?: habitRepository.getById(habitId) ?: return@runCatching
+
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                    p.toMutablePreferences().apply {
+                        this[WidgetPreferencesKeys.HABIT_NAME]   = habit.name
+                        this[WidgetPreferencesKeys.HABIT_ICON]   = habit.icon.ifEmpty { "🌱" }
+                        this[WidgetPreferencesKeys.HABIT_COLOR]  = habit.color
+                        // TIMER_START_MS and TIMER_TOTAL_SECONDS are managed by TimerActionReceiver;
+                        // we only refresh display metadata here.
+                    }
+                }
+                TimerWidget().update(context, glanceId)
+            }
+        }
+    }
+
+    // ── HabitStreakWidget ─────────────────────────────────────────────────────
+
+    private suspend fun updateHabitStreakWidgets(manager: GlanceAppWidgetManager) {
+        val ids = manager.getGlanceIds(HabitStreakWidget::class.java)
+        for (glanceId in ids) {
+            runCatching {
+                val prefs   = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                val habitId = prefs[WidgetPreferencesKeys.HABIT_ID] ?: return@runCatching
+                val habit   = habitRepository.getById(habitId) ?: return@runCatching
+
+                val streak     = calculateStreakUseCase.currentStreak(habitId)
+                val bestStreak = calculateStreakUseCase.longestStreak(habitId)
+                val rate30     = calculateStreakUseCase.completionRate(habitId, 30)
+
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                    p.toMutablePreferences().apply {
+                        this[WidgetPreferencesKeys.HABIT_NAME]      = habit.name
+                        this[WidgetPreferencesKeys.HABIT_ICON]      = habit.icon.ifEmpty { "🌱" }
+                        this[WidgetPreferencesKeys.HABIT_COLOR]     = habit.color
+                        this[WidgetPreferencesKeys.STREAK]          = streak
+                        this[WidgetPreferencesKeys.BEST_STREAK]     = bestStreak
+                        this[WidgetPreferencesKeys.COMPLETION_RATE] = rate30
+                    }
+                }
+                HabitStreakWidget().update(context, glanceId)
+            }
+        }
+    }
+
+    // ── MultiHabitWidget ──────────────────────────────────────────────────────
+
+    private suspend fun updateMultiHabitWidgets(
+        manager: GlanceAppWidgetManager,
+        allHabits: List<Habit>,
+        entryByHabit: Map<String, HabitEntry>,
+        today: LocalDate,
+    ) {
+        val ids = manager.getGlanceIds(MultiHabitWidget::class.java)
+        for (glanceId in ids) {
+            runCatching {
+                val prefs    = getAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId)
+                val habitIds = prefs[WidgetPreferencesKeys.MULTI_HABIT_IDS]
+                    ?.split(",")?.filter { it.isNotBlank() } ?: return@runCatching
+
+                val jsonArray = JSONArray()
+                var done  = 0
+                var total = 0
+                for (habitId in habitIds.take(5)) {
+                    val habit = allHabits.firstOrNull { it.id == habitId }
+                              ?: habitRepository.getById(habitId) ?: continue
+                    val entry     = entryByHabit[habitId]
+                    val completed = entry?.completed ?: false
+                    val skipped   = entry?.skipped ?: false
+                    total++
+                    if (completed) done++
+                    jsonArray.put(JSONObject().apply {
+                        put("id",        habit.id)
+                        put("icon",      habit.icon.ifEmpty { "🌱" })
+                        put("name",      habit.name)
+                        put("colorL",    habit.color)
+                        put("completed", completed)
+                        put("status",    when { skipped -> "⏭ Skipped"; completed -> "✓ Done"; else -> "" })
+                        put("binary",    habit.trackingType.name == "BINARY")
+                    })
+                }
+
+                updateAppWidgetState(context, PreferencesGlanceStateDefinition, glanceId) { p ->
+                    p.toMutablePreferences().apply {
+                        this[WidgetPreferencesKeys.MULTI_HABIT_JSON] = jsonArray.toString()
+                        this[WidgetPreferencesKeys.TODAY_DONE]       = done
+                        this[WidgetPreferencesKeys.TODAY_TOTAL]      = total
+                    }
+                }
+                MultiHabitWidget().update(context, glanceId)
+            }
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
     private fun entryIntensity(entry: HabitEntry?, targetValue: Double?): Float = when {
         entry == null       -> 0f
         entry.skipped       -> 0f
@@ -581,12 +751,19 @@ class WidgetUpdateWorker @AssistedInject constructor(
         }
         else -> 0f
     }
+
+    // ── Constants ─────────────────────────────────────────────────────────────
+
     companion object {
         const val PERIODIC_WORK_NAME     = "verdant_widget_periodic_update"
         const val KEY_QUICK_LOG_HABIT_ID = "quick_log_habit_id"
         const val KEY_QUICK_LOG_DATE     = "quick_log_date"
         const val KEY_TOGGLE_HABIT_ID    = "toggle_habit_id"
         const val KEY_TOGGLE_DATE        = "toggle_date"
+        const val KEY_TIMER_LOG_HABIT_ID = "timer_log_habit_id"
+        const val KEY_TIMER_LOG_DATE     = "timer_log_date"
+        const val KEY_TIMER_ACTION       = "timer_action"
+        const val KEY_TIMER_ACTION_TS    = "timer_action_ts"
 
         val QUOTES: List<Pair<String, String>> = listOf(
             "We are what we repeatedly do. Excellence is not an act, but a habit." to "Aristotle",

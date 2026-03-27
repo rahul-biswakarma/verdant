@@ -2,6 +2,9 @@ package com.verdant.core.model
 
 enum class TrackingType {
     BINARY,
-    NUMERIC,
+    QUANTITATIVE,
+    DURATION,
     LOCATION,
+    FINANCIAL,
+    EMOTIONAL,
 }

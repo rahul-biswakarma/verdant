@@ -99,6 +99,64 @@
                 android:resource="@xml/quote_widget_info" />
         </receiver>
 
+        <!-- ── Quick Toggle Widget (2×2, one-tap binary habit toggle) ──────────── -->
+        <receiver
+            android:name=".QuickToggleWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_toggle_widget_info" />
+        </receiver>
+
+        <!-- ── Timer Widget (2×2, start/stop duration timer) ────────────────── -->
+        <receiver
+            android:name=".TimerWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/timer_widget_info" />
+        </receiver>
+
+        <!-- ── Habit Streak Widget (2×2, per-habit streak + progress) ───────── -->
+        <receiver
+            android:name=".HabitStreakWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/habit_streak_widget_info" />
+        </receiver>
+
+        <!-- ── Multi-Habit Widget (4×2, configurable 3–5 habit toggles) ─────── -->
+        <receiver
+            android:name=".MultiHabitWidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/multi_habit_widget_info" />
+        </receiver>
+
+        <!-- Timer start/stop broadcast receiver -->
+        <receiver
+            android:name=".TimerActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.verdant.widget.ACTION_TIMER_START" />
+                <action android:name="com.verdant.widget.ACTION_TIMER_STOP" />
+            </intent-filter>
+        </receiver>
+
         <!-- Quick binary-log broadcast receiver (from HabitGrid + MiniHeatmap) -->
         <receiver
             android:name=".QuickCheckReceiver"

@@ -30,6 +30,31 @@
     <!-- ── SMS (Finance product — bank transaction tracking) ──────────── -->
     <uses-permission android:name="android.permission.READ_SMS" />
 
+    <!-- ── Health Connect ──────────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_EXERCISE" />
+    <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+    <uses-permission android:name="android.permission.health.READ_HYDRATION" />
+    <uses-permission android:name="android.permission.health.READ_NUTRITION" />
+
+    <!-- ── Activity Recognition ────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+
+    <!-- ── Calendar (busy hours tracking) ──────────────────────────────── -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- ── Usage Stats (screen time tracking) ──────────────────────────── -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- ── Background location (geofencing) ────────────────────────────── -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+
+    <!-- ── Foreground service (timer, voice) ───────────────────────────── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
     <application
         android:name=".VerdantApplication"
         android:allowBackup="true"

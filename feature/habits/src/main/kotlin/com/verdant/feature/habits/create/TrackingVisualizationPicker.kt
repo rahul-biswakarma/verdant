@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.component.CompletionRing
-import com.verdant.core.designsystem.component.ProgressFill
+import com.verdant.core.designsystem.component.PhysicsJar
 import com.verdant.core.designsystem.component.StreakRing
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.VisualizationType
@@ -59,25 +59,32 @@ private val trackingVisualizationOptions = listOf(
         description = "Track consistency",
     ),
     TrackingVisualizationOption(
+        trackingType = TrackingType.QUANTITATIVE,
+        visualizationType = VisualizationType.PHYSICS_JAR,
+        label = "Liquid Jar",
+        trackingLabel = "Count value",
+        description = "Fill it up",
+    ),
+    TrackingVisualizationOption(
+        trackingType = TrackingType.DURATION,
+        visualizationType = VisualizationType.COMPLETION_RING,
+        label = "Progress Ring",
+        trackingLabel = "Track time",
+        description = "Daily progress",
+    ),
+    TrackingVisualizationOption(
+        trackingType = TrackingType.FINANCIAL,
+        visualizationType = VisualizationType.COMPLETION_RING,
+        label = "Budget Ring",
+        trackingLabel = "Track spending",
+        description = "Stay on budget",
+    ),
+    TrackingVisualizationOption(
         trackingType = TrackingType.BINARY,
         visualizationType = VisualizationType.STREAK_RING,
         label = "Streak Ring",
         trackingLabel = "Build streaks",
         description = "Streak focus",
-    ),
-    TrackingVisualizationOption(
-        trackingType = TrackingType.NUMERIC,
-        visualizationType = VisualizationType.PROGRESS_FILL,
-        label = "Fill Bar",
-        trackingLabel = "Count value",
-        description = "Track progress",
-    ),
-    TrackingVisualizationOption(
-        trackingType = TrackingType.NUMERIC,
-        visualizationType = VisualizationType.COMPLETION_RING,
-        label = "Progress Ring",
-        trackingLabel = "Track a goal",
-        description = "Measure progress",
     ),
 )
 
@@ -119,34 +126,66 @@ internal fun TrackingVisualizationPicker(
             }
         }
 
-        // Target and unit fields for NUMERIC tracking
+        // Conditional target/unit fields below the carousel
         AnimatedVisibility(
-            visible = selectedTrackingType == TrackingType.NUMERIC,
+            visible = selectedTrackingType == TrackingType.QUANTITATIVE
+                    || selectedTrackingType == TrackingType.DURATION
+                    || selectedTrackingType == TrackingType.FINANCIAL,
             enter = expandVertically() + fadeIn(),
             exit = shrinkVertically() + fadeOut(),
         ) {
-            Row(
+            Column(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    value = targetValue?.fmt() ?: "",
-                    onValueChange = { onTargetChange(it.toDoubleOrNull()) },
-                    label = { Text("Target") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                )
-                OutlinedTextField(
-                    value = unit,
-                    onValueChange = onUnitChange,
-                    label = { Text("Unit") },
-                    placeholder = { Text("e.g., glasses, min, ₹") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                )
+                when (selectedTrackingType) {
+                    TrackingType.QUANTITATIVE -> {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = targetValue?.fmt() ?: "",
+                                onValueChange = { onTargetChange(it.toDoubleOrNull()) },
+                                label = { Text("Target") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            )
+                            OutlinedTextField(
+                                value = unit,
+                                onValueChange = onUnitChange,
+                                label = { Text("Unit") },
+                                placeholder = { Text("e.g., glasses, pages") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                singleLine = true,
+                            )
+                        }
+                    }
+                    TrackingType.DURATION -> {
+                        OutlinedTextField(
+                            value = targetValue?.fmt() ?: "",
+                            onValueChange = { onTargetChange(it.toDoubleOrNull()) },
+                            label = { Text("Target (minutes)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                    }
+                    TrackingType.FINANCIAL -> {
+                        OutlinedTextField(
+                            value = targetValue?.fmt() ?: "",
+                            onValueChange = { onTargetChange(it.toDoubleOrNull()) },
+                            label = { Text("Budget") },
+                            prefix = { Text("\u20B9") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                    }
+                    else -> {}
+                }
             }
         }
     }
@@ -217,7 +256,7 @@ private fun TrackingVisualizationCard(
                         size = 56.dp,
                         strokeWidth = 5.dp,
                     )
-                    VisualizationType.PROGRESS_FILL -> ProgressFill(
+                    VisualizationType.PHYSICS_JAR -> PhysicsJar(
                         progress = 0.65f,
                         color = habitColor,
                         size = 56.dp,

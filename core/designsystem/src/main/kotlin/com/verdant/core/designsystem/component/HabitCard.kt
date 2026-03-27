@@ -1,10 +1,7 @@
 package com.verdant.core.designsystem.component
 
 import android.content.res.Configuration
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,25 +16,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.Plus
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.model.Habit
@@ -47,8 +42,17 @@ import com.verdant.core.model.TrackingType
 import java.time.LocalDate
 
 /**
- * Home-screen card for a single habit — widget-style with tinted background,
- * completion ring around the icon, and prominent streak display.
+ * Home-screen card for a single habit.
+ *
+ * Displays the habit icon, name, today's progress, streak, and a quick-action
+ * button. The button toggles completion for [TrackingType.BINARY] habits or
+ * opens an entry sheet for quantitative types.
+ *
+ * @param habit        The habit to display.
+ * @param todayEntry   Today's entry, or null if none recorded yet.
+ * @param streak       Current active streak length (injected by the caller).
+ * @param onQuickAction Invoked when the user taps the primary action button.
+ * @param onTap        Invoked when the user taps the card body.
  */
 @Composable
 fun HabitCard(
@@ -60,7 +64,6 @@ fun HabitCard(
     modifier: Modifier = Modifier,
 ) {
     val habitColor = Color(habit.color.toULong())
-    val isDark = isSystemInDarkTheme()
 
     val isCompleted = when (habit.trackingType) {
         TrackingType.BINARY -> todayEntry?.completed == true
@@ -79,123 +82,100 @@ fun HabitCard(
             ((todayEntry?.value ?: 0.0) / targetValue).toFloat().coerceIn(0f, 1f)
         else -> 0f
     }
-    val animatedProgress by animateFloatAsState(
-        targetValue = progress,
-        animationSpec = tween(600),
-        label = "progress",
-    )
 
-    val cardBg = if (isDark) {
-        habitColor.copy(alpha = if (isCompleted) 0.25f else 0.15f)
-    } else {
-        habitColor.copy(alpha = if (isCompleted) 0.14f else 0.08f)
-    }
-    val contentColor = if (isDark) Color.White else Color(0xFF1A1917)
-    val subtextColor = if (isDark) Color.White.copy(alpha = 0.6f) else Color(0xFF1A1917).copy(alpha = 0.55f)
-
-    Card(
+    ElevatedCard(
         onClick = onTap,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(20.dp),
     ) {
-        Box(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            habitColor.copy(alpha = if (isDark) 0.08f else 0.05f),
-                        ),
-                    ),
-                ),
+                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
+            // ── Habit icon ──────────────────────────────────────────────────
+            Box(
                 modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(habitColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
             ) {
-                // Icon with completion ring
-                Box(
-                    modifier = Modifier.size(56.dp),
-                    contentAlignment = Alignment.Center,
+                Text(
+                    text = habit.icon.ifEmpty { "🌱" },
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            // ── Name, frequency label, progress ────────────────────────────
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    CompletionRing(
-                        progress = animatedProgress,
-                        color = habitColor,
-                        size = 56.dp,
-                        strokeWidth = 4.dp,
-                    )
                     Text(
-                        text = habit.icon.ifEmpty { "🌱" },
-                        fontSize = 24.sp,
+                        text = habit.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
                     )
+                    StreakBadge(count = streak)
                 }
 
-                Spacer(Modifier.width(14.dp))
+                Text(
+                    text = frequencyLabel(habit),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
 
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
+                if (habit.trackingType != TrackingType.BINARY) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(
-                            text = habit.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.weight(1f),
+                            color = habitColor,
+                            trackColor = habitColor.copy(alpha = 0.18f),
+                            strokeCap = StrokeCap.Round,
                         )
-                        if (streak > 0) {
-                            StreakBadge(count = streak)
-                        }
-                    }
-
-                    Text(
-                        text = frequencyLabel(habit),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = subtextColor,
-                        maxLines = 1,
-                    )
-
-                    if (habit.trackingType != TrackingType.BINARY) {
                         val current = todayEntry?.value ?: 0.0
                         val target = habit.targetValue ?: 0.0
                         Text(
-                            text = if (target > 0) "${current.toInt()} / ${target.toInt()} ${habit.unit.orEmpty()}"
+                            text = if (target > 0) "${current.toInt()}/${target.toInt()} ${habit.unit.orEmpty()}"
                                    else "${current.toInt()} ${habit.unit.orEmpty()}",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = habitColor,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
+            }
 
-                Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(8.dp))
 
-                FilledIconButton(
-                    onClick = onQuickAction,
-                    modifier = Modifier.size(44.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = if (isCompleted) habitColor
-                                         else habitColor.copy(alpha = 0.15f),
-                        contentColor = if (isCompleted) Color.White
-                                       else habitColor,
-                    ),
-                ) {
-                    Icon(
-                        imageVector = if (isCompleted) TablerIcons.Check else TablerIcons.Plus,
-                        contentDescription = if (isCompleted) "Mark incomplete" else "Add entry",
-                    )
-                }
+            // ── Quick action ────────────────────────────────────────────────
+            FilledIconButton(
+                onClick = onQuickAction,
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = if (isCompleted) habitColor
+                                     else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (isCompleted) Color.White
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            ) {
+                Icon(
+                    imageVector = if (isCompleted) TablerIcons.Check else TablerIcons.Plus,
+                    contentDescription = if (isCompleted) "Mark incomplete" else "Add entry",
+                )
             }
         }
     }
@@ -208,10 +188,15 @@ private fun frequencyLabel(habit: Habit): String = when (habit.frequency) {
     HabitFrequency.SPECIFIC_DAYS  -> "Custom days"
     HabitFrequency.TIMES_PER_WEEK -> "× per week"
 }
+
+// ── Previews ─────────────────────────────────────────────────────────────────
+
 private val previewHabitBinary = Habit(
     id = "1", name = "Morning Run", description = "5 km jog", icon = "🏃",
     color = MutedSage.value.toLong(), label = "Health",
-    trackingType = TrackingType.BINARY, unit = null, targetValue = null,
+    trackingType = TrackingType.BINARY,
+    visualizationType = com.verdant.core.model.VisualizationType.PIXEL_GRID,
+    unit = null, targetValue = null, checkpointSteps = emptyList(),
     frequency = HabitFrequency.DAILY, scheduleDays = 0x7F,
     isArchived = false, reminderEnabled = true, reminderTime = "07:00",
     reminderDays = 0x7F, sortOrder = 0, createdAt = 0L,
@@ -220,7 +205,9 @@ private val previewHabitBinary = Habit(
 private val previewHabitQuant = Habit(
     id = "2", name = "Read", description = "Read books", icon = "📚",
     color = 0xFF2196F3, label = null,
-    trackingType = TrackingType.NUMERIC, unit = "pages", targetValue = 30.0,
+    trackingType = TrackingType.QUANTITATIVE,
+    visualizationType = com.verdant.core.model.VisualizationType.PHYSICS_JAR,
+    unit = "pages", targetValue = 30.0, checkpointSteps = emptyList(),
     frequency = HabitFrequency.DAILY, scheduleDays = 0x7F,
     isArchived = false, reminderEnabled = false, reminderTime = null,
     reminderDays = 0, sortOrder = 1, createdAt = 0L,
@@ -239,7 +226,7 @@ private fun HabitCardBinaryLightPreview() {
     VerdantTheme {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HabitCard(habit = previewHabitBinary, todayEntry = null,  streak = 5,  onQuickAction = {}, onTap = {})
             HabitCard(habit = previewHabitBinary, todayEntry = HabitEntry(
@@ -276,7 +263,7 @@ private fun HabitCardDarkPreview() {
     VerdantTheme(dynamicColor = false) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             HabitCard(habit = previewHabitBinary, todayEntry = null,  streak = 5,  onQuickAction = {}, onTap = {})
             HabitCard(habit = previewHabitQuant,  todayEntry = previewEntry, streak = 0, onQuickAction = {}, onTap = {})

@@ -92,6 +92,21 @@ class UserPreferencesDataStore @Inject constructor(
         val FINANCE_ALERTS_ENABLED = booleanPreferencesKey("finance_alerts_enabled")
         val MONTHLY_REPORT_ENABLED = booleanPreferencesKey("monthly_report_enabled")
         val FINANCE_DATA_SHARING = booleanPreferencesKey("finance_data_sharing")
+
+        // Data sources
+        val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
+        val ACTIVITY_RECOGNITION_ENABLED = booleanPreferencesKey("activity_recognition_enabled")
+        val SCREEN_TIME_TRACKING_ENABLED = booleanPreferencesKey("screen_time_tracking_enabled")
+        val CALENDAR_SYNC_ENABLED = booleanPreferencesKey("calendar_sync_enabled")
+        val WEATHER_TRACKING_ENABLED = booleanPreferencesKey("weather_tracking_enabled")
+        val NOTIFICATION_TRACKING_ENABLED = booleanPreferencesKey("notification_tracking_enabled")
+        val LIFE_DASHBOARD_ONBOARDING_COMPLETED = booleanPreferencesKey("life_dashboard_onboarding_completed")
+        val LAST_HEALTH_SYNC_TIME = longPreferencesKey("last_health_sync_time")
+        val LAST_DEVICE_STATS_SYNC_TIME = longPreferencesKey("last_device_stats_sync_time")
+
+        // Player system
+        val EVOLUTION_PATH = stringPreferencesKey("evolution_path")
+        val PLAYER_LEVEL_SHOWN = intPreferencesKey("player_level_shown")
     }
     val useDynamicColor: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.USE_DYNAMIC_COLOR] ?: true
@@ -278,6 +293,98 @@ class UserPreferencesDataStore @Inject constructor(
 
     suspend fun setFinanceDataSharing(value: Boolean) {
         context.dataStore.edit { it[Keys.FINANCE_DATA_SHARING] = value }
+    }
+
+    // ── Data Sources ───────────────────────────────────────────
+
+    val healthConnectEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.HEALTH_CONNECT_ENABLED] ?: false
+    }
+
+    suspend fun setHealthConnectEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.HEALTH_CONNECT_ENABLED] = value }
+    }
+
+    val activityRecognitionEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.ACTIVITY_RECOGNITION_ENABLED] ?: false
+    }
+
+    suspend fun setActivityRecognitionEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.ACTIVITY_RECOGNITION_ENABLED] = value }
+    }
+
+    val screenTimeTrackingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.SCREEN_TIME_TRACKING_ENABLED] ?: false
+    }
+
+    suspend fun setScreenTimeTrackingEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.SCREEN_TIME_TRACKING_ENABLED] = value }
+    }
+
+    val calendarSyncEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.CALENDAR_SYNC_ENABLED] ?: false
+    }
+
+    suspend fun setCalendarSyncEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.CALENDAR_SYNC_ENABLED] = value }
+    }
+
+    val weatherTrackingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.WEATHER_TRACKING_ENABLED] ?: false
+    }
+
+    suspend fun setWeatherTrackingEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.WEATHER_TRACKING_ENABLED] = value }
+    }
+
+    val notificationTrackingEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.NOTIFICATION_TRACKING_ENABLED] ?: false
+    }
+
+    suspend fun setNotificationTrackingEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.NOTIFICATION_TRACKING_ENABLED] = value }
+    }
+
+    val lifeDashboardOnboardingCompleted: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LIFE_DASHBOARD_ONBOARDING_COMPLETED] ?: false
+    }
+
+    suspend fun setLifeDashboardOnboardingCompleted(value: Boolean) {
+        context.dataStore.edit { it[Keys.LIFE_DASHBOARD_ONBOARDING_COMPLETED] = value }
+    }
+
+    val lastHealthSyncTime: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LAST_HEALTH_SYNC_TIME] ?: 0L
+    }
+
+    suspend fun setLastHealthSyncTime(value: Long) {
+        context.dataStore.edit { it[Keys.LAST_HEALTH_SYNC_TIME] = value }
+    }
+
+    val lastDeviceStatsSyncTime: Flow<Long> = context.dataStore.data.map { prefs ->
+        prefs[Keys.LAST_DEVICE_STATS_SYNC_TIME] ?: 0L
+    }
+
+    suspend fun setLastDeviceStatsSyncTime(value: Long) {
+        context.dataStore.edit { it[Keys.LAST_DEVICE_STATS_SYNC_TIME] = value }
+    }
+
+    // ── Player System ───────────────────────────────────────────
+
+    val evolutionPath: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.EVOLUTION_PATH] ?: "BALANCE"
+    }
+
+    suspend fun setEvolutionPath(value: String) {
+        context.dataStore.edit { it[Keys.EVOLUTION_PATH] = value }
+    }
+
+    val playerLevelShown: Flow<Int> = context.dataStore.data.map { prefs ->
+        prefs[Keys.PLAYER_LEVEL_SHOWN] ?: 0
+    }
+
+    suspend fun setPlayerLevelShown(value: Int) {
+        context.dataStore.edit { it[Keys.PLAYER_LEVEL_SHOWN] = value }
     }
 
     /** Resets all preferences to defaults (used by "Delete all data"). */

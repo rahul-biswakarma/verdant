@@ -61,6 +61,8 @@ export const generateInsight = onRequest(
         'monthly_summary',
         'suggestion',
         'coach_reply',
+        'habit_stack',
+        'weekly_behavioral_synthesis',
       ];
       if (!validTypes.includes(body.type)) {
         res.status(400).json({ error: `Unknown insight type: ${body.type}` });
@@ -71,7 +73,12 @@ export const generateInsight = onRequest(
       await checkAndIncrementRateLimit(userId, body.type);
 
       // ── Call Claude ───────────────────────────────────────────────────────
-      const result = await generateInsightFromClaude(body.type, body.habitData, body.message);
+      const result = await generateInsightFromClaude(
+        body.type,
+        body.habitData,
+        body.message,
+        body.stackContext,
+      );
 
       res.status(200).json(result);
     } catch (err) {

@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":feature:insights"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:finance"))
+    implementation(project(":feature:lifedashboard"))
 
     // Widget + background work modules
     implementation(project(":widget"))
@@ -62,6 +63,11 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:datastore"))
     implementation(project(":core:common"))
+    implementation(project(":core:health"))
+    implementation(project(":core:devicestats"))
+    implementation(project(":core:geofence"))
+    implementation(project(":core:context"))
+    implementation(project(":core:voice"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

@@ -16,6 +16,10 @@ import com.verdant.feature.home.HomeScreen
 import com.verdant.feature.insights.InsightsScreen
 import com.verdant.feature.settings.SettingsScreen
 import com.verdant.feature.finance.FinanceScreen
+import com.verdant.feature.lifedashboard.LIFE_DASHBOARD_ROUTE
+import com.verdant.feature.lifedashboard.LifeDashboardScreen
+import com.verdant.feature.settings.datasources.DataAuditScreen
+import com.verdant.feature.settings.datasources.DataSourcesScreen
 import com.verdant.feature.settings.onboarding.OnboardingScreen
 
 const val ONBOARDING_ROUTE = "onboarding"
@@ -71,7 +75,25 @@ fun VerdantNavHost(
                 onCreateHabit = {
                     navController.navigate("habits/create")
                 },
+                onNavigateToLifeDashboard = {
+                    navController.navigate(LIFE_DASHBOARD_ROUTE) {
+                        launchSingleTop = true
+                    }
+                },
             )
+        }
+
+        // ── Life Dashboard ──────────────────────────────────
+        composable(route = LIFE_DASHBOARD_ROUTE) {
+            LifeDashboardScreen()
+        }
+
+        // ── Data Sources / Audit ────────────────────────────
+        composable(route = "settings/data_sources") {
+            DataSourcesScreen(onBack = { navController.popBackStack() })
+        }
+        composable(route = "settings/data_audit") {
+            DataAuditScreen(onBack = { navController.popBackStack() })
         }
 
         // ── Settings ─────────────────────────────────────────
@@ -80,6 +102,16 @@ fun VerdantNavHost(
                 onNavigateToOnboarding = {
                     navController.navigate(ONBOARDING_ROUTE) {
                         popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToDataSources = {
+                    navController.navigate("settings/data_sources") {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToDataAudit = {
+                    navController.navigate("settings/data_audit") {
+                        launchSingleTop = true
                     }
                 },
                 webClientId = webClientId,

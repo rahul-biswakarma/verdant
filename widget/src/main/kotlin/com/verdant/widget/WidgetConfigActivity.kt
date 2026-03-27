@@ -89,38 +89,57 @@ class WidgetConfigActivity : ComponentActivity() {
             .getAppWidgetInfo(appWidgetId)
             ?.provider?.className ?: ""
         val needsHabit = providerClass.endsWith("HabitGridWidgetReceiver") ||
-                         providerClass.endsWith("MiniHeatmapWidgetReceiver")
+                         providerClass.endsWith("MiniHeatmapWidgetReceiver") ||
+                         providerClass.endsWith("QuickToggleWidgetReceiver") ||
+                         providerClass.endsWith("TimerWidgetReceiver") ||
+                         providerClass.endsWith("HabitStreakWidgetReceiver")
+        val needsMultiHabit = providerClass.endsWith("MultiHabitWidgetReceiver")
 
         setContent {
             VerdantTheme {
-                val habits         by viewModel.habits.collectAsStateWithLifecycle()
-                val selectedHabitId by viewModel.selectedHabitId.collectAsStateWithLifecycle()
-                val colorTheme     by viewModel.colorTheme.collectAsStateWithLifecycle()
-                val gridDensity    by viewModel.gridDensity.collectAsStateWithLifecycle()
+                val habits           by viewModel.habits.collectAsStateWithLifecycle()
+                val selectedHabitId  by viewModel.selectedHabitId.collectAsStateWithLifecycle()
+                val selectedHabitIds by viewModel.selectedHabitIds.collectAsStateWithLifecycle()
+                val colorTheme       by viewModel.colorTheme.collectAsStateWithLifecycle()
+                val gridDensity      by viewModel.gridDensity.collectAsStateWithLifecycle()
 
                 WidgetConfigScreen(
-                    needsHabit      = needsHabit,
-                    habits          = habits,
-                    selectedHabitId = selectedHabitId,
-                    colorTheme      = colorTheme,
-                    gridDensity     = gridDensity,
-                    onSelectHabit   = viewModel::selectHabit,
-                    onColorTheme    = viewModel::setColorTheme,
-                    onGridDensity   = viewModel::setGridDensity,
+                    needsHabit       = needsHabit,
+                    needsMultiHabit  = needsMultiHabit,
+                    habits           = habits,
+                    selectedHabitId  = selectedHabitId,
+                    selectedHabitIds = selectedHabitIds,
+                    colorTheme       = colorTheme,
+                    gridDensity      = gridDensity,
+                    onSelectHabit    = viewModel::selectHabit,
+                    onToggleMulti    = viewModel::toggleMultiHabit,
+                    onColorTheme     = viewModel::setColorTheme,
+                    onGridDensity    = viewModel::setGridDensity,
                     onConfirm = {
-                        val habitId = if (needsHabit) (selectedHabitId ?: return@WidgetConfigScreen) else null
-                        lifecycleScope.launch {
-                            saveWidgetConfig(
-                                appWidgetId = appWidgetId,
-                                habitId     = habitId,
-                                colorTheme  = colorTheme,
-                                gridDensity = gridDensity,
-                            )
-                            setResult(
-                                RESULT_OK,
-                                Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId),
-                            )
-                            finish()
+                        when {
+                            needsHabit -> {
+                                val habitId = selectedHabitId ?: return@WidgetConfigScreen
+                                lifecycleScope.launch {
+                                    saveWidgetConfig(appWidgetId, habitId, null, colorTheme, gridDensity)
+                                    setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
+                                    finish()
+                                }
+                            }
+                            needsMultiHabit -> {
+                                if (selectedHabitIds.isEmpty()) return@WidgetConfigScreen
+                                lifecycleScope.launch {
+                                    saveWidgetConfig(appWidgetId, null, selectedHabitIds, colorTheme, gridDensity)
+                                    setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
+                                    finish()
+                                }
+                            }
+                            else -> {
+                                lifecycleScope.launch {
+                                    saveWidgetConfig(appWidgetId, null, null, colorTheme, gridDensity)
+                                    setResult(RESULT_OK, Intent().putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId))
+                                    finish()
+                                }
+                            }
                         }
                     },
                     onCancel = {
@@ -135,6 +154,7 @@ class WidgetConfigActivity : ComponentActivity() {
     private suspend fun saveWidgetConfig(
         appWidgetId: Int,
         habitId: String?,
+        multiHabitIds: Set<String>?,
         colorTheme: String,
         gridDensity: String,
     ) {
@@ -143,6 +163,9 @@ class WidgetConfigActivity : ComponentActivity() {
         updateAppWidgetState(this, PreferencesGlanceStateDefinition, glanceId) { prefs ->
             prefs.toMutablePreferences().apply {
                 if (habitId != null) this[WidgetPreferencesKeys.HABIT_ID] = habitId
+                if (multiHabitIds != null) {
+                    this[WidgetPreferencesKeys.MULTI_HABIT_IDS] = multiHabitIds.joinToString(",")
+                }
                 this[WidgetPreferencesKeys.COLOR_THEME]   = colorTheme
                 this[WidgetPreferencesKeys.GRID_DENSITY]  = gridDensity
                 this[WidgetPreferencesKeys.APP_WIDGET_ID] = appWidgetId
@@ -156,21 +179,29 @@ class WidgetConfigActivity : ComponentActivity() {
         )
     }
 }
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+
 @Composable
 private fun WidgetConfigScreen(
     needsHabit: Boolean,
+    needsMultiHabit: Boolean,
     habits: List<Habit>,
     selectedHabitId: String?,
+    selectedHabitIds: Set<String>,
     colorTheme: String,
     gridDensity: String,
     onSelectHabit: (String) -> Unit,
+    onToggleMulti: (String) -> Unit,
     onColorTheme: (String) -> Unit,
     onGridDensity: (String) -> Unit,
     onConfirm: () -> Unit,
     onCancel: () -> Unit,
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column {            Row(
+        Column {
+            // ── Title bar ─────────────────────────────────────────────────────
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -178,7 +209,11 @@ private fun WidgetConfigScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    if (needsHabit) "Add Habit Widget" else "Add Widget",
+                    when {
+                        needsHabit      -> "Add Habit Widget"
+                        needsMultiHabit -> "Add Multi-Habit Widget"
+                        else            -> "Add Widget"
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -190,67 +225,112 @@ private fun WidgetConfigScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (needsHabit) {                    item {
-                        Text(
-                            "Select a habit",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                    }
-
-                    if (habits.isEmpty()) {
+                when {
+                    needsHabit -> {
+                        // ── Single habit picker ───────────────────────────────
                         item {
                             Text(
-                                "No active habits. Create one in the app first.",
+                                "Select a habit",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                        }
+
+                        if (habits.isEmpty()) {
+                            item {
+                                Text(
+                                    "No active habits. Create one in the app first.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        items(habits, key = { it.id }) { habit ->
+                            HabitPickerCard(
+                                habit      = habit,
+                                isSelected = habit.id == selectedHabitId,
+                                onClick    = { onSelectHabit(habit.id) },
+                            )
+                        }
+
+                        item { Spacer(Modifier.height(8.dp)) }
+
+                        // ── Grid density ──────────────────────────────────────
+                        item {
+                            Text(
+                                "Grid density",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf("comfortable" to "Comfortable", "compact" to "Compact").forEach { (key, label) ->
+                                    FilterChip(
+                                        selected = gridDensity == key,
+                                        onClick  = { onGridDensity(key) },
+                                        label    = { Text(label) },
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    needsMultiHabit -> {
+                        // ── Multi-habit picker (3–5 habits) ──────────────────
+                        item {
+                            Text(
+                                "Select 3–5 habits",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp),
+                            )
+                        }
+
+                        if (habits.isEmpty()) {
+                            item {
+                                Text(
+                                    "No active habits. Create one in the app first.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+
+                        items(habits, key = { it.id }) { habit ->
+                            HabitPickerCard(
+                                habit      = habit,
+                                isSelected = habit.id in selectedHabitIds,
+                                onClick    = { onToggleMulti(habit.id) },
+                            )
+                        }
+                    }
+
+                    else -> {
+                        // ── No-config widgets: just describe what will be added ───
+                        item {
+                            Text(
+                                "This widget shows data for all your habits automatically. " +
+                                "Tap \"Add Widget\" to place it on your home screen.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
-
-                    items(habits, key = { it.id }) { habit ->
-                        HabitPickerCard(
-                            habit      = habit,
-                            isSelected = habit.id == selectedHabitId,
-                            onClick    = { onSelectHabit(habit.id) },
-                        )
-                    }
-
-                    item { Spacer(Modifier.height(8.dp)) }
-                    item {
-                        Text(
-                            "Grid density",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 4.dp),
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("comfortable" to "Comfortable", "compact" to "Compact").forEach { (key, label) ->
-                                FilterChip(
-                                    selected = gridDensity == key,
-                                    onClick  = { onGridDensity(key) },
-                                    label    = { Text(label) },
-                                )
-                            }
-                        }
-                    }
-                } else {
-                    item {
-                        Text(
-                            "This widget shows data for all your habits automatically. " +
-                            "Tap \"Add Widget\" to place it on your home screen.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
                 }
 
                 item { Spacer(Modifier.height(16.dp)) }
             }
+
+            // ── Confirm button ────────────────────────────────────────────────
             Button(
                 onClick  = onConfirm,
-                enabled  = !needsHabit || selectedHabitId != null,
+                enabled  = when {
+                    needsHabit      -> selectedHabitId != null
+                    needsMultiHabit -> selectedHabitIds.size in 1..5
+                    else            -> true
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 12.dp),

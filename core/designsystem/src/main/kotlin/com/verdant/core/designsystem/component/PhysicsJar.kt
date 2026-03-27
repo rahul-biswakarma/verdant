@@ -32,15 +32,15 @@ import com.verdant.core.designsystem.theme.VerdantTheme
 import kotlin.math.sin
 
 /**
- * A rounded container that fills from bottom to top with an animated wave.
+ * A jar/bottle shaped container with animated liquid fill.
  *
  * @param progress Fill level in [0, 1].
- * @param color Fill color.
- * @param size Outer dimensions of the component.
- * @param animate Whether to animate the wave on the fill surface.
+ * @param color Liquid color.
+ * @param size Outer dimensions of the jar.
+ * @param animate Whether to animate the wave on the liquid surface.
  */
 @Composable
-fun ProgressFill(
+fun PhysicsJar(
     progress: Float,
     color: Color,
     modifier: Modifier = Modifier,
@@ -150,16 +150,16 @@ private fun DrawScope.drawJar(progress: Float, color: Color, wavePhase: Float) {
 
 @Preview(name = "PhysicsJar – light", showBackground = true)
 @Composable
-private fun ProgressFillLightPreview() {
+private fun PhysicsJarLightPreview() {
     VerdantTheme {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            ProgressFill(progress = 0f, color = MutedSage, animate = false)
-            ProgressFill(progress = 0.4f, color = MutedSage, animate = false)
-            ProgressFill(progress = 0.75f, color = MutedSage, animate = false)
-            ProgressFill(progress = 1f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0.4f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0.75f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 1f, color = MutedSage, animate = false)
         }
     }
 }
@@ -170,14 +170,14 @@ private fun ProgressFillLightPreview() {
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
-private fun ProgressFillDarkPreview() {
+private fun PhysicsJarDarkPreview() {
     VerdantTheme(dynamicColor = false) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            ProgressFill(progress = 0.3f, color = MutedSage, animate = false)
-            ProgressFill(progress = 0.65f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0.3f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0.65f, color = MutedSage, animate = false)
         }
     }
 }

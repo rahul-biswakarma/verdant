@@ -105,7 +105,9 @@ internal fun HabitPreviewCard(
                     icon = { Icon(TablerIcons.ChartBar, null, Modifier.size(14.dp)) },
                     label = when (draft.trackingType) {
                         TrackingType.BINARY -> "Check off"
-                        TrackingType.NUMERIC -> if (draft.targetValue != null) "${draft.targetValue.fmt()} ${draft.unit}".trim() else "Numeric"
+                        TrackingType.QUANTITATIVE -> "${draft.targetValue?.fmt() ?: "?"} ${draft.unit}"
+                        TrackingType.DURATION -> "${draft.targetValue?.fmt() ?: "?"} min"
+                        TrackingType.FINANCIAL -> "Budget"
                         TrackingType.LOCATION -> "Location"
                     },
                     color = habitColor,
