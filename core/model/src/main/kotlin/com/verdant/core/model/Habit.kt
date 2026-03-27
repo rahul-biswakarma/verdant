@@ -23,4 +23,5 @@ data class Habit(
     val visualizationType: VisualizationType = VisualizationType.CONTRIBUTION_GRID,
     val sortOrder: Int,
     val createdAt: Long,
+    val outdoorActivity: Boolean = false,
 )

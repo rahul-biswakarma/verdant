@@ -1,2 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest />
+<manifest>
+    <application>
+        <service
+            android:name="com.verdant.work.service.HabitTimerService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false" />
+    </application>
+</manifest>
