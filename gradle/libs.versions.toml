@@ -121,6 +121,7 @@ googleid = { group = "com.google.android.libraries.identity.googleid", name = "g
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+firebase-database = { group = "com.google.firebase", name = "firebase-database-ktx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

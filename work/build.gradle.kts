@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":core:context"))
     implementation(project(":core:prediction"))
     implementation(project(":core:emotional"))
+    implementation(project(":core:sync"))
 
     implementation(libs.workmanager)
     implementation(libs.hilt.work)
