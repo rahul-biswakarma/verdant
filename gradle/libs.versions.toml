@@ -50,6 +50,10 @@ mediapipeLlm = "0.10.22"
 credentialManager = "1.5.0-beta01"
 googleid = "1.1.1"
 
+# Supabase
+supabase = "3.1.1"
+ktor = "3.1.1"
+
 # Firebase
 firebaseBom = "33.7.0"
 googleServices = "4.4.4"
@@ -117,6 +121,13 @@ mediapipe-llm = { group = "com.google.mediapipe", name = "tasks-genai", version.
 credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentialManager" }
 credentials-play-services = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentialManager" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+
+# Supabase
+supabase-bom = { group = "io.github.jan-tennert.supabase", name = "bom", version.ref = "supabase" }
+supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt" }
+supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
+supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }

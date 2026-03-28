@@ -31,9 +31,10 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
-    // Auth (Firebase + Credential Manager)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    // Auth (Supabase GoTrue + Credential Manager for Google Sign-In)
+    implementation(platform(libs.supabase.bom))
+    implementation(libs.supabase.auth)
+    implementation(libs.ktor.client.android)
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)

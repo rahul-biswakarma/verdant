@@ -15,12 +15,11 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.verdant.app.BuildConfig
-import com.verdant.app.navigation.ActiveProduct
-import com.verdant.app.navigation.FinanceDestination
-import com.verdant.app.navigation.HabitsDestination
+import com.verdant.app.navigation.GlobalTab
+import com.verdant.app.navigation.HOME_ROUTE
 import com.verdant.app.navigation.ONBOARDING_ROUTE
 import com.verdant.app.navigation.VerdantNavHost
-import com.verdant.app.navigation.activeProductForRoute
+import com.verdant.app.navigation.globalTabForRoute
 import com.verdant.core.designsystem.component.BottomBarItem
 import com.verdant.core.designsystem.component.VerdantBottomBar
 import com.verdant.core.designsystem.theme.VerdantTheme
@@ -44,51 +43,29 @@ fun VerdantApp(
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
 
-        // Determine which product vertical we're in (if any)
-        val activeProduct = activeProductForRoute(currentRoute)
-
-        // Hide bottom bar on onboarding, dashboard, settings, and other non-product screens
+        val activeTab = globalTabForRoute(currentRoute)
         val showBottomBar = appState.onboardingCompleted == true
-                && currentRoute !in listOf(ONBOARDING_ROUTE)
-                && activeProduct != null
+                && currentRoute != ONBOARDING_ROUTE
 
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             bottomBar = {
-                if (showBottomBar && activeProduct != null) {
-                    val items = when (activeProduct) {
-                        ActiveProduct.HABITS -> HabitsDestination.entries.map { dest ->
-                            BottomBarItem(
-                                icon = dest.icon,
-                                label = dest.label,
-                                selected = currentRoute == dest.route,
-                                onClick = {
-                                    navController.navigate(dest.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
+                if (showBottomBar) {
+                    val items = GlobalTab.entries.map { tab ->
+                        BottomBarItem(
+                            icon = tab.icon,
+                            label = tab.label,
+                            selected = activeTab == tab,
+                            onClick = {
+                                navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
                                     }
-                                },
-                            )
-                        }
-                        ActiveProduct.FINANCE -> FinanceDestination.entries.map { dest ->
-                            BottomBarItem(
-                                icon = dest.icon,
-                                label = dest.label,
-                                selected = currentRoute == dest.route,
-                                onClick = {
-                                    navController.navigate(dest.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
-                            )
-                        }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                        )
                     }
                     VerdantBottomBar(items = items)
                 }

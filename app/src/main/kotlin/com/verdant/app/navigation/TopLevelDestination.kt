@@ -7,51 +7,54 @@ import compose.icons.tablericons.ChartLine
 import compose.icons.tablericons.Home
 import compose.icons.tablericons.ListCheck
 import compose.icons.tablericons.Receipt
-import compose.icons.tablericons.Settings
 import compose.icons.tablericons.Stars
 import compose.icons.tablericons.Wallet
 
-// ─── Dashboard (platform-level) ──────────────────────────────
+// ─── Routes ──────────────────────────────────────────────────
 
-/** The unified dashboard route — no bottom bar. */
-const val DASHBOARD_ROUTE = "dashboard"
+const val HOME_ROUTE = "home"
+const val HABITS_ROUTE = "habits"
+const val FINANCE_ROUTE = "finance"
 const val SETTINGS_ROUTE = "settings"
 
-// ─── Habits vertical ─────────────────────────────────────────
+// ─── Global bottom bar tabs ─────────────────────────────────
+
+enum class GlobalTab(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+) {
+    HOME(route = HOME_ROUTE, label = "Home", icon = TablerIcons.Home),
+    HABITS(route = HABITS_ROUTE, label = "Habits", icon = TablerIcons.ListCheck),
+    FINANCE(route = FINANCE_ROUTE, label = "Finance", icon = TablerIcons.Wallet),
+}
+
+fun globalTabForRoute(route: String?): GlobalTab? = when {
+    route == null -> null
+    route == HOME_ROUTE || route == SETTINGS_ROUTE -> GlobalTab.HOME
+    route.startsWith("habits") -> GlobalTab.HABITS
+    route.startsWith("finance") -> GlobalTab.FINANCE
+    else -> null
+}
+
+// ─── Habits secondary tabs ──────────────────────────────────
 
 enum class HabitsDestination(
-    val route: String,
     val label: String,
     val icon: ImageVector,
 ) {
-    LIST(route = "habits/list", label = "Habits", icon = TablerIcons.ListCheck),
-    ANALYTICS(route = "habits/analytics", label = "Analytics", icon = TablerIcons.ChartBar),
-    INSIGHTS(route = "habits/insights", label = "Insights", icon = TablerIcons.Stars),
+    LIST(label = "Habits", icon = TablerIcons.ListCheck),
+    ANALYTICS(label = "Analytics", icon = TablerIcons.ChartBar),
+    INSIGHTS(label = "Insights", icon = TablerIcons.Stars),
 }
 
-// ─── Finance vertical ────────────────────────────────────────
+// ─── Finance secondary tabs ─────────────────────────────────
 
 enum class FinanceDestination(
-    val route: String,
     val label: String,
     val icon: ImageVector,
 ) {
-    OVERVIEW(route = "finance/overview", label = "Overview", icon = TablerIcons.Wallet),
-    TRANSACTIONS(route = "finance/transactions", label = "Transactions", icon = TablerIcons.Receipt),
-    TRENDS(route = "finance/trends", label = "Trends", icon = TablerIcons.ChartLine),
-}
-
-// ─── Product context detection ───────────────────────────────
-
-/**
- * Identifies which product vertical the user is currently in,
- * based on the current navigation route.
- */
-enum class ActiveProduct { HABITS, FINANCE }
-
-fun activeProductForRoute(route: String?): ActiveProduct? = when {
-    route == null -> null
-    route.startsWith("habits/") -> ActiveProduct.HABITS
-    route.startsWith("finance/") -> ActiveProduct.FINANCE
-    else -> null // dashboard, settings, onboarding — no product-specific bottom bar
+    OVERVIEW(label = "Overview", icon = TablerIcons.Wallet),
+    TRANSACTIONS(label = "Transactions", icon = TablerIcons.Receipt),
+    TRENDS(label = "Trends", icon = TablerIcons.ChartLine),
 }

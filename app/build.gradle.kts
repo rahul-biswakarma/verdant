@@ -68,6 +68,8 @@ dependencies {
     implementation(project(":core:geofence"))
     implementation(project(":core:context"))
     implementation(project(":core:voice"))
+    implementation(project(":core:social"))
+    implementation(project(":core:supabase"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)

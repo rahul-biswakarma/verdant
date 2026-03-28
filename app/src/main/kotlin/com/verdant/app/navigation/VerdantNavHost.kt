@@ -7,19 +7,19 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.verdant.feature.analytics.AnalyticsScreen
-import com.verdant.feature.habits.HabitsScreen
 import com.verdant.feature.habits.create.CreateHabitScreen
 import com.verdant.feature.habits.day.DayDetailScreen
 import com.verdant.feature.habits.detail.HabitDetailScreen
 import com.verdant.feature.home.HomeScreen
-import com.verdant.feature.insights.InsightsScreen
+import com.verdant.feature.home.SummaryDashboardScreen
 import com.verdant.feature.settings.SettingsScreen
 import com.verdant.feature.finance.FinanceScreen
 import com.verdant.feature.lifedashboard.LIFE_DASHBOARD_ROUTE
 import com.verdant.feature.lifedashboard.LifeDashboardScreen
+import com.verdant.feature.settings.buddies.BuddyScreen
 import com.verdant.feature.settings.datasources.DataAuditScreen
 import com.verdant.feature.settings.datasources.DataSourcesScreen
+import com.verdant.feature.settings.devices.DeviceManagementScreen
 import com.verdant.feature.settings.onboarding.OnboardingScreen
 
 const val ONBOARDING_ROUTE = "onboarding"
@@ -32,7 +32,7 @@ fun VerdantNavHost(
     webClientId: String = "",
 ) {
     val startDestination = if (startOnboarding) ONBOARDING_ROUTE
-    else DASHBOARD_ROUTE
+    else HOME_ROUTE
 
     NavHost(
         navController = navController,
@@ -43,7 +43,7 @@ fun VerdantNavHost(
         composable(route = ONBOARDING_ROUTE) {
             OnboardingScreen(
                 onComplete = {
-                    navController.navigate(DASHBOARD_ROUTE) {
+                    navController.navigate(HOME_ROUTE) {
                         popUpTo(ONBOARDING_ROUTE) { inclusive = true }
                     }
                 },
@@ -51,49 +51,42 @@ fun VerdantNavHost(
             )
         }
 
-        // ── Dashboard (platform hub) ─────────────────────────
-        composable(route = DASHBOARD_ROUTE) {
-            HomeScreen(
-                onNavigateToHabits = {
-                    navController.navigate(HabitsDestination.LIST.route) {
-                        launchSingleTop = true
-                    }
-                },
-                onNavigateToFinance = {
-                    navController.navigate(FinanceDestination.OVERVIEW.route) {
-                        launchSingleTop = true
-                    }
-                },
+        // ── Home (summary dashboard) ─────────────────────────
+        composable(route = HOME_ROUTE) {
+            SummaryDashboardScreen(
                 onNavigateToSettings = {
                     navController.navigate(SETTINGS_ROUTE) {
                         launchSingleTop = true
                     }
-                },
-                onNavigateToHabitDetail = { id ->
-                    navController.navigate("habits/detail/$id")
-                },
-                onCreateHabit = {
-                    navController.navigate("habits/create")
                 },
                 onNavigateToLifeDashboard = {
                     navController.navigate(LIFE_DASHBOARD_ROUTE) {
                         launchSingleTop = true
                     }
                 },
+                onNavigateToHabitDetail = { id ->
+                    navController.navigate("habits/detail/$id")
+                },
             )
+        }
+
+        // ── Habits (container with top tabs) ─────────────────
+        composable(route = HABITS_ROUTE) {
+            HabitsContainerScreen(
+                onCreateHabit = { navController.navigate("habits/create") },
+                onHabitDetail = { id -> navController.navigate("habits/detail/$id") },
+                onEditHabit = { navController.navigate("habits/create") },
+            )
+        }
+
+        // ── Finance (container with internal tabs) ───────────
+        composable(route = FINANCE_ROUTE) {
+            FinanceScreen()
         }
 
         // ── Life Dashboard ──────────────────────────────────
         composable(route = LIFE_DASHBOARD_ROUTE) {
             LifeDashboardScreen()
-        }
-
-        // ── Data Sources / Audit ────────────────────────────
-        composable(route = "settings/data_sources") {
-            DataSourcesScreen(onBack = { navController.popBackStack() })
-        }
-        composable(route = "settings/data_audit") {
-            DataAuditScreen(onBack = { navController.popBackStack() })
         }
 
         // ── Settings ─────────────────────────────────────────
@@ -114,24 +107,35 @@ fun VerdantNavHost(
                         launchSingleTop = true
                     }
                 },
+                onNavigateToDevices = {
+                    navController.navigate("settings/devices") {
+                        launchSingleTop = true
+                    }
+                },
+                onNavigateToBuddies = {
+                    navController.navigate("settings/buddies") {
+                        launchSingleTop = true
+                    }
+                },
                 webClientId = webClientId,
             )
         }
 
-        // ── Habits vertical ──────────────────────────────────
-        composable(route = HabitsDestination.LIST.route) {
-            HabitsScreen(
-                onCreateHabit = { navController.navigate("habits/create") },
-                onHabitDetail = { id -> navController.navigate("habits/detail/$id") },
-                onEditHabit = { navController.navigate("habits/create") },
-            )
+        // ── Settings sub-screens ────────────────────────────
+        composable(route = "settings/data_sources") {
+            DataSourcesScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = HabitsDestination.ANALYTICS.route) {
-            AnalyticsScreen()
+        composable(route = "settings/data_audit") {
+            DataAuditScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = HabitsDestination.INSIGHTS.route) {
-            InsightsScreen()
+        composable(route = "settings/devices") {
+            DeviceManagementScreen(onBack = { navController.popBackStack() })
         }
+        composable(route = "settings/buddies") {
+            BuddyScreen(onBack = { navController.popBackStack() })
+        }
+
+        // ── Habit detail screens (top-level for bottom bar visibility) ──
         composable(route = "habits/create") {
             CreateHabitScreen(onNavigateBack = { navController.popBackStack() })
         }
@@ -150,17 +154,6 @@ fun VerdantNavHost(
             arguments = listOf(navArgument("date") { type = NavType.StringType }),
         ) {
             DayDetailScreen(onNavigateBack = { navController.popBackStack() })
-        }
-
-        // ── Finance vertical ─────────────────────────────────
-        composable(route = FinanceDestination.OVERVIEW.route) {
-            FinanceScreen()
-        }
-        composable(route = FinanceDestination.TRANSACTIONS.route) {
-            FinanceScreen()
-        }
-        composable(route = FinanceDestination.TRENDS.route) {
-            FinanceScreen()
         }
     }
 }

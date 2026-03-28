@@ -45,6 +45,7 @@ include(":core:context")
 include(":core:voice")
 include(":core:social")
 include(":core:sync")
+include(":core:supabase")
 
 include(":feature:home")
 include(":feature:habits")
