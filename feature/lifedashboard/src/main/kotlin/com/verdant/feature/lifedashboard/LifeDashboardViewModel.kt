@@ -2,10 +2,10 @@ package com.verdant.feature.lifedashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.repository.EmotionalContextRepository
-import com.verdant.core.database.repository.LifeScoreRepository
-import com.verdant.core.database.repository.PlayerProfileRepository
-import com.verdant.core.database.repository.QuestRepository
+import com.verdant.core.model.repository.EmotionalContextRepository
+import com.verdant.core.model.repository.LifeScoreRepository
+import com.verdant.core.model.repository.PlayerProfileRepository
+import com.verdant.core.model.repository.QuestRepository
 import com.verdant.core.model.EvolutionPath
 import com.verdant.core.model.PlayerProfile
 import com.verdant.core.model.PlayerRank

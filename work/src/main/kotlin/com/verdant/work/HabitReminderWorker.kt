@@ -4,8 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.toDomain
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.work.notification.NotificationHelper
 import com.verdant.work.scheduler.ReminderScheduler
 import dagger.assisted.Assisted
@@ -26,15 +25,14 @@ import dagger.assisted.AssistedInject
 class HabitReminderWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val habitDao: HabitDao,
+    private val habitRepository: HabitRepository,
     private val scheduler: ReminderScheduler,
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
         val habitId = inputData.getString(KEY_HABIT_ID) ?: return Result.failure()
 
-        val entity = habitDao.getById(habitId) ?: return Result.failure()
-        val habit = entity.toDomain()
+        val habit = habitRepository.getById(habitId) ?: return Result.failure()
 
         // Post the reminder notification
         NotificationHelper.postHabitReminder(

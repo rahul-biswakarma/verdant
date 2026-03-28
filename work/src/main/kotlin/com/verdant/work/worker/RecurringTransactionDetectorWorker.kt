@@ -4,9 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.RecurringTransactionDao
-import com.verdant.core.database.dao.TransactionDao
-import com.verdant.core.database.entity.RecurringTransactionEntity
+import com.verdant.core.model.repository.RecurringTransactionRepository
+import com.verdant.core.model.repository.TransactionRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.UUID
@@ -15,8 +14,8 @@ import java.util.UUID
 class RecurringTransactionDetectorWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val transactionDao: TransactionDao,
-    private val recurringTransactionDao: RecurringTransactionDao,
+    private val transactionRepository: TransactionRepository,
+    private val recurringTransactionRepository: RecurringTransactionRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {

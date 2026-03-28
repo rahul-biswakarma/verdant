@@ -1,7 +1,7 @@
 package com.verdant.core.ai
 
-import com.verdant.core.database.dao.PendingAIRequestDao
-import com.verdant.core.database.entity.PendingAIRequestEntity
+import com.verdant.core.model.PendingAIRequest
+import com.verdant.core.model.repository.PendingAIRequestRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,12 +11,12 @@ import javax.inject.Singleton
  */
 @Singleton
 class OfflineAIRequestQueue @Inject constructor(
-    private val pendingDao: PendingAIRequestDao,
+    private val pendingAIRequestRepository: PendingAIRequestRepository,
 ) {
     /** Queues a failed request for later retry. */
     suspend fun enqueue(requestType: String, payload: String) {
-        pendingDao.insert(
-            PendingAIRequestEntity(
+        pendingAIRequestRepository.insert(
+            PendingAIRequest(
                 id = UUID.randomUUID().toString(),
                 requestType = requestType,
                 payload = payload,
@@ -27,22 +27,22 @@ class OfflineAIRequestQueue @Inject constructor(
     }
 
     /** Gets all pending requests that haven't exceeded max retries. */
-    suspend fun getPending(maxRetries: Int = 3): List<PendingAIRequestEntity> =
-        pendingDao.getPending(maxRetries)
+    suspend fun getPending(maxRetries: Int = 3): List<PendingAIRequest> =
+        pendingAIRequestRepository.getPending(maxRetries)
 
     /** Marks a request as attempted (increments attempt count). */
     suspend fun markAttempted(id: String) {
-        pendingDao.incrementAttempt(id)
+        pendingAIRequestRepository.incrementAttempt(id)
     }
 
     /** Removes a successfully processed request. */
     suspend fun remove(id: String) {
-        pendingDao.delete(id)
+        pendingAIRequestRepository.delete(id)
     }
 
     /** Cleans up expired requests older than 24 hours. */
     suspend fun cleanup() {
         val cutoff = System.currentTimeMillis() - 24 * 60 * 60 * 1000
-        pendingDao.deleteOlderThan(cutoff)
+        pendingAIRequestRepository.deleteOlderThan(cutoff)
     }
 }

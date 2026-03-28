@@ -2,8 +2,8 @@ package com.verdant.feature.settings.datasources
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.dao.HealthRecordDao
-import com.verdant.core.database.dao.DeviceStatDao
+import com.verdant.core.model.repository.HealthRecordRepository
+import com.verdant.core.model.repository.DeviceStatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,8 +22,8 @@ data class DataAuditUiState(
 
 @HiltViewModel
 class DataAuditViewModel @Inject constructor(
-    private val healthRecordDao: HealthRecordDao,
-    private val deviceStatDao: DeviceStatDao,
+    private val healthRecordRepository: HealthRecordRepository,
+    private val deviceStatRepository: DeviceStatRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DataAuditUiState())
@@ -37,12 +37,12 @@ class DataAuditViewModel @Inject constructor(
         viewModelScope.launch {
             val categories = mutableListOf<DataCategory>()
 
-            val healthCount = healthRecordDao.count()
+            val healthCount = healthRecordRepository.count()
             if (healthCount > 0) {
                 categories.add(DataCategory("Health Records", healthCount, "Health Connect"))
             }
 
-            val deviceStatCount = deviceStatDao.count()
+            val deviceStatCount = deviceStatRepository.count()
             if (deviceStatCount > 0) {
                 categories.add(DataCategory("Device Stats", deviceStatCount, "Device"))
             }

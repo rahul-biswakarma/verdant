@@ -8,11 +8,11 @@ import com.verdant.core.ai.mediapipe.ModelDownloadState
 import com.verdant.core.ai.mediapipe.ModelManager
 import com.verdant.core.common.auth.AuthRepository
 import com.verdant.core.common.auth.AuthUser
-import com.verdant.core.database.dao.TransactionDao
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.DatabaseCleaner
-import com.verdant.core.database.usecase.ExportUseCase
+import com.verdant.core.model.repository.TransactionRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.DatabaseCleaner
+import com.verdant.core.common.usecase.ExportUseCase
 import com.verdant.core.datastore.NudgeTone
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.designsystem.theme.ThemeMode
@@ -83,7 +83,7 @@ class SettingsViewModel @Inject constructor(
     private val databaseCleaner: DatabaseCleaner,
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
-    private val transactionDao: TransactionDao,
+    private val transactionRepository: TransactionRepository,
     val modelManager: ModelManager,
     @ApplicationContext private val context: Context,
 ) : ViewModel() {
@@ -439,7 +439,7 @@ class SettingsViewModel @Inject constructor(
 
     fun deleteFinanceData() = viewModelScope.launch {
         try {
-            transactionDao.deleteAll()
+            transactionRepository.deleteAll()
             prefs.setFinanceOnboardingCompleted(false)
             prefs.setLastSmsProcessedTime(0L)
             _extra.update {

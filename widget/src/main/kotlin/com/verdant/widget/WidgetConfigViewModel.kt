@@ -2,7 +2,7 @@ package com.verdant.widget
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.repository.HabitRepository
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.model.Habit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted

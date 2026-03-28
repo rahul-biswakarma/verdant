@@ -1,6 +1,6 @@
 package com.verdant.core.supabase.repository
 
-import com.verdant.core.database.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.supabase.dto.HabitEntryDto
 import com.verdant.core.supabase.dto.toDomain
@@ -13,6 +13,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import java.time.LocalDate
@@ -45,11 +46,13 @@ class HabitEntrySupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("entries-$habitId")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@HabitEntrySupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@HabitEntrySupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override fun observeAllEntries(
@@ -69,11 +72,13 @@ class HabitEntrySupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("entries-all")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@HabitEntrySupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@HabitEntrySupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override suspend fun upsert(entry: HabitEntry) {

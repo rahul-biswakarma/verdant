@@ -1,6 +1,6 @@
 package com.verdant.core.supabase.repository
 
-import com.verdant.core.database.repository.TransactionRepository
+import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.Transaction
 import com.verdant.core.model.TransactionType
 import com.verdant.core.supabase.dto.TransactionDto
@@ -14,6 +14,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.map
@@ -36,11 +37,13 @@ class TransactionSupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("transactions-all")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@TransactionSupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@TransactionSupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override fun observeByDateRange(start: Long, end: Long): Flow<List<Transaction>> = callbackFlow {
@@ -57,11 +60,13 @@ class TransactionSupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("transactions-range")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@TransactionSupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@TransactionSupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override fun totalSpent(start: Long, end: Long): Flow<Double?> =

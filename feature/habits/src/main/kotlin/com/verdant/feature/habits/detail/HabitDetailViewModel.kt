@@ -3,10 +3,10 @@ package com.verdant.feature.habits.detail
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
-import com.verdant.core.database.usecase.LogEntryUseCase
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
+import com.verdant.core.common.usecase.LogEntryUseCase
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry

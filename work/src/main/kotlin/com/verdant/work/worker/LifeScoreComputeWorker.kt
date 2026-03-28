@@ -4,8 +4,9 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.LifeScoreDao
-import com.verdant.core.database.entity.LifeScoreEntity
+import com.verdant.core.model.LifeScore
+import com.verdant.core.model.ScoreType
+import com.verdant.core.model.repository.LifeScoreRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.util.UUID
@@ -14,7 +15,7 @@ import java.util.UUID
 class LifeScoreComputeWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val lifeScoreDao: LifeScoreDao,
+    private val lifeScoreRepository: LifeScoreRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -25,10 +26,9 @@ class LifeScoreComputeWorker @AssistedInject constructor(
         // TODO: Run all scorers (FinancialHealthScorer, LifestyleScorer, etc.)
         // and persist results to life_scores table
         val now = System.currentTimeMillis()
-        val scores = listOf("HEALTH", "FINANCIAL", "PRODUCTIVITY", "WELLNESS", "LIFESTYLE", "STRESS")
-        scores.forEach { type ->
-            lifeScoreDao.insert(
-                LifeScoreEntity(
+        val scores = listOf(ScoreType.HEALTH, ScoreType.FINANCIAL, ScoreType.PRODUCTIVITY, ScoreType.WELLNESS, ScoreType.LIFESTYLE, ScoreType.STRESS)
+            .map { type ->
+                LifeScore(
                     id = UUID.randomUUID().toString(),
                     scoreType = type,
                     score = 50,
@@ -36,8 +36,8 @@ class LifeScoreComputeWorker @AssistedInject constructor(
                     computedDate = now,
                     createdAt = now,
                 )
-            )
-        }
+            }
+        lifeScoreRepository.insertAll(scores)
         return Result.success()
     }
 }

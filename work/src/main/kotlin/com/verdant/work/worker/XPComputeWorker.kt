@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.PlayerProfileDao
+import com.verdant.core.model.repository.PlayerProfileRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -12,7 +12,7 @@ import dagger.assisted.AssistedInject
 class XPComputeWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val playerProfileDao: PlayerProfileDao,
+    private val playerProfileRepository: PlayerProfileRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {

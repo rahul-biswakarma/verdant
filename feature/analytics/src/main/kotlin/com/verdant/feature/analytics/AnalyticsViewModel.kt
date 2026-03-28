@@ -8,10 +8,10 @@ import com.verdant.core.ai.MonthlyReportData
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.ai.WeeklyReportData
 import com.verdant.core.common.HabitDataAggregator
-import com.verdant.core.database.dao.AIInsightDao
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
+import com.verdant.core.model.repository.AIInsightRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
@@ -37,7 +37,7 @@ class AnalyticsViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
-    private val insightDao: AIInsightDao,
+    private val aiInsightRepository: AIInsightRepository,
     private val verdantAI: VerdantAI,
     private val aggregator: HabitDataAggregator,
 ) : ViewModel() {
@@ -456,7 +456,7 @@ class AnalyticsViewModel @Inject constructor(
 
     private fun loadReports(pendingEntry: ReportEntry? = null) {
         viewModelScope.launch {
-            insightDao.observeRecent(50).collect { entities ->
+            aiInsightRepository.observeRecent(50).collect { entities ->
                 val reports = entities.filter {
                     it.type == InsightType.WEEKLY_SUMMARY || it.type == InsightType.MONTHLY_SUMMARY
                 }.map { entity ->

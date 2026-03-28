@@ -4,12 +4,13 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.TransactionDao
+import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.work.notification.NotificationHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import java.time.YearMonth
 import java.time.ZoneId
 
@@ -21,7 +22,7 @@ import java.time.ZoneId
 class SpendingAlertWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
-    private val transactionDao: TransactionDao,
+    private val transactionRepository: TransactionRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -34,13 +35,13 @@ class SpendingAlertWorker @AssistedInject constructor(
         val startMs = month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val endMs = month.atEndOfMonth().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
 
-        val totalSpent = transactionDao.totalSpent(startMs, endMs).first() ?: 0.0
+        val totalSpent = transactionRepository.totalSpent(startMs, endMs).firstOrNull() ?: 0.0
 
         // Check last month for comparison
         val prevMonth = month.minusMonths(1)
         val prevStart = prevMonth.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val prevEnd = prevMonth.atEndOfMonth().plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli() - 1
-        val lastMonthTotal = transactionDao.totalSpent(prevStart, prevEnd).first() ?: 0.0
+        val lastMonthTotal = transactionRepository.totalSpent(prevStart, prevEnd).firstOrNull() ?: 0.0
 
         // Alert if spending exceeds last month's total before month end
         if (lastMonthTotal > 0 && totalSpent > lastMonthTotal) {

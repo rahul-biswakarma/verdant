@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.TransactionDao
-import com.verdant.core.database.entity.TransactionEntity
+import com.verdant.core.model.Transaction
+import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.sms.SmsReader
 import com.verdant.core.sms.SmsTransactionParser
@@ -26,7 +26,7 @@ class SmsProcessingWorker @AssistedInject constructor(
     private val smsReader: SmsReader,
     private val parser: SmsTransactionParser,
     private val categorizer: TransactionCategorizer,
-    private val transactionDao: TransactionDao,
+    private val transactionRepository: TransactionRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -42,16 +42,16 @@ class SmsProcessingWorker @AssistedInject constructor(
 
         for (sms in newSms) {
             // Skip if we already processed this SMS
-            if (transactionDao.getByRawSmsId(sms.id) != null) continue
+            if (transactionRepository.getByRawSmsId(sms.id) != null) continue
 
             val parsed = parser.parse(sms) ?: continue
             val category = categorizer.categorize(parsed.merchant)
 
-            transactionDao.insert(
-                TransactionEntity(
+            transactionRepository.insert(
+                Transaction(
                     id = UUID.randomUUID().toString(),
                     amount = parsed.amount,
-                    transactionType = parsed.type.name,
+                    type = parsed.type,
                     merchant = parsed.merchant,
                     category = category,
                     subCategory = null,

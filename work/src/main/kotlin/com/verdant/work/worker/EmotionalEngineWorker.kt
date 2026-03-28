@@ -4,16 +4,17 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.DeviceStatDao
-import com.verdant.core.database.dao.EmotionalContextDao
-import com.verdant.core.database.dao.HealthRecordDao
-import com.verdant.core.database.dao.TransactionDao
-import com.verdant.core.database.entity.EmotionalContextEntity
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
+import com.verdant.core.model.repository.DeviceStatRepository
+import com.verdant.core.model.repository.EmotionalContextRepository
+import com.verdant.core.model.repository.HealthRecordRepository
+import com.verdant.core.model.repository.TransactionRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.emotional.SignalFusionLayer
 import com.verdant.core.model.DeviceStatType
+import com.verdant.core.model.EmotionalContext
 import com.verdant.core.model.HealthRecordType
+import com.verdant.core.model.InferredMood
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.firstOrNull
@@ -24,10 +25,10 @@ import java.util.UUID
 class EmotionalEngineWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val emotionalContextDao: EmotionalContextDao,
-    private val healthRecordDao: HealthRecordDao,
-    private val deviceStatDao: DeviceStatDao,
-    private val transactionDao: TransactionDao,
+    private val emotionalContextRepository: EmotionalContextRepository,
+    private val healthRecordRepository: HealthRecordRepository,
+    private val deviceStatRepository: DeviceStatRepository,
+    private val transactionRepository: TransactionRepository,
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
 ) : CoroutineWorker(context, params) {
@@ -53,27 +54,27 @@ class EmotionalEngineWorker @AssistedInject constructor(
             val completionRate = completedCount.toFloat() / totalScheduled
 
             // 2. Health data: sleep + exercise
-            val sleepRecord = healthRecordDao.getLatestByType(HealthRecordType.SLEEP.name)
+            val sleepRecord = healthRecordRepository.getLatestByType(HealthRecordType.SLEEP)
             val sleepHours = sleepRecord?.value ?: 0.0
 
-            val exerciseRecord = healthRecordDao.getLatestByType(HealthRecordType.EXERCISE.name)
+            val exerciseRecord = healthRecordRepository.getLatestByType(HealthRecordType.EXERCISE)
             val exerciseMinutes = exerciseRecord?.value ?: 0.0
 
             // 3. Device stats: screen time, notifications, calendar
-            val screenTimeStat = deviceStatDao.getLatestByType(DeviceStatType.SCREEN_TIME.name)
+            val screenTimeStat = deviceStatRepository.getLatestByType(DeviceStatType.SCREEN_TIME)
             val screenTimeMinutes = screenTimeStat?.value ?: 0.0
 
-            val notificationStat = deviceStatDao.getLatestByType(DeviceStatType.NOTIFICATION_COUNT.name)
+            val notificationStat = deviceStatRepository.getLatestByType(DeviceStatType.NOTIFICATION_COUNT)
             val notificationCount = notificationStat?.value?.toInt() ?: 0
 
-            val calendarStat = deviceStatDao.getLatestByType(DeviceStatType.CALENDAR_BUSY_HOURS.name)
+            val calendarStat = deviceStatRepository.getLatestByType(DeviceStatType.CALENDAR_BUSY_HOURS)
             val calendarBusyHours = calendarStat?.value ?: 0.0
 
             // 4. Financial: spending ratio (today's spend vs 7-day average)
             val sevenDaysAgo = now - (7 * MILLIS_PER_DAY)
-            val weeklySpend = transactionDao.totalSpent(sevenDaysAgo, now).firstOrNull() ?: 0.0
+            val weeklySpend = transactionRepository.totalSpent(sevenDaysAgo, now).firstOrNull() ?: 0.0
             val dailyAvg = if (weeklySpend > 0) weeklySpend / 7.0 else 0.0
-            val todaySpend = transactionDao.totalSpent(oneDayAgo, now).firstOrNull() ?: 0.0
+            val todaySpend = transactionRepository.totalSpent(oneDayAgo, now).firstOrNull() ?: 0.0
             val spendingRatio = if (dailyAvg > 0) todaySpend / dailyAvg else 0.0
 
             // 5. Fuse signals
@@ -101,11 +102,11 @@ class EmotionalEngineWorker @AssistedInject constructor(
             }
 
             // 7. Persist
-            emotionalContextDao.insert(
-                EmotionalContextEntity(
+            emotionalContextRepository.insert(
+                EmotionalContext(
                     id = UUID.randomUUID().toString(),
                     date = now,
-                    inferredMood = result.mood.name,
+                    inferredMood = result.mood,
                     energyLevel = result.energyLevel,
                     confidence = result.confidence,
                     contributingSignals = contributingSignals.joinToString(","),

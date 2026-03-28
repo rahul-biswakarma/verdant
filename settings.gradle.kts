@@ -29,7 +29,6 @@ rootProject.name = "verdant"
 include(":app")
 
 include(":core:model")
-include(":core:database")
 include(":core:datastore")
 include(":core:network")
 include(":core:ai")

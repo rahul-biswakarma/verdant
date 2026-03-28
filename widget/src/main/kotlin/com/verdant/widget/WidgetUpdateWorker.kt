@@ -11,10 +11,10 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.verdant.core.ai.MotivationContext
 import com.verdant.core.ai.VerdantAI
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
-import com.verdant.core.database.usecase.LogEntryUseCase
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
+import com.verdant.core.common.usecase.LogEntryUseCase
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import dagger.assisted.Assisted

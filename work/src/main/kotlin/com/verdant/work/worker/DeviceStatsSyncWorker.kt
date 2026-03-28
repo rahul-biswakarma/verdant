@@ -4,8 +4,9 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.DeviceStatDao
-import com.verdant.core.database.entity.DeviceStatEntity
+import com.verdant.core.model.DeviceStat
+import com.verdant.core.model.DeviceStatType
+import com.verdant.core.model.repository.DeviceStatRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.devicestats.BatteryTracker
 import com.verdant.core.devicestats.CalendarReader
@@ -22,7 +23,7 @@ class DeviceStatsSyncWorker @AssistedInject constructor(
     private val usageStatsReader: UsageStatsReader,
     private val calendarReader: CalendarReader,
     private val batteryTracker: BatteryTracker,
-    private val deviceStatDao: DeviceStatDao,
+    private val deviceStatRepository: DeviceStatRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(context, params) {
 
@@ -33,13 +34,13 @@ class DeviceStatsSyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         val now = System.currentTimeMillis()
         val lastSync = prefs.lastDeviceStatsSyncTime.first()
-        val stats = mutableListOf<DeviceStatEntity>()
+        val stats = mutableListOf<DeviceStat>()
 
         if (prefs.screenTimeTrackingEnabled.first() && usageStatsReader.hasPermission()) {
             val screenTime = usageStatsReader.getScreenTimeMinutes(lastSync, now)
-            stats.add(DeviceStatEntity(
+            stats.add(DeviceStat(
                 id = UUID.randomUUID().toString(),
-                statType = "SCREEN_TIME",
+                statType = DeviceStatType.SCREEN_TIME,
                 value = screenTime,
                 detail = null,
                 recordedDate = now,
@@ -49,9 +50,9 @@ class DeviceStatsSyncWorker @AssistedInject constructor(
 
         if (prefs.calendarSyncEnabled.first() && calendarReader.hasPermission()) {
             val busyHours = calendarReader.getBusyHours(now)
-            stats.add(DeviceStatEntity(
+            stats.add(DeviceStat(
                 id = UUID.randomUUID().toString(),
-                statType = "CALENDAR_BUSY_HOURS",
+                statType = DeviceStatType.CALENDAR_BUSY_HOURS,
                 value = busyHours,
                 detail = null,
                 recordedDate = now,
@@ -61,9 +62,9 @@ class DeviceStatsSyncWorker @AssistedInject constructor(
 
         val batteryDrain = batteryTracker.getBatteryDrainPercentSince(lastSync)
         if (batteryDrain > 0) {
-            stats.add(DeviceStatEntity(
+            stats.add(DeviceStat(
                 id = UUID.randomUUID().toString(),
-                statType = "BATTERY_DRAIN",
+                statType = DeviceStatType.BATTERY_DRAIN,
                 value = batteryDrain,
                 detail = null,
                 recordedDate = now,
@@ -72,7 +73,7 @@ class DeviceStatsSyncWorker @AssistedInject constructor(
         }
 
         if (stats.isNotEmpty()) {
-            deviceStatDao.insertAll(stats)
+            deviceStatRepository.insertAll(stats)
         }
 
         prefs.setLastDeviceStatsSyncTime(now)

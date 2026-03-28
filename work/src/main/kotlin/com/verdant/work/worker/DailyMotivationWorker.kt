@@ -6,14 +6,13 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.verdant.core.ai.MotivationContext
 import com.verdant.core.ai.VerdantAI
-import com.verdant.core.database.dao.AIInsightDao
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.AIInsightEntity
-import com.verdant.core.database.entity.toDomain
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
-import com.verdant.core.datastore.UserPreferencesDataStore
+import com.verdant.core.model.AIInsight
 import com.verdant.core.model.InsightType
+import com.verdant.core.model.repository.AIInsightRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
+import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.work.notification.NotificationHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -29,7 +28,7 @@ import java.util.UUID
  * 3. Asks [VerdantAI.generateMotivation] for a personalised message
  *    (the router automatically tries Gemini Nano and Claude concurrently).
  * 4. Posts a [NotificationHelper.postDailyMotivation] notification.
- * 5. Persists the message as an [AIInsightEntity] for the Insights feed (48 h TTL).
+ * 5. Persists the message as an [AIInsight] for the Insights feed (48 h TTL).
  * 6. Fires milestone notifications for any habit that crossed a key streak threshold today.
  */
 @HiltWorker
@@ -37,10 +36,10 @@ class DailyMotivationWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val verdantAI: VerdantAI,
-    private val habitDao: HabitDao,
+    private val habitRepository: HabitRepository,
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
-    private val insightDao: AIInsightDao,
+    private val insightRepository: AIInsightRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -49,10 +48,9 @@ class DailyMotivationWorker @AssistedInject constructor(
         if (!prefs.dailyMotivationEnabled.first()) return Result.success()
 
         val today         = LocalDate.now()
-        val habitEntities = habitDao.getAll().filter { !it.isArchived }
-        if (habitEntities.isEmpty()) return Result.success()
+        val habits = habitRepository.getAllHabits().filter { !it.isArchived }
+        if (habits.isEmpty()) return Result.success()
 
-        val habits    = habitEntities.map { it.toDomain() }
         val habitIds  = habits.map { it.id }
         val streakMap = calculateStreak.currentStreaks(habitIds)
 
@@ -86,8 +84,8 @@ class DailyMotivationWorker @AssistedInject constructor(
 
         // Persist to AI Insights feed
         val now = System.currentTimeMillis()
-        insightDao.insert(
-            AIInsightEntity(
+        insightRepository.insert(
+            AIInsight(
                 id              = UUID.randomUUID().toString(),
                 type            = InsightType.DAILY_MOTIVATION,
                 content         = message,
@@ -102,7 +100,7 @@ class DailyMotivationWorker @AssistedInject constructor(
         checkMilestones(habits.map { it.id to it.name }, streakMap)
 
         // Purge stale insights
-        insightDao.deleteExpired(now)
+        insightRepository.deleteExpired(now)
 
         return Result.success()
     }

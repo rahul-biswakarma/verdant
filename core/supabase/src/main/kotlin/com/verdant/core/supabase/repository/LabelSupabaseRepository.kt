@@ -1,6 +1,6 @@
 package com.verdant.core.supabase.repository
 
-import com.verdant.core.database.repository.LabelRepository
+import com.verdant.core.model.repository.LabelRepository
 import com.verdant.core.model.Label
 import com.verdant.core.supabase.dto.LabelDto
 import com.verdant.core.supabase.dto.toDomain
@@ -13,6 +13,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
@@ -34,11 +35,13 @@ class LabelSupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("labels-all")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@LabelSupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@LabelSupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override suspend fun getById(id: String): Label? =

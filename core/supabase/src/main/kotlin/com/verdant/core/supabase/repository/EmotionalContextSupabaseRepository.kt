@@ -1,6 +1,6 @@
 package com.verdant.core.supabase.repository
 
-import com.verdant.core.database.repository.EmotionalContextRepository
+import com.verdant.core.model.repository.EmotionalContextRepository
 import com.verdant.core.model.EmotionalContext
 import com.verdant.core.supabase.dto.EmotionalContextDto
 import com.verdant.core.supabase.dto.toDomain
@@ -13,6 +13,7 @@ import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
@@ -38,11 +39,13 @@ class EmotionalContextSupabaseRepository @Inject constructor(
         send(getLatest())
 
         val channel = supabase.realtime.channel("emotional-latest")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@EmotionalContextSupabaseRepository.table
-        }.collect { send(getLatest()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@EmotionalContextSupabaseRepository.table
+            }.collect { send(getLatest()) }
+        }
+        awaitClose { }
     }
 
     override fun observeByRange(start: Long, end: Long): Flow<List<EmotionalContext>> = callbackFlow {
@@ -59,11 +62,13 @@ class EmotionalContextSupabaseRepository @Inject constructor(
         send(fetch())
 
         val channel = supabase.realtime.channel("emotional-range")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@EmotionalContextSupabaseRepository.table
-        }.collect { send(fetch()) }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@EmotionalContextSupabaseRepository.table
+            }.collect { send(fetch()) }
+        }
+        awaitClose { }
     }
 
     override suspend fun insert(context: EmotionalContext) {

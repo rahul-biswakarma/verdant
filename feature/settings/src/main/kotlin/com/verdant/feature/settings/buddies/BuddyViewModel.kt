@@ -2,7 +2,7 @@ package com.verdant.feature.settings.buddies
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.repository.HabitRepository
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.model.Habit
 import com.verdant.core.social.BuddyConnection
 import com.verdant.core.social.SocialRepository

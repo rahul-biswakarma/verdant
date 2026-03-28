@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.BudgetDao
-import com.verdant.core.database.dao.TransactionDao
+import com.verdant.core.model.repository.BudgetRepository
+import com.verdant.core.model.repository.TransactionRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -13,8 +13,8 @@ import dagger.assisted.AssistedInject
 class BudgetAlertWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val budgetDao: BudgetDao,
-    private val transactionDao: TransactionDao,
+    private val budgetRepository: BudgetRepository,
+    private val transactionRepository: TransactionRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {

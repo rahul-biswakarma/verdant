@@ -8,14 +8,13 @@ import com.verdant.core.ai.AIFeatureUnavailableException
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.ai.WeeklyReportData
 import com.verdant.core.common.HabitDataAggregator
-import com.verdant.core.database.dao.AIInsightDao
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.AIInsightEntity
-import com.verdant.core.database.entity.toDomain
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
-import com.verdant.core.datastore.UserPreferencesDataStore
+import com.verdant.core.model.AIInsight
 import com.verdant.core.model.InsightType
+import com.verdant.core.model.repository.AIInsightRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
+import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.work.notification.NotificationHelper
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -33,18 +32,18 @@ import java.util.UUID
  * 4. Calls [VerdantAI.generateWeeklyReport] (Claude, requires network).
  *    Falls back to a plain-stats summary if offline or rate-limited.
  * 5. Posts a [NotificationHelper.postWeeklySummary] notification.
- * 6. Persists the summary as an [AIInsightEntity] (7-day TTL).
+ * 6. Persists the summary as an [AIInsight] (7-day TTL).
  */
 @HiltWorker
 class WeeklySummaryWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val verdantAI: VerdantAI,
-    private val habitDao: HabitDao,
+    private val habitRepository: HabitRepository,
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
     private val aggregator: HabitDataAggregator,
-    private val insightDao: AIInsightDao,
+    private val insightRepository: AIInsightRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -55,11 +54,10 @@ class WeeklySummaryWorker @AssistedInject constructor(
         val today         = LocalDate.now()
         val weekStart     = today.with(DayOfWeek.MONDAY).minusWeeks(1)
         val weekEnd       = weekStart.plusDays(6)
-        val habitEntities = habitDao.getAll().filter { !it.isArchived }
+        val habits = habitRepository.getAllHabits().filter { !it.isArchived }
 
-        if (habitEntities.isEmpty()) return Result.success()
+        if (habits.isEmpty()) return Result.success()
 
-        val habits    = habitEntities.map { it.toDomain() }
         val habitIds  = habits.map { it.id }
         val streakMap = calculateStreak.currentStreaks(habitIds)
 
@@ -108,8 +106,8 @@ class WeeklySummaryWorker @AssistedInject constructor(
 
         // Persist to AI Insights feed (7-day TTL)
         val now = System.currentTimeMillis()
-        insightDao.insert(
-            AIInsightEntity(
+        insightRepository.insert(
+            AIInsight(
                 id              = UUID.randomUUID().toString(),
                 type            = InsightType.WEEKLY_SUMMARY,
                 content         = summary,

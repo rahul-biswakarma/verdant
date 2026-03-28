@@ -2,10 +2,10 @@ package com.verdant.feature.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.repository.EmotionalContextRepository
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.repository.TransactionRepository
+import com.verdant.core.model.repository.EmotionalContextRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.EmotionalContext
 import com.verdant.core.model.InferredMood
 import dagger.hilt.android.lifecycle.HiltViewModel

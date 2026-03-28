@@ -3,8 +3,7 @@ package com.verdant.work.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.toDomain
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.work.scheduler.ReminderScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -23,7 +22,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var habitDao: HabitDao
+    @Inject lateinit var habitRepository: HabitRepository
     @Inject lateinit var scheduler: ReminderScheduler
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -34,9 +33,8 @@ class BootReceiver : BroadcastReceiver() {
 
         scope.launch {
             runCatching {
-                val habits = habitDao.getAll()
+                val habits = habitRepository.getAllHabits()
                     .filter { !it.isArchived }
-                    .map { it.toDomain() }
                 scheduler.rescheduleAll(habits)
             }
         }

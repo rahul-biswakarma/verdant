@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.PredictionDao
+import com.verdant.core.model.repository.PredictionRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -12,7 +12,7 @@ import dagger.assisted.AssistedInject
 class PredictionWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val predictionDao: PredictionDao,
+    private val predictionRepository: PredictionRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -22,7 +22,7 @@ class PredictionWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         // TODO: Run SpendingForecaster, HabitSustainabilityScorer, HealthTrajectoryPredictor
         // Persist results to predictions table
-        predictionDao.deleteExpired(System.currentTimeMillis())
+        predictionRepository.deleteExpired(System.currentTimeMillis())
         return Result.success()
     }
 }

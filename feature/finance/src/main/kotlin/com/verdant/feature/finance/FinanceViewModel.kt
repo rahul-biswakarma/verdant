@@ -2,9 +2,7 @@ package com.verdant.feature.finance
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.verdant.core.database.dao.CategoryTotal
-import com.verdant.core.database.dao.TransactionDao
-import com.verdant.core.database.repository.TransactionRepository
+import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.model.CategorySpend
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +19,6 @@ import javax.inject.Inject
 @HiltViewModel
 class FinanceViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
-    private val transactionDao: TransactionDao,
     private val prefs: UserPreferencesDataStore,
 ) : ViewModel() {
 
@@ -35,9 +32,8 @@ class FinanceViewModel @Inject constructor(
         val (startMs, endMs) = monthRange(month)
 
         // Get transactions for current month as a snapshot
-        val spent = transactionDao.totalSpent(startMs, endMs)
-        val income = transactionDao.totalIncome(startMs, endMs)
-        val categories = transactionDao.spendingByCategory(startMs, endMs)
+        val spent = transactionRepository.totalSpent(startMs, endMs)
+        val income = transactionRepository.totalIncome(startMs, endMs)
 
         FinanceUiState(
             currentMonth = month,

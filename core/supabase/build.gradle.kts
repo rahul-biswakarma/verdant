@@ -36,7 +36,6 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
-    implementation(project(":core:database"))
 
     implementation(platform(libs.supabase.bom))
     implementation(libs.supabase.postgrest)

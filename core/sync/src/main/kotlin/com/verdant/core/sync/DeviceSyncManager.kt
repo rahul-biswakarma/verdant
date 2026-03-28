@@ -2,8 +2,8 @@ package com.verdant.core.sync
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.verdant.core.database.dao.DeviceSignalDao
-import com.verdant.core.database.entity.DeviceSignalEntity
+import com.verdant.core.model.DeviceSignal
+import com.verdant.core.model.repository.DeviceSignalRepository
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import javax.inject.Inject
@@ -17,7 +17,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class DeviceSyncManager @Inject constructor(
-    private val deviceSignalDao: DeviceSignalDao,
+    private val deviceSignalRepository: DeviceSignalRepository,
     private val auth: FirebaseAuth,
     private val database: FirebaseDatabase,
 ) {
@@ -62,7 +62,7 @@ class DeviceSyncManager @Inject constructor(
             val deviceId = child.child("deviceId").getValue(String::class.java) ?: continue
             if (deviceId == thisDeviceId) continue // Skip own signals
 
-            val entity = DeviceSignalEntity(
+            val signal = DeviceSignal(
                 id = UUID.randomUUID().toString(),
                 deviceId = deviceId,
                 signalType = child.child("signalType").getValue(String::class.java) ?: continue,
@@ -71,7 +71,7 @@ class DeviceSyncManager @Inject constructor(
                 timestamp = child.child("timestamp").getValue(Long::class.java) ?: continue,
                 createdAt = System.currentTimeMillis(),
             )
-            deviceSignalDao.insert(entity)
+            deviceSignalRepository.insert(signal)
             child.ref.removeValue().await() // Consume the signal
             count++
         }

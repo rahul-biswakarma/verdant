@@ -7,10 +7,10 @@ import com.verdant.core.ai.HabitSummary
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.model.ChatBubble
 import com.verdant.core.model.ChatState
-import com.verdant.core.database.dao.AIInsightDao
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
+import com.verdant.core.model.repository.AIInsightRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
 import com.verdant.core.model.ChatMessage
 import com.verdant.core.model.isScheduledForDate
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +25,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InsightsViewModel @Inject constructor(
-    private val insightDao: AIInsightDao,
+    private val aiInsightRepository: AIInsightRepository,
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
@@ -47,18 +47,7 @@ class InsightsViewModel @Inject constructor(
 
     private fun observeFeed() {
         viewModelScope.launch {
-            insightDao.observeRecent(limit = 50).collect { entities ->
-                val insights = entities.map { e ->
-                    com.verdant.core.model.AIInsight(
-                        id             = e.id,
-                        type           = e.type,
-                        content        = e.content,
-                        relatedHabitIds = e.relatedHabitIds,
-                        generatedAt    = e.generatedAt,
-                        expiresAt      = e.expiresAt,
-                        dismissed      = e.dismissed,
-                    )
-                }
+            aiInsightRepository.observeRecent(limit = 50).collect { insights ->
                 _state.update { s ->
                     s.copy(
                         feed = FeedState(
@@ -74,7 +63,7 @@ class InsightsViewModel @Inject constructor(
 
     fun dismissInsight(id: String) {
         viewModelScope.launch {
-            insightDao.dismiss(id)
+            aiInsightRepository.dismiss(id)
             // The observeRecent flow will automatically re-emit without this insight
         }
     }

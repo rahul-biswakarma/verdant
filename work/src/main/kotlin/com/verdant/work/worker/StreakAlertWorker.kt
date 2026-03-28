@@ -7,10 +7,9 @@ import androidx.work.WorkerParameters
 import com.verdant.core.ai.NudgeContext
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.context.AdaptiveNotificationManager
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.toDomain
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
 import com.verdant.core.datastore.NudgeTone
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.work.notification.NotificationHelper
@@ -37,7 +36,7 @@ class StreakAlertWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted params: WorkerParameters,
     private val verdantAI: VerdantAI,
-    private val habitDao: HabitDao,
+    private val habitRepository: HabitRepository,
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
     private val prefs: UserPreferencesDataStore,
@@ -61,10 +60,9 @@ class StreakAlertWorker @AssistedInject constructor(
         if (isInQuietHours(now.hour, quietStart, quietEnd)) return Result.success()
 
         val today         = LocalDate.now()
-        val habitEntities = habitDao.getAll().filter { !it.isArchived }
-        if (habitEntities.isEmpty()) return Result.success()
+        val habits = habitRepository.getAllHabits().filter { !it.isArchived }
+        if (habits.isEmpty()) return Result.success()
 
-        val habits    = habitEntities.map { it.toDomain() }
         val streakMap = calculateStreak.currentStreaks(habits.map { it.id })
         val maxNudges = prefs.maxNudgesPerDay.first()
         val nudgeTone = NudgeTone.fromKey(prefs.nudgeTone.first())

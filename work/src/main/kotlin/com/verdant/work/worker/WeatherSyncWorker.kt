@@ -4,8 +4,7 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.WeatherDao
-import com.verdant.core.database.entity.WeatherSnapshotEntity
+import com.verdant.core.model.repository.WeatherRepository
 import com.verdant.core.datastore.UserPreferencesDataStore
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -16,7 +15,7 @@ import java.util.UUID
 class WeatherSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val weatherDao: WeatherDao,
+    private val weatherRepository: WeatherRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(context, params) {
 

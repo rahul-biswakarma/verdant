@@ -3,8 +3,7 @@ package com.verdant.work.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.verdant.core.database.dao.HabitDao
-import com.verdant.core.database.entity.toDomain
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.work.notification.NotificationHelper
 import com.verdant.work.scheduler.ReminderScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,7 +24,7 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class ReminderAlarmReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var habitDao: HabitDao
+    @Inject lateinit var habitRepository: HabitRepository
     @Inject lateinit var scheduler: ReminderScheduler
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -46,8 +45,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
 
         // Re-schedule next occurrence on a background coroutine
         scope.launch {
-            val entity = habitDao.getById(habitId) ?: return@launch
-            val habit  = entity.toDomain()
+            val habit = habitRepository.getById(habitId) ?: return@launch
             if (habit.reminderEnabled) {
                 scheduler.scheduleReminder(habit)
             }

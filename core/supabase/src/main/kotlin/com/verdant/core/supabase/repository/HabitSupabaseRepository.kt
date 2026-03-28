@@ -1,6 +1,6 @@
 package com.verdant.core.supabase.repository
 
-import com.verdant.core.database.repository.HabitRepository
+import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.model.Habit
 import com.verdant.core.supabase.dto.HabitDto
 import com.verdant.core.supabase.dto.toDomain
@@ -8,12 +8,12 @@ import com.verdant.core.supabase.dto.toDto
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.FilterOperator
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
 import io.github.jan.supabase.realtime.PostgresAction
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
@@ -31,13 +31,15 @@ class HabitSupabaseRepository @Inject constructor(
         send(initial)
 
         val channel = supabase.realtime.channel("habits-active")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@HabitSupabaseRepository.table
-        }.collect {
-            send(fetchActiveHabits())
-        }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@HabitSupabaseRepository.table
+            }.collect {
+                send(fetchActiveHabits())
+            }
+        }
+        awaitClose { }
     }
 
     override fun observeByLabel(label: String): Flow<List<Habit>> = callbackFlow {
@@ -53,22 +55,24 @@ class HabitSupabaseRepository @Inject constructor(
         send(initial)
 
         val channel = supabase.realtime.channel("habits-label-$label")
-        channel.postgresChangeFlow<PostgresAction>("public") {
-            table = this@HabitSupabaseRepository.table
-        }.collect {
-            val updated = supabase.postgrest[table]
-                .select {
-                    filter {
-                        eq("is_archived", false)
-                        eq("label", label)
-                    }
-                }
-                .decodeList<HabitDto>()
-                .map { it.toDomain() }
-            send(updated)
-        }
         channel.subscribe()
-        awaitClose { supabase.realtime.removeChannel(channel) }
+        launch {
+            channel.postgresChangeFlow<PostgresAction>("public") {
+                table = this@HabitSupabaseRepository.table
+            }.collect {
+                val updated = supabase.postgrest[table]
+                    .select {
+                        filter {
+                            eq("is_archived", false)
+                            eq("label", label)
+                        }
+                    }
+                    .decodeList<HabitDto>()
+                    .map { it.toDomain() }
+                send(updated)
+            }
+        }
+        awaitClose { }
     }
 
     override suspend fun getById(id: String): Habit? =

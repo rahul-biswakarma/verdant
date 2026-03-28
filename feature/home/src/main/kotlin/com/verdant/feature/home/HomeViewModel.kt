@@ -6,11 +6,11 @@ import com.verdant.core.ai.BrainDumpAction
 import com.verdant.core.ai.MotivationContext
 import com.verdant.core.ai.ParsedBrainDump
 import com.verdant.core.ai.VerdantAI
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
-import com.verdant.core.database.usecase.LogEntryUseCase
-import com.verdant.core.database.usecase.StreakCacheManager
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
+import com.verdant.core.common.usecase.LogEntryUseCase
+import com.verdant.core.common.usecase.StreakCacheManager
 import androidx.compose.ui.graphics.Color
 import com.verdant.core.designsystem.component.CelebrationData
 import com.verdant.core.designsystem.component.OrbitalHabitData

@@ -4,12 +4,12 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.EmotionalContextDao
-import com.verdant.core.database.dao.QuestDao
-import com.verdant.core.database.entity.QuestEntity
-import com.verdant.core.database.repository.HabitEntryRepository
-import com.verdant.core.database.repository.HabitRepository
-import com.verdant.core.database.usecase.CalculateStreakUseCase
+import com.verdant.core.model.Quest
+import com.verdant.core.model.repository.EmotionalContextRepository
+import com.verdant.core.model.repository.QuestRepository
+import com.verdant.core.model.repository.HabitEntryRepository
+import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.common.usecase.CalculateStreakUseCase
 import com.verdant.core.model.QuestDifficulty
 import com.verdant.core.model.QuestStatus
 import com.verdant.core.model.TrackingType
@@ -24,11 +24,11 @@ import java.util.UUID
 class QuestGeneratorWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
-    private val questDao: QuestDao,
+    private val questRepository: QuestRepository,
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
     private val calculateStreakUseCase: CalculateStreakUseCase,
-    private val emotionalContextDao: EmotionalContextDao,
+    private val emotionalContextRepository: EmotionalContextRepository,
 ) : CoroutineWorker(context, params) {
 
     companion object {
@@ -38,10 +38,10 @@ class QuestGeneratorWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            questDao.deleteExpired()
+            questRepository.deleteExpired()
 
             // Don't generate if user already has enough quests
-            val activeQuests = questDao.observeActive().firstOrNull() ?: emptyList()
+            val activeQuests = questRepository.observeActive().firstOrNull() ?: emptyList()
             if (activeQuests.size >= MAX_ACTIVE_QUESTS) return Result.success()
 
             val habits = habitRepository.getAllHabits().filter { !it.isArchived }
@@ -50,7 +50,7 @@ class QuestGeneratorWorker @AssistedInject constructor(
             val today = LocalDate.now()
             val questsToGenerate = MAX_ACTIVE_QUESTS - activeQuests.size
 
-            val generated = mutableListOf<QuestEntity>()
+            val generated = mutableListOf<Quest>()
 
             // Strategy 1: Streak builder — find habits with no streak
             val noStreakHabits = habits.filter {
@@ -59,17 +59,17 @@ class QuestGeneratorWorker @AssistedInject constructor(
             }
             if (noStreakHabits.isNotEmpty() && generated.size < questsToGenerate) {
                 val habit = noStreakHabits.random()
-                generated += QuestEntity(
+                generated += Quest(
                     id = UUID.randomUUID().toString(),
                     title = "Kickstart: ${habit.name}",
                     description = "Complete ${habit.name} for 3 consecutive days to build momentum.",
-                    difficulty = QuestDifficulty.DAILY.name,
+                    difficulty = QuestDifficulty.DAILY,
                     xpReward = 50,
                     conditions = "streak:${habit.id}:3",
                     timeLimit = 3 * 24 * 60 * 60 * 1000L,
                     generatedBy = "QuestGeneratorWorker",
                     reasoning = "Habit has no active streak — nudging to build consistency.",
-                    status = QuestStatus.AVAILABLE.name,
+                    status = QuestStatus.AVAILABLE,
                     startedAt = null,
                     completedAt = null,
                 )
@@ -78,17 +78,17 @@ class QuestGeneratorWorker @AssistedInject constructor(
             // Strategy 2: Consistency challenge — complete all habits today
             val scheduledToday = habits.filter { it.isScheduledForDate(today) }
             if (scheduledToday.size >= 3 && generated.size < questsToGenerate) {
-                generated += QuestEntity(
+                generated += Quest(
                     id = UUID.randomUUID().toString(),
                     title = "Perfect Day",
                     description = "Complete all ${scheduledToday.size} habits scheduled for today.",
-                    difficulty = QuestDifficulty.DAILY.name,
+                    difficulty = QuestDifficulty.DAILY,
                     xpReward = 75,
                     conditions = "all_today",
                     timeLimit = 24 * 60 * 60 * 1000L,
                     generatedBy = "QuestGeneratorWorker",
                     reasoning = "Encouraging a full-completion day to boost confidence.",
-                    status = QuestStatus.AVAILABLE.name,
+                    status = QuestStatus.AVAILABLE,
                     startedAt = null,
                     completedAt = null,
                 )
@@ -98,23 +98,23 @@ class QuestGeneratorWorker @AssistedInject constructor(
             val quantHabits = habits.filter { it.trackingType == TrackingType.QUANTITATIVE }
             if (quantHabits.isNotEmpty() && generated.size < questsToGenerate) {
                 val habit = quantHabits.random()
-                generated += QuestEntity(
+                generated += Quest(
                     id = UUID.randomUUID().toString(),
                     title = "Week Warrior: ${habit.name}",
                     description = "Hit your ${habit.name} target every day for a full week.",
-                    difficulty = QuestDifficulty.WEEKLY.name,
+                    difficulty = QuestDifficulty.WEEKLY,
                     xpReward = 150,
                     conditions = "streak:${habit.id}:7",
                     timeLimit = 7 * 24 * 60 * 60 * 1000L,
                     generatedBy = "QuestGeneratorWorker",
                     reasoning = "Weekly challenge for quantitative habit to push endurance.",
-                    status = QuestStatus.AVAILABLE.name,
+                    status = QuestStatus.AVAILABLE,
                     startedAt = null,
                     completedAt = null,
                 )
             }
 
-            generated.forEach { questDao.insert(it) }
+            generated.forEach { questRepository.insert(it) }
 
             Result.success()
         } catch (_: Exception) {

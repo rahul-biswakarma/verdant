@@ -4,10 +4,11 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.verdant.core.database.dao.HealthRecordDao
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.health.HealthConnectClient
+import com.verdant.core.model.HealthRecord
 import com.verdant.core.model.HealthRecordType
+import com.verdant.core.model.repository.HealthRecordRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
@@ -17,7 +18,7 @@ class HealthSyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted params: WorkerParameters,
     private val healthClient: HealthConnectClient,
-    private val healthRecordDao: HealthRecordDao,
+    private val healthRecordRepository: HealthRecordRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(context, params) {
 
@@ -32,7 +33,7 @@ class HealthSyncWorker @AssistedInject constructor(
             HealthRecordType.entries.forEach { type ->
                 val records = healthClient.readRecords(type, lastSync, now)
                 if (records.isNotEmpty()) {
-                    healthRecordDao.insertAll(records.map { it.toEntity() })
+                    healthRecordRepository.insertAll(records)
                 }
             }
 
@@ -45,15 +46,4 @@ class HealthSyncWorker @AssistedInject constructor(
         const val WORK_NAME = "verdant_health_sync"
     }
 
-    private fun com.verdant.core.model.HealthRecord.toEntity() =
-        com.verdant.core.database.entity.HealthRecordEntity(
-            id = id,
-            recordType = recordType.name,
-            value = value,
-            secondaryValue = secondaryValue,
-            unit = unit,
-            recordedAt = recordedAt,
-            source = source,
-            createdAt = createdAt,
-        )
 }
