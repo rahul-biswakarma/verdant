@@ -15,12 +15,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -34,14 +39,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import compose.icons.TablerIcons
+import com.verdant.core.model.QuestStatus
 import compose.icons.tablericons.Award
 import compose.icons.tablericons.ChartLine
+import compose.icons.tablericons.Check
+import compose.icons.tablericons.CircleCheck
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Heart
 import compose.icons.tablericons.MoodSmile
+import compose.icons.tablericons.PlayerPlay
 import compose.icons.tablericons.Shield
-import compose.icons.tablericons.Sword
 import compose.icons.tablericons.Target
+import compose.icons.tablericons.Trophy
 
 const val LIFE_DASHBOARD_ROUTE = "life_dashboard"
 
@@ -91,7 +100,25 @@ fun LifeDashboardScreen(
                     )
                 }
                 items(uiState.activeQuests) { quest ->
-                    ActiveQuestCard(quest)
+                    ActiveQuestCard(
+                        quest = quest,
+                        onStart = { viewModel.startQuest(quest.id) },
+                        onComplete = { viewModel.completeQuest(quest.id) },
+                    )
+                }
+            }
+
+            // Completed Quests
+            if (uiState.completedQuests.isNotEmpty()) {
+                item {
+                    Text(
+                        "Completed",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                items(uiState.completedQuests) { quest ->
+                    CompletedQuestCard(quest)
                 }
             }
 
@@ -264,41 +291,114 @@ private fun StatDimensionGrid(dimensions: List<StatDimension>) {
 }
 
 @Composable
-private fun ActiveQuestCard(quest: com.verdant.core.model.Quest) {
+private fun ActiveQuestCard(
+    quest: com.verdant.core.model.Quest,
+    onStart: () -> Unit,
+    onComplete: () -> Unit,
+) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer,
         ),
     ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    TablerIcons.Target,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.tertiary,
+                )
+                Spacer(Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        quest.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        quest.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(
+                            quest.difficulty.name,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    },
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "+${quest.xpReward} XP",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    when (quest.status) {
+                        QuestStatus.AVAILABLE -> FilledTonalButton(onClick = onStart) {
+                            Icon(TablerIcons.PlayerPlay, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Start")
+                        }
+                        QuestStatus.ACTIVE -> Button(onClick = onComplete) {
+                            Icon(TablerIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Complete")
+                        }
+                        else -> {}
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompletedQuestCard(quest: com.verdant.core.model.Quest) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        ),
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                TablerIcons.Sword,
+                TablerIcons.CircleCheck,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.tertiary,
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                modifier = Modifier.size(20.dp),
             )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    quest.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    quest.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
-                )
-            }
+            Spacer(Modifier.width(10.dp))
+            Text(
+                quest.title,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
             Text(
                 "+${quest.xpReward} XP",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
             )
         }
     }

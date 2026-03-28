@@ -32,7 +32,7 @@ class AdaptiveTargetUseCase @Inject constructor(
      */
     suspend fun evaluateAll(): List<TargetSuggestion> {
         val habits = habitRepository.getAllHabits()
-            .filter { !it.isArchived && it.targetValue != null && it.targetValue > 0 }
+            .filter { !it.isArchived && (it.targetValue ?: 0.0) > 0 }
             .filter { it.trackingType == TrackingType.QUANTITATIVE || it.trackingType == TrackingType.DURATION }
 
         return habits.mapNotNull { evaluate(it) }

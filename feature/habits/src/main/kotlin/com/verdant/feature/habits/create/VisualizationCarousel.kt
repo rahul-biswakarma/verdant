@@ -27,9 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.PhysicsJar
-import com.verdant.core.designsystem.component.StreakRing
 import com.verdant.core.model.VisualizationType
 
 private data class VisualizationOption(
@@ -40,24 +38,29 @@ private data class VisualizationOption(
 
 private val visualizationOptions = listOf(
     VisualizationOption(
-        type = VisualizationType.CONTRIBUTION_GRID,
-        label = "Heatmap",
+        type = VisualizationType.PIXEL_GRID,
+        label = "Pixel Grid",
         description = "Daily consistency",
     ),
     VisualizationOption(
-        type = VisualizationType.COMPLETION_RING,
-        label = "Progress Ring",
-        description = "Daily progress",
+        type = VisualizationType.TOPO_MAP,
+        label = "Topo Map",
+        description = "Milestone contours",
     ),
     VisualizationOption(
-        type = VisualizationType.STREAK_RING,
-        label = "Streak Ring",
-        description = "Streak focus",
+        type = VisualizationType.AUDIO_WAVEFORM,
+        label = "Waveform",
+        description = "Session intensity",
     ),
     VisualizationOption(
         type = VisualizationType.PHYSICS_JAR,
         label = "Liquid Jar",
         description = "Fill it up",
+    ),
+    VisualizationOption(
+        type = VisualizationType.RPG_RADAR,
+        label = "Radar Chart",
+        description = "Multi-dimensional",
     ),
 )
 
@@ -152,25 +155,13 @@ private fun VisualizationCard(
                 contentAlignment = Alignment.Center,
             ) {
                 when (option.type) {
-                    VisualizationType.CONTRIBUTION_GRID -> MiniHeatmapPreview(habitColor)
-                    VisualizationType.COMPLETION_RING -> CompletionRing(
-                        progress = 0.65f,
-                        color = habitColor,
-                        size = 56.dp,
-                        strokeWidth = 5.dp,
-                    )
-                    VisualizationType.STREAK_RING -> StreakRing(
-                        progress = 0.7f,
-                        streakCount = 7,
-                        color = habitColor,
-                        size = 56.dp,
-                        strokeWidth = 5.dp,
-                    )
+                    VisualizationType.PIXEL_GRID -> MiniHeatmapPreview(habitColor)
                     VisualizationType.PHYSICS_JAR -> PhysicsJar(
                         progress = 0.65f,
                         color = habitColor,
                         size = 56.dp,
                     )
+                    else -> MiniHeatmapPreview(habitColor)
                 }
             }
 

@@ -1351,6 +1351,3 @@ private fun BottomNavBar(
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-private fun Double.fmt(): String =
-    if (this == toLong().toDouble()) toLong().toString() else "%.1f".format(this)

@@ -26,6 +26,7 @@ import com.verdant.core.database.dao.PredictionDao
 import com.verdant.core.database.dao.QuestDao
 import com.verdant.core.database.dao.RecurringTransactionDao
 import com.verdant.core.database.dao.StreakCacheDao
+import com.verdant.core.database.dao.TransactionDao
 import com.verdant.core.database.dao.WeatherDao
 import com.verdant.core.database.entity.AchievementEntity
 import com.verdant.core.database.entity.ActivityRecordEntity
@@ -107,6 +108,7 @@ abstract class VerdantDatabase : RoomDatabase() {
     abstract fun streakCacheDao(): StreakCacheDao
     abstract fun habitTargetHistoryDao(): HabitTargetHistoryDao
     abstract fun pendingAIRequestDao(): PendingAIRequestDao
+    abstract fun transactionDao(): TransactionDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {

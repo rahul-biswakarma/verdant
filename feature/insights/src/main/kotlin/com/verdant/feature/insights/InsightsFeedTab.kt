@@ -208,4 +208,5 @@ private fun insightMeta(type: InsightType): InsightMeta = when (type) {
     InsightType.WEEKLY_SUMMARY    -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF00897B),     "Weekly Summary")
     InsightType.MONTHLY_SUMMARY   -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF1565C0),     "Monthly Summary")
     InsightType.SUGGESTION        -> InsightMeta(TablerIcons.Bulb,             Color(0xFFF9A825),     "Suggestion")
+    else                          -> InsightMeta(TablerIcons.Stars,            Color(0xFF90A4AE),     type.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
 }

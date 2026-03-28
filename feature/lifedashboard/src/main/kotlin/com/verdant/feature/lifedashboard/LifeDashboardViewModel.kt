@@ -31,6 +31,7 @@ class LifeDashboardViewModel @Inject constructor(
     init {
         loadProfile()
         loadQuests()
+        loadCompletedQuests()
         loadEmotionalContext()
     }
 
@@ -54,6 +55,14 @@ class LifeDashboardViewModel @Inject constructor(
         }
     }
 
+    private fun loadCompletedQuests() {
+        viewModelScope.launch {
+            questRepository.observeCompleted().collectLatest { quests ->
+                _uiState.value = _uiState.value.copy(completedQuests = quests.take(5))
+            }
+        }
+    }
+
     private fun loadEmotionalContext() {
         viewModelScope.launch {
             emotionalContextRepository.observeLatest().collectLatest { context ->
@@ -64,6 +73,43 @@ class LifeDashboardViewModel @Inject constructor(
                     )
                 }
             }
+        }
+    }
+
+    fun startQuest(questId: String) {
+        viewModelScope.launch {
+            questRepository.start(questId, System.currentTimeMillis())
+        }
+    }
+
+    fun completeQuest(questId: String) {
+        viewModelScope.launch {
+            val quest = questRepository.getById(questId) ?: return@launch
+            questRepository.complete(questId, System.currentTimeMillis())
+            // Award XP
+            val profile = playerProfileRepository.get() ?: return@launch
+            val newTotalXP = profile.totalXP + quest.xpReward
+            val newCurrentXP = profile.currentLevelXP + quest.xpReward
+            val leveledUp = newCurrentXP >= profile.xpToNextLevel
+            val updatedProfile = if (leveledUp) {
+                val overflow = newCurrentXP - profile.xpToNextLevel
+                val newLevel = profile.level + 1
+                val newXpRequired = (profile.xpToNextLevel * 1.25).toLong()
+                profile.copy(
+                    level = newLevel,
+                    totalXP = newTotalXP,
+                    currentLevelXP = overflow,
+                    xpToNextLevel = newXpRequired,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            } else {
+                profile.copy(
+                    totalXP = newTotalXP,
+                    currentLevelXP = newCurrentXP,
+                    updatedAt = System.currentTimeMillis(),
+                )
+            }
+            playerProfileRepository.update(updatedProfile)
         }
     }
 

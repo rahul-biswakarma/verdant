@@ -20,6 +20,7 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:database"))
     implementation(project(":core:network"))
     implementation(project(":core:common"))
     implementation(project(":core:datastore"))
@@ -32,4 +33,6 @@ dependencies {
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+
+    testImplementation("junit:junit:4.13.2")
 }

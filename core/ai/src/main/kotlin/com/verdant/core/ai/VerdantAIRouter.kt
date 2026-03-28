@@ -4,12 +4,14 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.verdant.core.ai.habit.ParsedHabit
+import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.model.ChatMessage
 import com.verdant.core.model.Habit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,6 +42,8 @@ class VerdantAIRouter @Inject constructor(
     private val geminiNanoAI: GeminiNanoAI,
     private val fallbackAI: FallbackAI,
     private val cloudAI: CloudAI,
+    private val circuitBreaker: CloudAICircuitBreaker,
+    private val userPreferences: UserPreferencesDataStore,
 ) : VerdantAI {
 
     // ── On-device ─────────────────────────────────────────────────────────────
@@ -76,13 +80,19 @@ class VerdantAIRouter @Inject constructor(
                 runCatching { geminiNanoAI.generateMotivation(context) }.getOrNull()
             }
 
-            // Only start cloud call if we have a real network connection
-            val cloudDeferred = if (isNetworkAvailable()) {
+            // Only start cloud call if user opted in, we have network, AND circuit breaker allows it
+            val dataSharingEnabled = userPreferences.llmDataSharing.first()
+            val cloudDeferred = if (dataSharingEnabled && isNetworkAvailable() && circuitBreaker.shouldAllow()) {
                 async {
                     withTimeoutOrNull(CLOUD_MOTIVATION_TIMEOUT_MS) {
-                        runCatching { cloudAI.generateDailyMotivationEnhanced(context) }
-                            .getOrNull()
-                            ?.takeIf { it.isNotBlank() }
+                        runCatching {
+                            cloudAI.generateDailyMotivationEnhanced(context).also {
+                                circuitBreaker.recordSuccess()
+                            }
+                        }.getOrElse { e ->
+                            circuitBreaker.recordFailure()
+                            null
+                        }?.takeIf { it.isNotBlank() }
                     }
                 }
             } else null
@@ -98,36 +108,57 @@ class VerdantAIRouter @Inject constructor(
     // ── Cloud-only — guard and delegate ──────────────────────────────────────
 
     override suspend fun generateDailyMotivationEnhanced(context: MotivationContext): String {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.generateDailyMotivationEnhanced(context)
+        return guardedCloudCall { cloudAI.generateDailyMotivationEnhanced(context) }
     }
 
     override suspend fun generateWeeklyReport(data: WeeklyReportData): WeeklyReport {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.generateWeeklyReport(data)
+        return guardedCloudCall { cloudAI.generateWeeklyReport(data) }
     }
 
     override suspend fun generateMonthlyReport(data: MonthlyReportData): MonthlyReport {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.generateMonthlyReport(data)
+        return guardedCloudCall { cloudAI.generateMonthlyReport(data) }
     }
 
     override suspend fun findPatterns(data: PatternData): List<Pattern> {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.findPatterns(data)
+        return guardedCloudCall { cloudAI.findPatterns(data) }
     }
 
     override suspend fun findCorrelations(data: CorrelationData): List<Correlation> {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.findCorrelations(data)
+        return guardedCloudCall { cloudAI.findCorrelations(data) }
     }
 
     override suspend fun chatWithCoach(
         messages: List<ChatMessage>,
         habitData: HabitSummary,
     ): String {
+        requireDataSharing()
         requireNetwork()
-        return cloudAI.chatWithCoach(messages, habitData)
+        return guardedCloudCall { cloudAI.chatWithCoach(messages, habitData) }
+    }
+
+    // ── Circuit breaker wrapper ────────────────────────────────────────────────
+
+    /** Wraps a cloud AI call with circuit breaker protection. */
+    private suspend fun <T> guardedCloudCall(block: suspend () -> T): T {
+        if (!circuitBreaker.shouldAllow()) {
+            throw AIFeatureUnavailableException.circuitOpen()
+        }
+        return try {
+            block().also { circuitBreaker.recordSuccess() }
+        } catch (e: Exception) {
+            circuitBreaker.recordFailure()
+            throw e
+        }
     }
 
     // ── Network utilities ─────────────────────────────────────────────────────
@@ -142,6 +173,11 @@ class VerdantAIRouter @Inject constructor(
     /** Throws [AIFeatureUnavailableException] with [AIFeatureUnavailableException.Reason.NO_NETWORK] if offline. */
     private fun requireNetwork() {
         if (!isNetworkAvailable()) throw AIFeatureUnavailableException.noNetwork()
+    }
+
+    /** Throws [AIFeatureUnavailableException] if user has not opted in to cloud AI data sharing. */
+    private suspend fun requireDataSharing() {
+        if (!userPreferences.llmDataSharing.first()) throw AIFeatureUnavailableException.dataSharingDisabled()
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

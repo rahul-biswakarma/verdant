@@ -1,14 +1,13 @@
 package com.verdant.core.social.di
 
-import com.google.firebase.auth.FirebaseAuth
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
+/**
+ * Social module — FirebaseAuth is already provided by SyncModule,
+ * so no duplicate binding here.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-object SocialModule {
-    @Provides
-    fun provideFirebaseAuth(): FirebaseAuth = FirebaseAuth.getInstance()
-}
+object SocialModule

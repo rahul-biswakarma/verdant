@@ -391,6 +391,11 @@ private fun HabitListCard(
 
 private fun TrackingType.displayName(): String = when (this) {
     TrackingType.BINARY -> "Yes / No"
-    TrackingType.NUMERIC -> "Numeric"
+    TrackingType.QUANTITATIVE -> "Numeric"
+    TrackingType.DURATION -> "Duration"
     TrackingType.LOCATION -> "Location"
+    TrackingType.FINANCIAL -> "Financial"
+    TrackingType.EMOTIONAL -> "Emotional"
+    TrackingType.EVENT_DRIVEN -> "Event"
+    TrackingType.CHECKPOINT -> "Checkpoint"
 }

@@ -13,6 +13,7 @@ data class LifeDashboardUiState(
     val energyLevel: Int = 50,
     val statDimensions: List<StatDimension> = emptyList(),
     val activeQuests: List<Quest> = emptyList(),
+    val completedQuests: List<Quest> = emptyList(),
     val predictions: List<PredictionCard> = emptyList(),
     val lifeForecastNarrative: String? = null,
     val systemInsight: String? = null,

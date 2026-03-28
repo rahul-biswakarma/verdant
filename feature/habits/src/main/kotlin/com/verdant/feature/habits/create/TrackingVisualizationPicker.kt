@@ -36,9 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.PhysicsJar
-import com.verdant.core.designsystem.component.StreakRing
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.VisualizationType
 
@@ -53,7 +51,7 @@ internal data class TrackingVisualizationOption(
 private val trackingVisualizationOptions = listOf(
     TrackingVisualizationOption(
         trackingType = TrackingType.BINARY,
-        visualizationType = VisualizationType.CONTRIBUTION_GRID,
+        visualizationType = VisualizationType.PIXEL_GRID,
         label = "Heatmap",
         trackingLabel = "Daily check-off",
         description = "Track consistency",
@@ -67,22 +65,22 @@ private val trackingVisualizationOptions = listOf(
     ),
     TrackingVisualizationOption(
         trackingType = TrackingType.DURATION,
-        visualizationType = VisualizationType.COMPLETION_RING,
-        label = "Progress Ring",
+        visualizationType = VisualizationType.AUDIO_WAVEFORM,
+        label = "Waveform",
         trackingLabel = "Track time",
         description = "Daily progress",
     ),
     TrackingVisualizationOption(
         trackingType = TrackingType.FINANCIAL,
-        visualizationType = VisualizationType.COMPLETION_RING,
-        label = "Budget Ring",
+        visualizationType = VisualizationType.PHYSICS_JAR,
+        label = "Budget Jar",
         trackingLabel = "Track spending",
         description = "Stay on budget",
     ),
     TrackingVisualizationOption(
         trackingType = TrackingType.BINARY,
-        visualizationType = VisualizationType.STREAK_RING,
-        label = "Streak Ring",
+        visualizationType = VisualizationType.TOPO_MAP,
+        label = "Topo Map",
         trackingLabel = "Build streaks",
         description = "Streak focus",
     ),
@@ -242,25 +240,13 @@ private fun TrackingVisualizationCard(
                 contentAlignment = Alignment.Center,
             ) {
                 when (option.visualizationType) {
-                    VisualizationType.CONTRIBUTION_GRID -> MiniHeatmapPreview(habitColor)
-                    VisualizationType.COMPLETION_RING -> CompletionRing(
-                        progress = 0.65f,
-                        color = habitColor,
-                        size = 56.dp,
-                        strokeWidth = 5.dp,
-                    )
-                    VisualizationType.STREAK_RING -> StreakRing(
-                        progress = 0.7f,
-                        streakCount = 7,
-                        color = habitColor,
-                        size = 56.dp,
-                        strokeWidth = 5.dp,
-                    )
+                    VisualizationType.PIXEL_GRID -> MiniHeatmapPreview(habitColor)
                     VisualizationType.PHYSICS_JAR -> PhysicsJar(
                         progress = 0.65f,
                         color = habitColor,
                         size = 56.dp,
                     )
+                    else -> MiniHeatmapPreview(habitColor)
                 }
             }
 

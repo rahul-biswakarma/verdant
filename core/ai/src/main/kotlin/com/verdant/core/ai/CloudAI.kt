@@ -42,7 +42,7 @@ class CloudAI @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         fallbackAI.parseHabitDescription(text)
 
-    override suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult> =
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
         fallbackAI.parseBrainDump(text, habits)
 
     override suspend fun generateMotivation(context: MotivationContext): String =

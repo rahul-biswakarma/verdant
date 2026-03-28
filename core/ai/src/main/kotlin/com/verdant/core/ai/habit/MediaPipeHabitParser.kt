@@ -58,7 +58,7 @@ class MediaPipeHabitParser @Inject constructor(
             trackingType = run {
                 val raw = obj.optString("trackingType", "BINARY")
                 when (raw) {
-                    "QUANTITATIVE", "DURATION", "FINANCIAL" -> TrackingType.NUMERIC
+                    "QUANTITATIVE", "DURATION", "FINANCIAL" -> TrackingType.QUANTITATIVE
                     else -> runCatching { TrackingType.valueOf(raw) }.getOrDefault(TrackingType.BINARY)
                 }
             },

@@ -21,7 +21,7 @@ class AIFeatureUnavailableException(
     cause: Throwable? = null,
 ) : Exception(message, cause) {
 
-    enum class Reason { NO_NETWORK, RATE_LIMITED, AUTH_ERROR, NOT_SUPPORTED }
+    enum class Reason { NO_NETWORK, RATE_LIMITED, AUTH_ERROR, NOT_SUPPORTED, CIRCUIT_OPEN, DATA_SHARING_DISABLED }
 
     companion object {
         fun noNetwork() = AIFeatureUnavailableException(
@@ -36,6 +36,14 @@ class AIFeatureUnavailableException(
             "Please sign in to use AI insights.",
             Reason.AUTH_ERROR,
             cause,
+        )
+        fun circuitOpen() = AIFeatureUnavailableException(
+            "AI service temporarily unavailable. Will retry automatically.",
+            Reason.CIRCUIT_OPEN,
+        )
+        fun dataSharingDisabled() = AIFeatureUnavailableException(
+            "Enable AI data sharing in Settings → Privacy to use this feature.",
+            Reason.DATA_SHARING_DISABLED,
         )
     }
 }

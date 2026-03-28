@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
 import compose.icons.tablericons.MapPin
+import compose.icons.tablericons.Microphone
 import compose.icons.tablericons.PlayerPause
 import compose.icons.tablericons.PlayerPlay
 import compose.icons.tablericons.Stars
@@ -39,6 +41,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -66,6 +70,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.verdant.core.voice.VoiceRecognitionManager
+import com.verdant.core.designsystem.component.CelebrationOverlay
 import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.designsystem.component.LiquidProgressVessel
 import com.verdant.core.designsystem.component.StreakBadge
@@ -83,6 +89,10 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val celebration by viewModel.celebration.collectAsStateWithLifecycle()
+    val voiceState by viewModel.voiceRecognition.state.collectAsStateWithLifecycle(
+        initialValue = VoiceRecognitionManager.VoiceState.Idle,
+    )
     val context = LocalContext.current
 
     var customValueDialog by rememberSaveable { mutableStateOf<String?>(null) }
@@ -108,8 +118,21 @@ fun HomeScreen(
         pendingLocationItem = null
     }
 
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) viewModel.startVoiceInput()
+    }
+
+    // Process voice results
+    when (val vs = voiceState) {
+        is VoiceRecognitionManager.VoiceState.Result -> viewModel.processVoiceResult(vs.text)
+        else -> {}
+    }
+
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             // Only show header and insight card when user has habits
             if (state.hasAnyHabits) {
                 item {
@@ -212,6 +235,12 @@ fun HomeScreen(
                         },
                         onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
                     )
+                    TrackingType.EMOTIONAL,
+                    TrackingType.EVENT_DRIVEN,
+                    TrackingType.CHECKPOINT -> BinaryHabitCard(
+                        item = item, onToggle = { viewModel.toggleBinary(item) },
+                        onTap = { onNavigateToHabitDetail(item.habit.id) }, modifier = cardMod,
+                    )
                 }
             }
         }
@@ -283,6 +312,48 @@ fun HomeScreen(
                 },
             )
         }
+
+        } // close Box
+    }
+
+    // Voice input FAB
+    if (viewModel.voiceRecognition.isAvailable) {
+        val isListening = voiceState is VoiceRecognitionManager.VoiceState.Listening
+        Box(modifier = Modifier.fillMaxSize()) {
+            FloatingActionButton(
+                onClick = {
+                    if (isListening) {
+                        viewModel.stopVoiceInput()
+                    } else {
+                        val hasMic = ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.RECORD_AUDIO,
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (hasMic) viewModel.startVoiceInput()
+                        else micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = if (isListening) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
+            ) {
+                Icon(
+                    TablerIcons.Microphone,
+                    contentDescription = if (isListening) "Stop listening" else "Voice input",
+                    tint = if (isListening) MaterialTheme.colorScheme.onError
+                        else MaterialTheme.colorScheme.onPrimary,
+                )
+            }
+        }
+    }
+
+    // Celebration overlay for milestone streaks
+    celebration?.let { data ->
+        CelebrationOverlay(
+            celebration = data,
+            onDismiss = viewModel::dismissCelebration,
+        )
     }
 }
 

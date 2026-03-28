@@ -29,6 +29,9 @@ class MediaPipeAI @Inject constructor(
     override suspend fun parseHabitDescription(text: String): ParsedHabit =
         habitParser.parseHabitDescription(text)
 
+    override suspend fun parseBrainDump(text: String, habits: List<Habit>): ParsedBrainDump =
+        fallback.parseBrainDump(text, habits)
+
     override suspend fun generateMotivation(motivationContext: MotivationContext): String =
         runCatching {
             val prompt = buildMotivationPrompt(motivationContext)

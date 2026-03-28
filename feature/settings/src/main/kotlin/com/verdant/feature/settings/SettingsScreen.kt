@@ -108,6 +108,8 @@ fun SettingsScreen(
     onNavigateToOnboarding: () -> Unit = {},
     onNavigateToDataSources: () -> Unit = {},
     onNavigateToDataAudit: () -> Unit = {},
+    onNavigateToDevices: () -> Unit = {},
+    onNavigateToBuddies: () -> Unit = {},
     webClientId: String = "",
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
@@ -391,6 +393,26 @@ fun SettingsScreen(
                             Icon(TablerIcons.InfoCircle, contentDescription = null)
                         },
                         modifier = Modifier.clickable { onNavigateToDataAudit() },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Synced Devices
+                    ListItem(
+                        headlineContent = { Text("Synced devices") },
+                        supportingContent = { Text("Manage devices connected to your account") },
+                        leadingContent = {
+                            Icon(TablerIcons.Settings, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { onNavigateToDevices() },
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                    // Habit Buddies
+                    ListItem(
+                        headlineContent = { Text("Habit buddies") },
+                        supportingContent = { Text("Invite friends and share streak progress") },
+                        leadingContent = {
+                            Icon(TablerIcons.User, contentDescription = null)
+                        },
+                        modifier = Modifier.clickable { onNavigateToBuddies() },
                     )
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                     // Export

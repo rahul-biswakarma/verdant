@@ -31,6 +31,8 @@ dependencies {
     implementation(project(":core:database"))
     implementation(project(":core:model"))
     implementation(project(":core:common"))
+    implementation(project(":core:sync"))
+    implementation(project(":core:social"))
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

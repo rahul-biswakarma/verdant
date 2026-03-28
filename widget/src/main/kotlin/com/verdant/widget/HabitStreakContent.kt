@@ -18,6 +18,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.size
 import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -121,7 +122,7 @@ internal fun HabitStreakContent() {
                             .size(10.dp)
                             .background(if (filled) habitColor else Color(0xFF2D3339))
                             .cornerRadius(5.dp),
-                    )
+                    ) {}
                     if (i < 6) Spacer(GlanceModifier.width(3.dp))
                 }
             }

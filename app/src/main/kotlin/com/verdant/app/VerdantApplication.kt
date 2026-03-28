@@ -25,6 +25,8 @@ import com.verdant.work.worker.SpendingAlertWorker
 import com.verdant.work.worker.StreakAlertWorker
 import com.verdant.work.worker.WeatherSyncWorker
 import com.verdant.work.worker.WeeklySummaryWorker
+import com.verdant.work.worker.CrossDeviceSyncWorker
+import com.verdant.work.worker.PendingAIRetryWorker
 import com.verdant.work.worker.XPComputeWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.time.DayOfWeek
@@ -66,6 +68,8 @@ class VerdantApplication : Application(), Configuration.Provider {
         scheduleRecurringTransactionDetector()
         schedulePatternMining()
         scheduleBudgetAlerts()
+        scheduleCrossDeviceSync()
+        schedulePendingAIRetry()
     }
 
 
@@ -107,7 +111,7 @@ class VerdantApplication : Application(), Configuration.Provider {
             .build()
 
         val request = PeriodicWorkRequestBuilder<StreakAlertWorker>(
-            repeatInterval = 2,
+            repeatInterval = 3,
             repeatIntervalTimeUnit = TimeUnit.HOURS,
         )
             .setConstraints(constraints)
@@ -156,9 +160,12 @@ class VerdantApplication : Application(), Configuration.Provider {
      */
     private fun scheduleSmsProcessing() {
         val request = PeriodicWorkRequestBuilder<SmsProcessingWorker>(
-            repeatInterval = 2,
+            repeatInterval = 4,
             repeatIntervalTimeUnit = TimeUnit.HOURS,
         )
+            .setConstraints(
+                Constraints.Builder().setRequiresBatteryNotLow(true).build()
+            )
             .setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.MINUTES)
             .build()
 
@@ -231,6 +238,8 @@ class VerdantApplication : Application(), Configuration.Provider {
     private fun scheduleEmotionalEngine() {
         val request = PeriodicWorkRequestBuilder<EmotionalEngineWorker>(
             repeatInterval = 6, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiresBatteryNotLow(true).build()
         ).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             EmotionalEngineWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
@@ -241,6 +250,8 @@ class VerdantApplication : Application(), Configuration.Provider {
     private fun scheduleLifeScoreCompute() {
         val request = PeriodicWorkRequestBuilder<LifeScoreComputeWorker>(
             repeatInterval = 12, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiresBatteryNotLow(true).build()
         ).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             LifeScoreComputeWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
@@ -259,10 +270,12 @@ class VerdantApplication : Application(), Configuration.Provider {
         )
     }
 
-    /** XP computation every 6 hours. */
+    /** XP computation every 12 hours. */
     private fun scheduleXPCompute() {
         val request = PeriodicWorkRequestBuilder<XPComputeWorker>(
-            repeatInterval = 6, repeatIntervalTimeUnit = TimeUnit.HOURS,
+            repeatInterval = 12, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiresBatteryNotLow(true).build()
         ).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             XPComputeWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
@@ -284,6 +297,8 @@ class VerdantApplication : Application(), Configuration.Provider {
     private fun scheduleRecurringTransactionDetector() {
         val request = PeriodicWorkRequestBuilder<RecurringTransactionDetectorWorker>(
             repeatInterval = 24, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiresBatteryNotLow(true).build()
         ).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             RecurringTransactionDetectorWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
@@ -306,9 +321,40 @@ class VerdantApplication : Application(), Configuration.Provider {
     private fun scheduleBudgetAlerts() {
         val request = PeriodicWorkRequestBuilder<BudgetAlertWorker>(
             repeatInterval = 6, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiresBatteryNotLow(true).build()
         ).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             BudgetAlertWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
+        )
+    }
+
+    /** Cross-device signal sync every 3 hours (requires network + battery). */
+    private fun scheduleCrossDeviceSync() {
+        val request = PeriodicWorkRequestBuilder<CrossDeviceSyncWorker>(
+            repeatInterval = 3, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .setRequiresBatteryNotLow(true)
+                .build()
+        ).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            CrossDeviceSyncWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
+        )
+    }
+
+    /** Retry pending AI requests every 4 hours (requires network). */
+    private fun schedulePendingAIRetry() {
+        val request = PeriodicWorkRequestBuilder<PendingAIRetryWorker>(
+            repeatInterval = 4, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        ).setConstraints(
+            Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()
+        ).setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            PendingAIRetryWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
         )
     }
 

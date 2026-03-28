@@ -25,4 +25,6 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.core.ktx)
+
+    testImplementation("junit:junit:4.13.2")
 }

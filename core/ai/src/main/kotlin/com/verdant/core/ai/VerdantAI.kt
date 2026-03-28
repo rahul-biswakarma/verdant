@@ -84,15 +84,6 @@ interface VerdantAI {
     suspend fun parseHabitDescription(text: String): ParsedHabit
 
     /**
-     * Parses a natural-language activity log (e.g. "Practiced guitar 20 min, took
-     * supplements, skipped cycling because I was tired") against the user's current
-     * [habits] and returns one [BrainDumpResult] per recognised habit.
-     *
-     * Always on-device — never requires internet.
-     */
-    suspend fun parseBrainDump(text: String, habits: List<Habit>): List<BrainDumpResult>
-
-    /**
      * Generates a short motivational message (1–2 sentences) based on the user's
      * current habit context.
      *

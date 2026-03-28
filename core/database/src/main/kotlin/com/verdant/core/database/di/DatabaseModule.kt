@@ -23,6 +23,7 @@ import com.verdant.core.database.dao.PredictionDao
 import com.verdant.core.database.dao.QuestDao
 import com.verdant.core.database.dao.RecurringTransactionDao
 import com.verdant.core.database.dao.StreakCacheDao
+import com.verdant.core.database.dao.TransactionDao
 import com.verdant.core.database.dao.WeatherDao
 import dagger.Module
 import dagger.Provides
@@ -46,7 +47,8 @@ object DatabaseModule {
     ).addMigrations(
         VerdantDatabase.MIGRATION_1_2,
         VerdantDatabase.MIGRATION_2_3,
-    ).build()
+    ).fallbackToDestructiveMigrationOnDowngrade()
+    .build()
 
     @Provides fun provideHabitDao(db: VerdantDatabase): HabitDao = db.habitDao()
     @Provides fun provideHabitEntryDao(db: VerdantDatabase): HabitEntryDao = db.habitEntryDao()
@@ -69,4 +71,5 @@ object DatabaseModule {
     @Provides fun provideStreakCacheDao(db: VerdantDatabase): StreakCacheDao = db.streakCacheDao()
     @Provides fun provideHabitTargetHistoryDao(db: VerdantDatabase): HabitTargetHistoryDao = db.habitTargetHistoryDao()
     @Provides fun providePendingAIRequestDao(db: VerdantDatabase): PendingAIRequestDao = db.pendingAIRequestDao()
+    @Provides fun provideTransactionDao(db: VerdantDatabase): TransactionDao = db.transactionDao()
 }

@@ -109,6 +109,9 @@ internal fun HabitPreviewCard(
                         TrackingType.DURATION -> "${draft.targetValue?.fmt() ?: "?"} min"
                         TrackingType.FINANCIAL -> "Budget"
                         TrackingType.LOCATION -> "Location"
+                        TrackingType.EMOTIONAL -> "Mood"
+                        TrackingType.EVENT_DRIVEN -> "Event"
+                        TrackingType.CHECKPOINT -> "Steps"
                     },
                     color = habitColor,
                 )

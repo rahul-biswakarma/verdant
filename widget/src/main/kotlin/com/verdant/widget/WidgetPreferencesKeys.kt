@@ -42,6 +42,21 @@ internal object WidgetPreferencesKeys {
     val WEEK_DONE      = intPreferencesKey("week_done")
     val WEEK_TOTAL     = intPreferencesKey("week_total")
 
+    // ── HabitGridWidget (extra stats) ──────────────────────────────────────────
+    val TOTAL_COMPLETIONS    = intPreferencesKey("total_completions")
+    val BEST_EVER_STREAK_SINGLE = intPreferencesKey("best_ever_streak_single")
+
+    // ── ProgressWidget ─────────────────────────────────────────────────────────
+    val PROGRESS_VALUE       = floatPreferencesKey("progress_value")
+    val PROGRESS_TARGET      = floatPreferencesKey("progress_target")
+    val PROGRESS_UNIT        = stringPreferencesKey("progress_unit")
+
+    // ── StreakWidget (per-habit measurable) ─────────────────────────────────────
+    val WEEK_DAYS_JSON       = stringPreferencesKey("week_days_json")
+    val UNIT_LABEL           = stringPreferencesKey("unit_label")
+    val CURRENT_VALUE        = floatPreferencesKey("current_value")
+    val TARGET_VALUE         = floatPreferencesKey("target_value")
+
     // ── MiniHeatmapWidget (extra stats) ──────────────────────────────────────
     val BEST_STREAK          = intPreferencesKey("best_streak")
     val COMPLETION_RATE      = floatPreferencesKey("completion_rate")

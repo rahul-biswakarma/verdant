@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.verdant.core.ai.NudgeContext
 import com.verdant.core.ai.VerdantAI
+import com.verdant.core.context.AdaptiveNotificationManager
 import com.verdant.core.database.dao.HabitDao
 import com.verdant.core.database.entity.toDomain
 import com.verdant.core.database.repository.HabitEntryRepository
@@ -40,6 +41,7 @@ class StreakAlertWorker @AssistedInject constructor(
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
     private val prefs: UserPreferencesDataStore,
+    private val adaptiveNotifications: AdaptiveNotificationManager,
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
@@ -79,11 +81,15 @@ class StreakAlertWorker @AssistedInject constructor(
             .take(maxNudges)
 
         for (habit in atRiskHabits) {
+            // Consult adaptive notification manager before sending
+            val decision = adaptiveNotifications.shouldSendNotification(habit)
+            if (!decision.shouldSend && decision.delayMinutes <= 0) continue
+
             val streak   = streakMap[habit.id] ?: 0
             val nudgeCtx = NudgeContext(
                 habit               = habit,
                 currentStreak       = streak,
-                usualCompletionTime = null, // Could be persisted in DataStore per-habit in future
+                usualCompletionTime = null,
                 currentTime         = timeStr,
             )
             val nudgeText = runCatching { verdantAI.generateNudge(nudgeCtx) }

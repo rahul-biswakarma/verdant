@@ -10,12 +10,16 @@ import com.verdant.core.database.repository.HabitEntryRepository
 import com.verdant.core.database.repository.HabitRepository
 import com.verdant.core.database.usecase.CalculateStreakUseCase
 import com.verdant.core.database.usecase.LogEntryUseCase
+import com.verdant.core.database.usecase.StreakCacheManager
 import androidx.compose.ui.graphics.Color
+import com.verdant.core.designsystem.component.CelebrationData
 import com.verdant.core.designsystem.component.OrbitalHabitData
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.isScheduledForDate
+import com.verdant.core.voice.VoiceCommandParser
+import com.verdant.core.voice.VoiceRecognitionManager
 import java.time.temporal.ChronoUnit
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -71,7 +75,10 @@ class HomeViewModel @Inject constructor(
     private val entryRepository: HabitEntryRepository,
     private val logEntryUseCase: LogEntryUseCase,
     private val calculateStreakUseCase: CalculateStreakUseCase,
+    private val streakCacheManager: StreakCacheManager,
     private val verdantAI: VerdantAI,
+    val voiceRecognition: VoiceRecognitionManager,
+    private val voiceCommandParser: VoiceCommandParser,
 ) : ViewModel() {
 
     private val today = LocalDate.now()
@@ -85,6 +92,9 @@ class HomeViewModel @Inject constructor(
 
     private val _brainDump = MutableStateFlow(BrainDumpUiState())
     val brainDumpState: StateFlow<BrainDumpUiState> = _brainDump
+
+    private val _celebration = MutableStateFlow<CelebrationData?>(null)
+    val celebration: StateFlow<CelebrationData?> = _celebration
 
     val uiState: StateFlow<HomeUiState> = com.verdant.core.common.combine(
         habitRepository.observeActiveHabits(),
@@ -152,7 +162,7 @@ class HomeViewModel @Inject constructor(
             val habits = habitRepository.observeActiveHabits()
             habits.collect { list ->
                 val todayHabits = list.filter { it.isScheduledForDate(today) }
-                val newStreaks = calculateStreakUseCase.currentStreaks(todayHabits.map { it.id })
+                val newStreaks = streakCacheManager.getCurrentStreaks(todayHabits.map { it.id })
                 _streaks.value = newStreaks
             }
         }
@@ -188,6 +198,8 @@ class HomeViewModel @Inject constructor(
         val newCompleted = item.entry?.completed?.not() ?: true
         viewModelScope.launch {
             logEntryUseCase.logBinary(item.habit.id, today, newCompleted)
+            streakCacheManager.invalidate(item.habit.id)
+            if (newCompleted) checkMilestone(item.habit)
         }
     }
 
@@ -300,11 +312,14 @@ class HomeViewModel @Inject constructor(
                 val item = itemMap[entry.habitName] ?: return@forEach
                 when (entry.action) {
                     BrainDumpAction.SKIPPED -> logEntryUseCase.skip(item.habit.id, today)
-                    BrainDumpAction.LOGGED -> when {
-                        entry.value != null -> logEntryUseCase.addQuantitative(
-                            item.habit.id, today, entry.value, item.habit.targetValue,
-                        )
-                        else -> logEntryUseCase.logBinary(item.habit.id, today, true)
+                    BrainDumpAction.LOGGED -> {
+                        val entryValue = entry.value
+                        when {
+                            entryValue != null -> logEntryUseCase.addQuantitative(
+                                item.habit.id, today, entryValue, item.habit.targetValue,
+                            )
+                            else -> logEntryUseCase.logBinary(item.habit.id, today, true)
+                        }
                     }
                 }
             }
@@ -316,11 +331,77 @@ class HomeViewModel @Inject constructor(
         _brainDump.update { it.copy(result = null, error = null) }
     }
 
+    fun dismissCelebration() {
+        _celebration.value = null
+    }
+
+    // ── Voice Input ──────────────────────────────────────────────────────────
+
+    fun startVoiceInput() {
+        voiceRecognition.startListening()
+    }
+
+    fun stopVoiceInput() {
+        voiceRecognition.stopListening()
+    }
+
+    fun processVoiceResult(text: String) {
+        val commands = voiceCommandParser.parse(text)
+        val items = uiState.value.todayItems
+        viewModelScope.launch {
+            for (cmd in commands) {
+                // Fuzzy match habit name
+                val item = items.minByOrNull {
+                    levenshtein(it.habit.name.lowercase(), cmd.habitName.lowercase())
+                }?.takeIf {
+                    levenshtein(it.habit.name.lowercase(), cmd.habitName.lowercase()) <= it.habit.name.length / 2
+                } ?: continue
+
+                val cmdValue = cmd.value
+                when {
+                    cmdValue != null -> logEntryUseCase.addQuantitative(
+                        item.habit.id, today, cmdValue, item.habit.targetValue,
+                    )
+                    else -> logEntryUseCase.logBinary(item.habit.id, today, true)
+                }
+            }
+            voiceRecognition.resetState()
+        }
+    }
+
+    private fun levenshtein(a: String, b: String): Int {
+        val dp = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 0..a.length) dp[i][0] = i
+        for (j in 0..b.length) dp[0][j] = j
+        for (i in 1..a.length) {
+            for (j in 1..b.length) {
+                dp[i][j] = minOf(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + if (a[i - 1] == b[j - 1]) 0 else 1,
+                )
+            }
+        }
+        return dp[a.length][b.length]
+    }
+
+    private suspend fun checkMilestone(habit: Habit) {
+        val streak = streakCacheManager.getCurrentStreak(habit.id)
+        val milestone = MILESTONES.firstOrNull { streak == it }
+        if (milestone != null) {
+            val message = runCatching { verdantAI.generateMilestoneMessage(habit, milestone) }
+                .getOrDefault("You've kept up ${habit.name} for $milestone days!")
+            _celebration.value = CelebrationData(habit.name, milestone, message)
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         timerJobs.values.forEach { it.cancel() }
     }
 }
+
+private val MILESTONES = listOf(365, 100, 30, 14, 7, 3)
 
 private fun greeting(): String {
     val hour = LocalTime.now().hour

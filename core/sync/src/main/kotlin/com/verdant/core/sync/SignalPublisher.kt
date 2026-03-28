@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,6 +17,7 @@ class SignalPublisher @Inject constructor(
     @ApplicationContext private val context: Context,
     private val syncManager: DeviceSyncManager,
 ) {
+    @get:JvmName("_deviceId")
     private val deviceId: String by lazy {
         Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
     }
@@ -42,11 +44,15 @@ class SignalPublisher @Inject constructor(
     }
 
     suspend fun publishHabitCompletion(habitName: String) {
-        syncManager.publishSignal(deviceId, ROLE_PHONE, "habit_completed", 1.0, habitName)
+        // Anonymize habit name before sending to Firebase — only a short hash is published
+        val anonymized = "habit_${habitName.sha256Short()}"
+        syncManager.publishSignal(deviceId, ROLE_PHONE, "habit_completed", 1.0, anonymized)
     }
 
     suspend fun publishTransaction(amount: Double, category: String) {
-        syncManager.publishSignal(deviceId, ROLE_PHONE, "transaction", amount, category)
+        // Anonymize transaction category before sending to Firebase
+        val anonymized = "cat_${category.sha256Short()}"
+        syncManager.publishSignal(deviceId, ROLE_PHONE, "transaction", amount, anonymized)
     }
 
     suspend fun publishActiveMinutes(minutes: Int) {
@@ -61,4 +67,10 @@ class SignalPublisher @Inject constructor(
         const val ROLE_WATCH = "watch"
         const val ROLE_TABLET = "tablet"
     }
+}
+
+/** Returns the first 8 hex characters of the SHA-256 hash of this string. */
+private fun String.sha256Short(): String {
+    val digest = MessageDigest.getInstance("SHA-256").digest(lowercase().toByteArray())
+    return digest.take(4).joinToString("") { "%02x".format(it) }
 }
