@@ -12,3 +12,4 @@
 !debug.keystore
 *.hprof
 google-services.json
+.claude
