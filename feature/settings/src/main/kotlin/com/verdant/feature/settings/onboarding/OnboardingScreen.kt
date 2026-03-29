@@ -48,10 +48,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.designsystem.theme.BurntOrange
 import com.verdant.core.designsystem.theme.DarkPeach
-import com.verdant.core.designsystem.theme.DarkSage
+import com.verdant.core.designsystem.theme.DarkCharcoal
 import com.verdant.core.designsystem.theme.DarkSurfaceVariant
 import com.verdant.core.designsystem.theme.DeepCharcoal
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import kotlin.math.absoluteValue
 private data class OnboardingPageData(
     val emoji: String,
@@ -71,8 +71,8 @@ private val pages = listOf(
     ),
     OnboardingPageData(
         emoji = "✨",
-        circleColorLight = MutedSage,
-        circleColorDark = DarkSage,
+        circleColorLight = WarmCharcoal,
+        circleColorDark = DarkCharcoal,
         headline = "Simple habit\ntracking",
         description = "Log any habit in seconds. From daily check-ins to detailed measurements.",
     ),

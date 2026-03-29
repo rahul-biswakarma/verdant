@@ -53,8 +53,8 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.sin
 
-private val ColorCool = Color(0xFF1E88E5)  // deep blue — empty vessel
-private val ColorWarm = Color(0xFFFFB300)  // amber/gold — full vessel
+private val ColorCool = Color(0xFF2E2D2B)  // warm charcoal — empty vessel
+private val ColorWarm = Color(0xFFE8673C)  // burnt orange — full vessel
 
 /**
  * Liquid-physics progress vessel for QUANTITATIVE habits.

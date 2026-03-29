@@ -39,7 +39,7 @@ internal fun ProgressContent() {
 
     val habitName    = prefs[WidgetPreferencesKeys.HABIT_NAME]      ?: "Habit"
     val habitIcon    = prefs[WidgetPreferencesKeys.HABIT_ICON]      ?: "🌱"
-    val habitColorL  = prefs[WidgetPreferencesKeys.HABIT_COLOR]     ?: 0xFF5A7A60L
+    val habitColorL  = prefs[WidgetPreferencesKeys.HABIT_COLOR]     ?: 0xFF2E2D2BL
     val trackingType = prefs[WidgetPreferencesKeys.TRACKING_TYPE]   ?: "BINARY"
     val streak       = prefs[WidgetPreferencesKeys.STREAK]          ?: 0
     val value        = prefs[WidgetPreferencesKeys.PROGRESS_VALUE]  ?: 0f

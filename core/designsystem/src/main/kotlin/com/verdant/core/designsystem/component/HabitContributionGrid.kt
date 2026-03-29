@@ -19,7 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.theme.GridEmptyDark
 import com.verdant.core.designsystem.theme.GridEmptyLight
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.designsystem.theme.gridCellColor
 import com.verdant.core.model.DayCell
@@ -116,7 +116,7 @@ private fun resolveCellColor(
     isDark: Boolean,
 ): Color = when {
     intensity <= 0f -> emptyColor
-    habitColor == MutedSage -> gridCellColor(intensity, isDark)
+    habitColor == WarmCharcoal -> gridCellColor(intensity, isDark)
     else -> lerp(emptyColor, habitColor, intensity.coerceIn(0f, 1f))
 }
 private fun previewCells(weeks: Int): List<DayCell> {
@@ -140,7 +140,7 @@ private fun HabitContributionGridLightPreview() {
     VerdantTheme {
         HabitContributionGrid(
             cells = previewCells(16),
-            habitColor = MutedSage,
+            habitColor = WarmCharcoal,
             weeks = 16,
             onCellClick = {},
             modifier = Modifier.padding(12.dp),
@@ -158,7 +158,7 @@ private fun HabitContributionGridDarkPreview() {
     VerdantTheme(dynamicColor = false) {
         HabitContributionGrid(
             cells = previewCells(16),
-            habitColor = MutedSage,
+            habitColor = WarmCharcoal,
             weeks = 16,
             onCellClick = {},
             modifier = Modifier.padding(12.dp),

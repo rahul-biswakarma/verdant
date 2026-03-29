@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.component.CompletionRing
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.feature.analytics.OverviewState
 import kotlin.math.roundToInt
 
@@ -55,7 +55,7 @@ fun OverviewTab(
                         else state.completedToday.toFloat() / state.scheduledToday
                     CompletionRing(
                         progress    = todayProgress,
-                        color       = MutedSage,
+                        color       = WarmCharcoal,
                         size        = 96.dp,
                         strokeWidth = 8.dp,
                     )
@@ -135,7 +135,7 @@ fun OverviewTab(
                                     text  = "$streak",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MutedSage,
+                                    color = WarmCharcoal,
                                 )
                                 Text(
                                     text  = "days",
@@ -205,9 +205,9 @@ private fun StatItem(label: String, value: String) {
 @Composable
 private fun MiniBar(rate: Float, label: String, modifier: Modifier = Modifier) {
     val barColor = when {
-        rate >= 0.8f -> MutedSage
-        rate >= 0.5f -> MutedSage.copy(alpha = 0.7f)
-        rate > 0f    -> MutedSage.copy(alpha = 0.4f)
+        rate >= 0.8f -> WarmCharcoal
+        rate >= 0.5f -> WarmCharcoal.copy(alpha = 0.7f)
+        rate > 0f    -> WarmCharcoal.copy(alpha = 0.4f)
         else         -> Color.Transparent
     }
     Column(

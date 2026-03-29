@@ -459,7 +459,7 @@ private fun HabitCardShell(
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(habitColor.copy(alpha = 0.15f)),
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(habitColor.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) { Text(icon.ifEmpty { "🌱" }, style = MaterialTheme.typography.titleLarge) }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

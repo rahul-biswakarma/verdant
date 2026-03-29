@@ -54,6 +54,9 @@ googleid = "1.1.1"
 supabase = "3.1.1"
 ktor = "3.1.1"
 
+# Image Loading
+coil = "2.7.0"
+
 # Firebase
 firebaseBom = "33.7.0"
 googleServices = "4.4.4"
@@ -128,6 +131,9 @@ supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgre
 supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt" }
 supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt" }
 ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
+
+# Image Loading
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }

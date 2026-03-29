@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 import kotlin.math.sin
 
@@ -156,10 +156,10 @@ private fun PhysicsJarLightPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            PhysicsJar(progress = 0f, color = MutedSage, animate = false)
-            PhysicsJar(progress = 0.4f, color = MutedSage, animate = false)
-            PhysicsJar(progress = 0.75f, color = MutedSage, animate = false)
-            PhysicsJar(progress = 1f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0f, color = WarmCharcoal, animate = false)
+            PhysicsJar(progress = 0.4f, color = WarmCharcoal, animate = false)
+            PhysicsJar(progress = 0.75f, color = WarmCharcoal, animate = false)
+            PhysicsJar(progress = 1f, color = WarmCharcoal, animate = false)
         }
     }
 }
@@ -176,8 +176,8 @@ private fun PhysicsJarDarkPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            PhysicsJar(progress = 0.3f, color = MutedSage, animate = false)
-            PhysicsJar(progress = 0.65f, color = MutedSage, animate = false)
+            PhysicsJar(progress = 0.3f, color = WarmCharcoal, animate = false)
+            PhysicsJar(progress = 0.65f, color = WarmCharcoal, animate = false)
         }
     }
 }

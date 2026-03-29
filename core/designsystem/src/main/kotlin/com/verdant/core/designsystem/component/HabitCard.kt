@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import compose.icons.TablerIcons
 import compose.icons.tablericons.Check
@@ -33,7 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
@@ -98,7 +97,7 @@ fun HabitCard(
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(habitColor.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -193,7 +192,7 @@ private fun frequencyLabel(habit: Habit): String = when (habit.frequency) {
 
 private val previewHabitBinary = Habit(
     id = "1", name = "Morning Run", description = "5 km jog", icon = "🏃",
-    color = MutedSage.value.toLong(), label = "Health",
+    color = WarmCharcoal.value.toLong(), label = "Health",
     trackingType = TrackingType.BINARY,
     visualizationType = com.verdant.core.model.VisualizationType.PIXEL_GRID,
     unit = null, targetValue = null, checkpointSteps = emptyList(),

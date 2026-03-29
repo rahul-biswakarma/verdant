@@ -14,7 +14,7 @@ data class HabitDraft(
     val name: String = "",
     val description: String = "",
     val icon: String = "🌱",
-    val color: Long = 0xFF5A7A60L,
+    val color: Long = 0xFF2E2D2BL,
     val label: String = "",
     val trackingType: TrackingType = TrackingType.BINARY,
     val visualizationType: VisualizationType = VisualizationType.PIXEL_GRID,
@@ -73,7 +73,7 @@ fun ParsedHabit.toDraft() = HabitDraft(
 )
 
 val COLOR_PRESETS: List<Long> = listOf(
-    0xFF5A7A60L, // Muted Sage
+    0xFF2E2D2BL, // Warm Charcoal
     0xFF6B8E8AL, // Warm Teal
     0xFF8B7355L, // Warm Bronze
     0xFF7B6B6BL, // Dusty Mauve

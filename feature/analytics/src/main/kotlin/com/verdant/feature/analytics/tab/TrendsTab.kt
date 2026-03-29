@@ -27,7 +27,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.feature.analytics.TrendSeries
 import com.verdant.feature.analytics.TrendsState
 import kotlin.math.roundToInt
@@ -121,7 +121,7 @@ private fun CompletionLineChart(
     weekLabels: List<String>,
     modifier: Modifier = Modifier,
 ) {
-    val lineColor  = if (series.color != 0L) Color(series.color) else MutedSage
+    val lineColor  = if (series.color != 0L) Color(series.color) else WarmCharcoal
     val gridColor  = MaterialTheme.colorScheme.outlineVariant
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
 

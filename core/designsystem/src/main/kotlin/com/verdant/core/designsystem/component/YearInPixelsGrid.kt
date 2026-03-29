@@ -49,8 +49,8 @@ import java.util.Locale
 val MoodColor1 = Color(0xFF6B1B3A)   // 1 = terrible  (deep crimson-purple)
 val MoodColor2 = Color(0xFFD4603A)   // 2 = bad        (burnt orange)
 val MoodColor3 = Color(0xFFD4A838)   // 3 = neutral    (warm amber)
-val MoodColor4 = Color(0xFF8FB996)   // 4 = good       (sage green)
-val MoodColor5 = Color(0xFF3A7D44)   // 5 = great      (rich green)
+val MoodColor4 = Color(0xFF9E9A95)   // 4 = good       (warm stone)
+val MoodColor5 = Color(0xFF2E2D2B)   // 5 = great      (warm charcoal)
 
 fun moodScoreToColor(score: Int): Color = when (score) {
     1 -> MoodColor1

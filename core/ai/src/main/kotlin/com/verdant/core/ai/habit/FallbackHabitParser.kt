@@ -95,7 +95,7 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
         name = description.split(" ").take(4).joinToString(" ")
             .replaceFirstChar { it.uppercase() }.take(40),
         icon = "🌱",
-        color = 0xFF5A7A60L,
+        color = 0xFF2E2D2BL,
         label = "Lifestyle",
         trackingType = TrackingType.BINARY,
         unit = null,
@@ -113,7 +113,7 @@ class FallbackHabitParser @Inject constructor() : HabitParser {
 
         val RULES = listOf(            Rule(
                 keywords = listOf("vitamin", "supplement", "pill"),
-                name = "Take vitamins", icon = "💊", color = 0xFF5A7A60L,
+                name = "Take vitamins", icon = "💊", color = 0xFF2E2D2BL,
                 label = "Health", trackingType = TrackingType.BINARY,
                 unit = null, targetValue = null, reminderTime = "08:00",
             ),

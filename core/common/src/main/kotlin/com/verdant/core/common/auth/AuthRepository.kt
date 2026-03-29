@@ -95,4 +95,31 @@ class AuthRepository @Inject constructor(
     suspend fun signOut() {
         supabase.auth.signOut()
     }
+
+    /**
+     * Updates the current user's profile metadata (display name, avatar URL) in Supabase Auth.
+     */
+    suspend fun updateProfile(
+        displayName: String? = null,
+        avatarUrl: String? = null,
+    ): Result<AuthUser> = runCatching {
+        supabase.auth.updateUser {
+            data {
+                displayName?.let { put("full_name", kotlinx.serialization.json.JsonPrimitive(it)) }
+                avatarUrl?.let { put("avatar_url", kotlinx.serialization.json.JsonPrimitive(it)) }
+            }
+        }
+
+        val user = supabase.auth.currentUserOrNull()
+            ?: throw IllegalStateException("User is null after profile update")
+
+        AuthUser(
+            uid = user.id,
+            displayName = user.userMetadata?.get("full_name")?.toString()
+                ?.removeSurrounding("\""),
+            email = user.email,
+            photoUrl = user.userMetadata?.get("avatar_url")?.toString()
+                ?.removeSurrounding("\""),
+        )
+    }
 }

@@ -474,7 +474,7 @@ private val typeOptions = listOf(
         TrackingType.BINARY, "✅", "Binary",
         "Yes or no — every day counts",
         "Take vitamins · Sleep on time · No sugar",
-        0xFF5A7A60L,
+        0xFF2E2D2BL,
     ),
     TypeOption(
         TrackingType.CHECKPOINT, "🗺️", "Checkpoint",

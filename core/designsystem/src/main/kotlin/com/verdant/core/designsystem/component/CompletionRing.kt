@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 
 /**
@@ -67,9 +67,9 @@ private fun CompletionRingLightPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            CompletionRing(progress = 0f, color = MutedSage)
-            CompletionRing(progress = 0.4f, color = MutedSage)
-            CompletionRing(progress = 1f, color = MutedSage)
+            CompletionRing(progress = 0f, color = WarmCharcoal)
+            CompletionRing(progress = 0.4f, color = WarmCharcoal)
+            CompletionRing(progress = 1f, color = WarmCharcoal)
         }
     }
 }
@@ -86,9 +86,9 @@ private fun CompletionRingDarkPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            CompletionRing(progress = 0f, color = MutedSage)
-            CompletionRing(progress = 0.65f, color = MutedSage)
-            CompletionRing(progress = 1f, color = MutedSage)
+            CompletionRing(progress = 0f, color = WarmCharcoal)
+            CompletionRing(progress = 0.65f, color = WarmCharcoal)
+            CompletionRing(progress = 1f, color = WarmCharcoal)
         }
     }
 }

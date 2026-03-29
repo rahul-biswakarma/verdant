@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.theme.GridEmptyDark
 import com.verdant.core.designsystem.theme.GridEmptyLight
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 import com.verdant.core.designsystem.theme.gridCellColor
 
@@ -54,7 +54,7 @@ fun IntensityLegend(
         )
 
         LegendLevels.forEach { intensity ->
-            val cellColor = if (color == MutedSage) {
+            val cellColor = if (color == WarmCharcoal) {
                 gridCellColor(intensity, isDark)
             } else {
                 if (intensity <= 0f) emptyColor else lerp(emptyColor, color, intensity)
@@ -62,7 +62,7 @@ fun IntensityLegend(
             Box(
                 modifier = Modifier
                     .size(14.dp)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(4.dp))
                     .background(cellColor),
             )
         }
@@ -78,7 +78,7 @@ fun IntensityLegend(
 @Composable
 private fun IntensityLegendSageLightPreview() {
     VerdantTheme {
-        IntensityLegend(color = MutedSage, modifier = Modifier.padding(12.dp))
+        IntensityLegend(color = WarmCharcoal, modifier = Modifier.padding(12.dp))
     }
 }
 
@@ -90,7 +90,7 @@ private fun IntensityLegendSageLightPreview() {
 @Composable
 private fun IntensityLegendSageDarkPreview() {
     VerdantTheme {
-        IntensityLegend(color = MutedSage, modifier = Modifier.padding(12.dp))
+        IntensityLegend(color = WarmCharcoal, modifier = Modifier.padding(12.dp))
     }
 }
 

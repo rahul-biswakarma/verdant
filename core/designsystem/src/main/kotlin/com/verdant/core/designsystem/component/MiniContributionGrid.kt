@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.verdant.core.designsystem.theme.GridEmptyDark
 import com.verdant.core.designsystem.theme.GridEmptyLight
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.gridCellColor
 import com.verdant.core.model.DayCell
 import java.time.LocalDate
@@ -55,7 +55,7 @@ fun MiniContributionGrid(
                 weekCells.forEach { cell ->
                     val cellColor = when {
                         cell.intensity <= 0f -> emptyColor
-                        habitColor == MutedSage -> gridCellColor(cell.intensity, isDark)
+                        habitColor == WarmCharcoal -> gridCellColor(cell.intensity, isDark)
                         else -> lerp(emptyColor, habitColor, cell.intensity.coerceIn(0f, 1f))
                     }
                     HabitGridCell(

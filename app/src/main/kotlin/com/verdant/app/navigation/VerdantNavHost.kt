@@ -67,6 +67,11 @@ fun VerdantNavHost(
                 onNavigateToHabitDetail = { id ->
                     navController.navigate("habits/detail/$id")
                 },
+                onSignedOut = {
+                    navController.navigate(ONBOARDING_ROUTE) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
 

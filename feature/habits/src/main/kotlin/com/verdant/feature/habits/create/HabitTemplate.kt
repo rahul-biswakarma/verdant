@@ -46,7 +46,7 @@ val habitTemplates: Map<TemplateCategory, List<HabitTemplate>> = mapOf(
             category = TemplateCategory.HEALTH,
         ),
         HabitTemplate(
-            name = "Take vitamins", icon = "💊", color = 0xFF5A7A60L,
+            name = "Take vitamins", icon = "💊", color = 0xFF2E2D2BL,
             label = "Health", trackingType = TrackingType.BINARY,
             visualizationType = VisualizationType.PIXEL_GRID,
             unit = null, targetValue = null, checkpointSteps = emptyList(),

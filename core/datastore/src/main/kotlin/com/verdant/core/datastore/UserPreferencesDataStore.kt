@@ -22,7 +22,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  *
  * Appearance:
  *  - [themeMode]               — "LIGHT" | "DARK" | "SYSTEM" (default "SYSTEM")
- *  - [accentColor]             — ARGB Long (default Muted Sage 0xFF5A7A60)
+ *  - [accentColor]             — ARGB Long (default Warm Charcoal 0xFF2E2D2B)
  *  - [firstDayOfWeek]          — "MONDAY" | "SUNDAY" (default "MONDAY")
  *  - [useDynamicColor]         — Material You dynamic color (default true)
  *
@@ -125,9 +125,9 @@ class UserPreferencesDataStore @Inject constructor(
         context.dataStore.edit { it[Keys.THEME_MODE] = mode }
     }
 
-    /** ARGB color as Long. Default: Muted Sage 0xFF5A7A60. */
+    /** ARGB color as Long. Default: Warm Charcoal 0xFF2E2D2B. */
     val accentColor: Flow<Long> = context.dataStore.data.map { prefs ->
-        prefs[Keys.ACCENT_COLOR] ?: 0xFF5A7A60L
+        prefs[Keys.ACCENT_COLOR] ?: 0xFF2E2D2BL
     }
 
     suspend fun setAccentColor(color: Long) {

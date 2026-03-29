@@ -36,7 +36,7 @@ import javax.inject.Inject
 
 data class SettingsUiState(
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val accentColor: Long = 0xFF5A7A60L,
+    val accentColor: Long = 0xFF2E2D2BL,
     val firstDayMonday: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val maxNudgesPerDay: Int = 5,

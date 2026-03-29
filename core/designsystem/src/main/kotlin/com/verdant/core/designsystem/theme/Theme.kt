@@ -16,13 +16,13 @@ import androidx.compose.ui.unit.dp
 enum class ThemeMode { LIGHT, DARK, SYSTEM }
 
 private val LightColorScheme = lightColorScheme(
-    primary = MutedSage,
+    primary = WarmCharcoal,
     onPrimary = WarmWhite,
-    primaryContainer = LightSage,
+    primaryContainer = LightCharcoal,
     onPrimaryContainer = DeepCharcoal,
-    secondary = DustyMauve,
+    secondary = MediumCharcoal,
     onSecondary = WarmWhite,
-    secondaryContainer = LightMauve,
+    secondaryContainer = PaleWarm,
     onSecondaryContainer = DeepCharcoal,
     tertiary = BurntOrange,
     onTertiary = WarmWhite,
@@ -37,17 +37,17 @@ private val LightColorScheme = lightColorScheme(
     surface = WarmWhite,
     onSurface = DeepCharcoal,
     surfaceVariant = WarmGray,
-    onSurfaceVariant = DustyMauve,
+    onSurfaceVariant = MediumCharcoal,
     outline = WarmGray,
     outlineVariant = WarmGray.copy(alpha = 0.5f),
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = LightSageGreen,
+    primary = WarmStone,
     onPrimary = DeepWarmBlack,
-    primaryContainer = DarkSage,
-    onPrimaryContainer = LightSage,
-    secondary = LightMauve,
+    primaryContainer = DarkCharcoal,
+    onPrimaryContainer = LightCharcoal,
+    secondary = LightStone,
     onSecondary = DeepWarmBlack,
     secondaryContainer = DarkMauve,
     onSecondaryContainer = WarmOffWhite,
@@ -70,9 +70,9 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 val VerdantShapes = Shapes(
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(28.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(16.dp),
+    large = RoundedCornerShape(20.dp),
 )
 
 @Composable

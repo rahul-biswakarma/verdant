@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.verdant.core.designsystem.theme.MutedSage
 import com.verdant.core.model.AIInsight
 import com.verdant.core.model.InsightType
 import java.text.DateFormat
@@ -147,7 +146,7 @@ private fun InsightCard(
                 Box(
                     modifier          = Modifier
                         .size(36.dp)
-                        .clip(CircleShape)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(iconColor.copy(alpha = 0.15f)),
                     contentAlignment  = Alignment.Center,
                 ) {
@@ -201,12 +200,12 @@ private data class InsightMeta(
 )
 
 private fun insightMeta(type: InsightType): InsightMeta = when (type) {
-    InsightType.DAILY_MOTIVATION  -> InsightMeta(TablerIcons.Stars,          MutedSage,        "Daily Motivation")
-    InsightType.STREAK_ALERT      -> InsightMeta(TablerIcons.Flame,   Color(0xFFFF6D00),     "Streak Alert")
-    InsightType.PATTERN_RECOGNITION -> InsightMeta(TablerIcons.ChartDots,            Color(0xFF7C4DFF),     "Pattern Detected")
-    InsightType.CORRELATION       -> InsightMeta(TablerIcons.TrendingUp,            Color(0xFF0288D1),     "Correlation")
-    InsightType.WEEKLY_SUMMARY    -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF00897B),     "Weekly Summary")
-    InsightType.MONTHLY_SUMMARY   -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF1565C0),     "Monthly Summary")
-    InsightType.SUGGESTION        -> InsightMeta(TablerIcons.Bulb,             Color(0xFFF9A825),     "Suggestion")
-    else                          -> InsightMeta(TablerIcons.Stars,            Color(0xFF90A4AE),     type.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
+    InsightType.DAILY_MOTIVATION  -> InsightMeta(TablerIcons.Stars,          Color(0xFF2E2D2B),  "Daily Motivation")
+    InsightType.STREAK_ALERT      -> InsightMeta(TablerIcons.Flame,   Color(0xFFE8673C),     "Streak Alert")
+    InsightType.PATTERN_RECOGNITION -> InsightMeta(TablerIcons.ChartDots,            Color(0xFF5C5A57),     "Pattern Detected")
+    InsightType.CORRELATION       -> InsightMeta(TablerIcons.TrendingUp,            Color(0xFF5C5A57),     "Correlation")
+    InsightType.WEEKLY_SUMMARY    -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF2E2D2B),     "Weekly Summary")
+    InsightType.MONTHLY_SUMMARY   -> InsightMeta(TablerIcons.ChartBar,              Color(0xFF2E2D2B),     "Monthly Summary")
+    InsightType.SUGGESTION        -> InsightMeta(TablerIcons.Bulb,             Color(0xFFE8673C),     "Suggestion")
+    else                          -> InsightMeta(TablerIcons.Stars,            Color(0xFF9E9A95),     type.name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() })
 }

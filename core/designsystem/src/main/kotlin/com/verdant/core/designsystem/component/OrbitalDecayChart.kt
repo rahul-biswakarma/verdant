@@ -326,7 +326,7 @@ private fun SingleOrbitalPreview() {
                 habitId = "1",
                 habitName = "Call parents",
                 habitIcon = "📞",
-                color = Color(0xFF5A7A60),
+                color = Color(0xFF2E2D2B),
                 daysSinceLast = 8,
                 maxDaysBeforeUrgent = 7,
             ),
@@ -339,7 +339,7 @@ private fun SingleOrbitalPreview() {
 }
 
 private fun previewHabits() = listOf(
-    OrbitalHabitData("1", "Call parents", "📞", Color(0xFF5A7A60), daysSinceLast = 1, maxDaysBeforeUrgent = 7),
+    OrbitalHabitData("1", "Call parents", "📞", Color(0xFF2E2D2B), daysSinceLast = 1, maxDaysBeforeUrgent = 7),
     OrbitalHabitData("2", "Deep cleaning", "🧹", Color(0xFF7B6B6B), daysSinceLast = 5, maxDaysBeforeUrgent = 14),
     OrbitalHabitData("3", "Car service", "🚗", Color(0xFFE8673C), daysSinceLast = 45, maxDaysBeforeUrgent = 90),
     OrbitalHabitData("4", "Dentist", "🦷", Color(0xFF1976D2), daysSinceLast = -1, maxDaysBeforeUrgent = 180),

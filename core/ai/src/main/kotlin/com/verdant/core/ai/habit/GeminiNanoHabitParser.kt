@@ -33,7 +33,7 @@ class GeminiNanoHabitParser @Inject constructor(
         Parse the following habit description and return a JSON object with these fields:
         - name: string (short, 2-4 words)
         - icon: string (single emoji)
-        - color: string (hex color like #5A7A60)
+        - color: string (hex color like #2E2D2B)
         - label: string (one of: Health, Fitness, Learning, Finance, Lifestyle)
         - trackingType: string (one of: BINARY, NUMERIC) — use NUMERIC for any habit involving a number, count, duration, or money
         - unit: string or null
@@ -52,8 +52,8 @@ class GeminiNanoHabitParser @Inject constructor(
         val trimmed = json.trim().removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
         val obj = JSONObject(trimmed)
 
-        val colorHex = obj.optString("color", "#5A7A60").trimStart('#')
-        val colorLong = colorHex.toLongOrNull(16)?.let { 0xFF000000L or it } ?: 0xFF5A7A60L
+        val colorHex = obj.optString("color", "#2E2D2B").trimStart('#')
+        val colorLong = colorHex.toLongOrNull(16)?.let { 0xFF000000L or it } ?: 0xFF2E2D2BL
 
         return ParsedHabit(
             name = obj.optString("name", originalDescription.take(30)),

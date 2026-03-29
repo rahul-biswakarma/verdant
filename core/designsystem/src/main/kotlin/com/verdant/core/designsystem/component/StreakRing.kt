@@ -17,7 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.core.designsystem.theme.VerdantTheme
 
 /**
@@ -62,9 +62,9 @@ private fun StreakRingLightPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            StreakRing(progress = 0.3f, streakCount = 3, color = MutedSage)
-            StreakRing(progress = 0.65f, streakCount = 12, color = MutedSage)
-            StreakRing(progress = 1f, streakCount = 30, color = MutedSage)
+            StreakRing(progress = 0.3f, streakCount = 3, color = WarmCharcoal)
+            StreakRing(progress = 0.65f, streakCount = 12, color = WarmCharcoal)
+            StreakRing(progress = 1f, streakCount = 30, color = WarmCharcoal)
         }
     }
 }
@@ -81,8 +81,8 @@ private fun StreakRingDarkPreview() {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.padding(12.dp),
         ) {
-            StreakRing(progress = 0.5f, streakCount = 7, color = MutedSage)
-            StreakRing(progress = 0.8f, streakCount = 21, color = MutedSage)
+            StreakRing(progress = 0.5f, streakCount = 7, color = WarmCharcoal)
+            StreakRing(progress = 0.8f, streakCount = 21, color = WarmCharcoal)
         }
     }
 }

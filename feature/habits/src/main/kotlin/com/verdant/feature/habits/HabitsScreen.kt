@@ -336,7 +336,7 @@ private fun HabitListCard(
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .clip(CircleShape)
+                                    .clip(RoundedCornerShape(10.dp))
                                     .background(habitColor),
                                 contentAlignment = Alignment.Center,
                             ) {

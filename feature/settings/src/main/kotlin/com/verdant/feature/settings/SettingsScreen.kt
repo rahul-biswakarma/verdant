@@ -86,7 +86,7 @@ import com.verdant.core.designsystem.theme.ThemeMode
 
 // Preset accent colors
 private val accentColors = listOf(
-    0xFF5A7A60L to "Muted Sage",
+    0xFF2E2D2BL to "Warm Charcoal",
     0xFF7B6B6BL to "Dusty Mauve",
     0xFFE8673CL to "Burnt Orange",
     0xFF6B8E8AL to "Warm Teal",

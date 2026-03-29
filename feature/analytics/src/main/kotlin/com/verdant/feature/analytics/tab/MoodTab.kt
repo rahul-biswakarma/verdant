@@ -36,7 +36,7 @@ import com.verdant.core.designsystem.component.MoodLegend
 import com.verdant.core.designsystem.component.YearInPixelsGrid
 import com.verdant.core.designsystem.component.moodScoreToColor
 import com.verdant.core.designsystem.component.moodScoreToEmoji
-import com.verdant.core.designsystem.theme.MutedSage
+import com.verdant.core.designsystem.theme.WarmCharcoal
 import com.verdant.feature.analytics.MoodState
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -262,7 +262,7 @@ private fun MoodTrendChart(
             }
             drawPath(
                 path = path,
-                color = MutedSage,
+                color = WarmCharcoal,
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round),
             )
         }
@@ -273,7 +273,7 @@ private fun MoodTrendChart(
             val y = h - (v - minVal) / (maxVal - minVal) * h
             val dotColor = lerp(
                 moodScoreToColor(v.coerceIn(1f, 5f).toInt()),
-                MutedSage,
+                WarmCharcoal,
                 0.3f,
             )
             drawCircle(color = dotColor, radius = 4.dp.toPx(), center = Offset(x, y))

@@ -2,9 +2,7 @@ package com.verdant.app.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -47,36 +45,35 @@ fun VerdantApp(
         val showBottomBar = appState.onboardingCompleted == true
                 && currentRoute != ONBOARDING_ROUTE
 
-        Scaffold(
-            modifier = Modifier.fillMaxSize(),
-            bottomBar = {
-                if (showBottomBar) {
-                    val items = GlobalTab.entries.map { tab ->
-                        BottomBarItem(
-                            icon = tab.icon,
-                            label = tab.label,
-                            selected = activeTab == tab,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                        )
-                    }
-                    VerdantBottomBar(items = items)
-                }
-            },
-        ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize()) {
             VerdantNavHost(
                 navController = navController,
                 startOnboarding = appState.onboardingCompleted == false,
-                modifier = Modifier.padding(innerPadding),
                 webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
             )
+
+            if (showBottomBar) {
+                val items = GlobalTab.entries.map { tab ->
+                    BottomBarItem(
+                        icon = tab.icon,
+                        label = tab.label,
+                        selected = activeTab == tab,
+                        onClick = {
+                            navController.navigate(tab.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                    )
+                }
+                VerdantBottomBar(
+                    items = items,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
 }

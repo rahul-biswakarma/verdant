@@ -16,7 +16,7 @@ data class AppState(
     /** null = still loading from DataStore */
     val onboardingCompleted: Boolean? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
-    val accentColor: Long = 0xFF5A7A60L,
+    val accentColor: Long = 0xFF2E2D2BL,
     val isSignedIn: Boolean = false,
 )
 
