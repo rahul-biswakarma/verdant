@@ -28,6 +28,7 @@ import com.verdant.work.worker.WeeklySummaryWorker
 import com.verdant.work.worker.CrossDeviceSyncWorker
 import com.verdant.work.worker.PendingAIRetryWorker
 import com.verdant.work.worker.XPComputeWorker
+import com.verdant.work.worker.DataRetentionWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.time.DayOfWeek
 import java.time.Duration
@@ -70,6 +71,7 @@ class VerdantApplication : Application(), Configuration.Provider {
         scheduleBudgetAlerts()
         scheduleCrossDeviceSync()
         schedulePendingAIRetry()
+        scheduleDataRetention()
     }
 
 
@@ -355,6 +357,26 @@ class VerdantApplication : Application(), Configuration.Provider {
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             PendingAIRetryWorker.WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request,
+        )
+    }
+
+    /** Data retention cleanup daily at 3 AM. */
+    private fun scheduleDataRetention() {
+        val initialDelay = calculateInitialDelay(3, 0)
+        val request = PeriodicWorkRequestBuilder<DataRetentionWorker>(
+            repeatInterval = 24,
+            repeatIntervalTimeUnit = TimeUnit.HOURS,
+        )
+            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+            .setConstraints(
+                Constraints.Builder().setRequiresBatteryNotLow(true).build()
+            )
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.HOURS)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            DataRetentionWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
         )
     }
 
