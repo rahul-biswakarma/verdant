@@ -92,6 +92,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verdant.core.model.HabitFrequency
+import com.verdant.feature.habits.detail.calendarThemeFor
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.VisualizationType
 import com.verdant.core.model.recommendedFor
@@ -859,23 +860,80 @@ private fun IconPickerButton(
 private fun ColorPicker(selectedColor: Long, onColorChange: (Long) -> Unit) {
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         COLOR_PRESETS.forEach { colorLong ->
+            val theme = remember(colorLong) { calendarThemeFor(colorLong) }
             val isSelected = selectedColor == colorLong
+
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Color(colorLong))
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(theme.headerBg)
                     .then(
-                        if (isSelected) Modifier.border(2.5.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                        else Modifier
+                        if (isSelected) Modifier.border(
+                            2.5.dp,
+                            MaterialTheme.colorScheme.onSurface,
+                            RoundedCornerShape(12.dp),
+                        ) else Modifier,
                     )
                     .clickable { onColorChange(colorLong) },
                 contentAlignment = Alignment.Center,
             ) {
-                if (isSelected) Icon(TablerIcons.Check, null, Modifier.size(14.dp), tint = Color.White)
+                // Mini calendar preview: 3×3 grid of dots
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    for (row in 0 until 3) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            for (col in 0 until 3) {
+                                val idx = row * 3 + col
+                                // Simulate: some completed, some empty, one today
+                                val dotColor = when (idx) {
+                                    0, 2, 3, 5, 6 -> theme.completedDayBg
+                                    4 -> theme.todayBg
+                                    else -> Color.Transparent
+                                }
+                                val dotBorder = when (idx) {
+                                    1, 7, 8 -> theme.emptyDayBorder
+                                    else -> Color.Transparent
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(dotColor)
+                                        .then(
+                                            if (dotBorder != Color.Transparent) Modifier.border(
+                                                0.8.dp,
+                                                dotBorder,
+                                                CircleShape,
+                                            ) else Modifier,
+                                        ),
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Selected checkmark overlay
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.35f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            TablerIcons.Check,
+                            null,
+                            Modifier.size(18.dp),
+                            tint = Color.White,
+                        )
+                    }
+                }
             }
         }
     }

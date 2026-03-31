@@ -5,7 +5,6 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.verdant.core.model.repository.ActivityRecordRepository
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.DeviceSignalRepository
 import com.verdant.core.model.repository.DeviceStatRepository
 import com.verdant.core.model.repository.EmotionalContextRepository
@@ -29,7 +28,6 @@ class DataRetentionWorker @AssistedInject constructor(
     private val emotionalContextRepository: EmotionalContextRepository,
     private val lifeScoreRepository: LifeScoreRepository,
     private val predictionRepository: PredictionRepository,
-    private val aiInsightRepository: AIInsightRepository,
     private val deviceSignalRepository: DeviceSignalRepository,
     private val pendingAIRequestRepository: PendingAIRequestRepository,
 ) : CoroutineWorker(context, params) {
@@ -47,7 +45,6 @@ class DataRetentionWorker @AssistedInject constructor(
             weatherRepository.deleteOlderThan(now - SEVEN_DAYS_MS)
             pendingAIRequestRepository.deleteOlderThan(now - ONE_DAY_MS)
             predictionRepository.deleteExpired(now)
-            aiInsightRepository.deleteExpired(now)
 
             Result.success()
         }.getOrElse { Result.retry() }

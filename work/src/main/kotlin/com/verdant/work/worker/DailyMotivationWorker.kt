@@ -6,9 +6,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.verdant.core.ai.MotivationContext
 import com.verdant.core.ai.VerdantAI
-import com.verdant.core.model.AIInsight
-import com.verdant.core.model.InsightType
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.common.usecase.CalculateStreakUseCase
@@ -18,7 +15,6 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
-import java.util.UUID
 
 /**
  * Runs once a day (scheduled at ~8 AM via WorkManager).
@@ -39,7 +35,6 @@ class DailyMotivationWorker @AssistedInject constructor(
     private val habitRepository: HabitRepository,
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
-    private val insightRepository: AIInsightRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -82,25 +77,8 @@ class DailyMotivationWorker @AssistedInject constructor(
         // Post notification
         NotificationHelper.postDailyMotivation(applicationContext, message)
 
-        // Persist to AI Insights feed
-        val now = System.currentTimeMillis()
-        insightRepository.insert(
-            AIInsight(
-                id              = UUID.randomUUID().toString(),
-                type            = InsightType.DAILY_MOTIVATION,
-                content         = message,
-                relatedHabitIds = emptyList(),
-                generatedAt     = now,
-                expiresAt       = now + 48 * 60 * 60 * 1_000L,
-                dismissed       = false,
-            )
-        )
-
         // Milestone check
         checkMilestones(habits.map { it.id to it.name }, streakMap)
-
-        // Purge stale insights
-        insightRepository.deleteExpired(now)
 
         return Result.success()
     }

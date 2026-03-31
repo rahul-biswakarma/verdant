@@ -1,6 +1,5 @@
 package com.verdant.core.common.usecase
 
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.model.repository.LabelRepository
 import kotlinx.coroutines.Dispatchers
@@ -17,11 +16,9 @@ import javax.inject.Singleton
 class DatabaseCleaner @Inject constructor(
     private val habitRepository: HabitRepository,
     private val labelRepository: LabelRepository,
-    private val aiInsightRepository: AIInsightRepository,
 ) {
     suspend fun clearAll() = withContext(Dispatchers.IO) {
         habitRepository.deleteAllHabits()   // cascades to habit_entries
         labelRepository.deleteAllLabels()
-        aiInsightRepository.deleteAll()
     }
 }

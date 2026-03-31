@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,6 +20,7 @@ import com.verdant.feature.finance.tab.TrendsTab
 
 @Composable
 fun FinanceScreen(
+    selectedTab: FinanceTab = FinanceTab.OVERVIEW,
     onNavigateToTransactionDetail: (String) -> Unit = {},
     onNavigateToCreateTransaction: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -47,21 +46,8 @@ fun FinanceScreen(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp),
             )
 
-            // Tab Row
-            val tabs = FinanceTab.entries
-            val selectedIndex = tabs.indexOf(state.selectedTab)
-            TabRow(selectedTabIndex = selectedIndex) {
-                tabs.forEach { tab ->
-                    Tab(
-                        selected = state.selectedTab == tab,
-                        onClick = { viewModel.selectTab(tab) },
-                        text = { Text(tab.label) },
-                    )
-                }
-            }
-
             // Tab Content
-            when (state.selectedTab) {
+            when (selectedTab) {
                 FinanceTab.OVERVIEW -> OverviewTab(
                     totalSpent = state.totalSpent,
                     totalIncome = state.totalIncome,

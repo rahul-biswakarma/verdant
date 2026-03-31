@@ -49,7 +49,6 @@ dependencies {
     implementation(project(":feature:home"))
     implementation(project(":feature:habits"))
     implementation(project(":feature:analytics"))
-    implementation(project(":feature:insights"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:finance"))
     implementation(project(":feature:stories"))

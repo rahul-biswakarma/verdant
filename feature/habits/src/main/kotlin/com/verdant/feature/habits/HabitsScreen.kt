@@ -78,14 +78,6 @@ fun HabitsScreen(
 
     Scaffold(
         modifier = modifier,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateHabit,
-                containerColor = MaterialTheme.colorScheme.primary,
-            ) {
-                Icon(TablerIcons.Plus, contentDescription = "Create habit")
-            }
-        },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {            Text(
                 text = "My Habits",

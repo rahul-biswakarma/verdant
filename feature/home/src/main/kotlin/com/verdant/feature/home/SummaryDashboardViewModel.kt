@@ -8,9 +8,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.verdant.core.common.auth.AuthRepository
 import com.verdant.core.common.auth.AuthUser
+import com.verdant.core.datastore.UserPreferencesDataStore
+import com.verdant.core.genui.data.DashboardDataResolver
+import com.verdant.core.genui.generation.FallbackLayoutProvider
+import com.verdant.core.genui.model.DashboardLayout
 import com.verdant.core.model.Prediction
 import com.verdant.core.model.PredictionType
-import com.verdant.core.model.repository.AIInsightRepository
+import com.verdant.core.model.repository.DashboardLayoutRepository
 import com.verdant.core.model.repository.EmotionalContextRepository
 import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.repository.HabitRepository
@@ -18,6 +22,7 @@ import com.verdant.core.model.repository.PredictionRepository
 import com.verdant.core.model.repository.StreakCacheRepository
 import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.EmotionalContext
+import kotlinx.serialization.json.Json
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +30,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,7 +53,6 @@ data class SummaryDashboardUiState(
     val monthlySpent: Double = 0.0,
     val monthlyIncome: Double = 0.0,
     val bestCurrentStreak: Int = 0,
-    val latestInsight: String? = null,
     val predictions: List<PredictionUiItem> = emptyList(),
     val isRefreshingPredictions: Boolean = false,
     val isLoading: Boolean = true,
@@ -73,9 +78,13 @@ class SummaryDashboardViewModel @Inject constructor(
     emotionalContextRepository: EmotionalContextRepository,
     transactionRepository: TransactionRepository,
     streakCacheRepository: StreakCacheRepository,
-    aiInsightRepository: AIInsightRepository,
     predictionRepository: PredictionRepository,
     private val authRepository: AuthRepository,
+    private val dashboardLayoutRepository: DashboardLayoutRepository,
+    private val fallbackLayoutProvider: FallbackLayoutProvider,
+    private val prefs: UserPreferencesDataStore,
+    private val json: Json,
+    val dataResolver: DashboardDataResolver,
     @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
@@ -86,6 +95,28 @@ class SummaryDashboardViewModel @Inject constructor(
         .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     val currentUser: StateFlow<AuthUser?> = authRepository.currentUser
+
+    /** Whether the dynamic Gen UI dashboard is enabled. */
+    val genUiEnabled: StateFlow<Boolean> = prefs.genUiEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    /** The current dashboard layout (LLM-generated or fallback). */
+    val dashboardLayout: StateFlow<DashboardLayout> =
+        dashboardLayoutRepository.observeLatestJson()
+            .map { layoutJson ->
+                layoutJson?.let {
+                    try {
+                        json.decodeFromString(DashboardLayout.serializer(), it)
+                    } catch (_: Exception) {
+                        null
+                    }
+                } ?: fallbackLayoutProvider.defaultLayout()
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = fallbackLayoutProvider.defaultLayout(),
+            )
 
     private val _profileSheetState = MutableStateFlow(ProfileSheetState())
     val profileSheetState: StateFlow<ProfileSheetState> = _profileSheetState.asStateFlow()
@@ -104,7 +135,6 @@ class SummaryDashboardViewModel @Inject constructor(
         val monthlySpent: Double,
         val monthlyIncome: Double,
         val bestCurrentStreak: Int,
-        val latestInsight: String?,
     )
 
     private val predictionsFlow = predictionRepository.observeActive(System.currentTimeMillis())
@@ -147,13 +177,11 @@ class SummaryDashboardViewModel @Inject constructor(
         transactionRepository.totalSpent(monthStart, monthEnd),
         transactionRepository.totalIncome(monthStart, monthEnd),
         streakCacheRepository.observeAll(),
-        aiInsightRepository.observeRecent(1),
-    ) { spent, income, streaks, insights ->
+    ) { spent, income, streaks ->
         FinanceAndExtra(
             monthlySpent = spent ?: 0.0,
             monthlyIncome = income ?: 0.0,
             bestCurrentStreak = streaks.maxOfOrNull { it.currentStreak } ?: 0,
-            latestInsight = insights.firstOrNull()?.content,
         )
     }
 
@@ -172,7 +200,6 @@ class SummaryDashboardViewModel @Inject constructor(
             monthlySpent = extra.monthlySpent,
             monthlyIncome = extra.monthlyIncome,
             bestCurrentStreak = extra.bestCurrentStreak,
-            latestInsight = extra.latestInsight,
             predictions = predictions.map { prediction ->
                 PredictionUiItem(
                     type = prediction.predictionType,
@@ -204,6 +231,16 @@ class SummaryDashboardViewModel @Inject constructor(
             kotlinx.coroutines.delay(3_000)
             _isRefreshingPredictions.value = false
         }
+    }
+
+    fun refreshDashboard() {
+        val workRequest = OneTimeWorkRequestBuilder<com.verdant.work.worker.DashboardLayoutWorker>().build()
+        val workManager = WorkManager.getInstance(appContext)
+        workManager.enqueueUniqueWork(
+            "verdant_dashboard_refresh",
+            ExistingWorkPolicy.KEEP,
+            workRequest,
+        )
     }
 
     fun updateDisplayName(newName: String) {

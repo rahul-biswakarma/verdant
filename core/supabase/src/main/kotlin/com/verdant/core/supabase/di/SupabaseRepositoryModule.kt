@@ -1,10 +1,11 @@
 package com.verdant.core.supabase.di
 
 import com.verdant.core.model.repository.AchievementRepository
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.ActivityRecordRepository
 import com.verdant.core.model.repository.BudgetRepository
 import com.verdant.core.model.repository.CrossCorrelationRepository
+import com.verdant.core.genui.generation.DashboardLayoutGenerator
+import com.verdant.core.model.repository.DashboardLayoutRepository
 import com.verdant.core.model.repository.DeviceSignalRepository
 import com.verdant.core.model.repository.DeviceStatRepository
 import com.verdant.core.model.repository.EmotionalContextRepository
@@ -26,10 +27,11 @@ import com.verdant.core.model.repository.StoryRepository
 import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.repository.WeatherRepository
 import com.verdant.core.supabase.repository.AchievementSupabaseRepository
-import com.verdant.core.supabase.repository.AIInsightSupabaseRepository
 import com.verdant.core.supabase.repository.ActivityRecordSupabaseRepository
 import com.verdant.core.supabase.repository.BudgetSupabaseRepository
 import com.verdant.core.supabase.repository.CrossCorrelationSupabaseRepository
+import com.verdant.core.supabase.repository.DashboardLayoutSupabaseRepository
+import com.verdant.core.supabase.SupabaseDashboardLayoutGenerator
 import com.verdant.core.supabase.repository.DeviceSignalSupabaseRepository
 import com.verdant.core.supabase.repository.DeviceStatSupabaseRepository
 import com.verdant.core.supabase.repository.EmotionalContextSupabaseRepository
@@ -106,9 +108,6 @@ abstract class SupabaseRepositoryModule {
     // --- Signal-related repos ---
 
     @Binds @Singleton
-    abstract fun bindAIInsightRepository(impl: AIInsightSupabaseRepository): AIInsightRepository
-
-    @Binds @Singleton
     abstract fun bindAchievementRepository(impl: AchievementSupabaseRepository): AchievementRepository
 
     @Binds @Singleton
@@ -142,4 +141,12 @@ abstract class SupabaseRepositoryModule {
 
     @Binds @Singleton
     abstract fun bindStoryEventRepository(impl: StoryEventSupabaseRepository): StoryEventRepository
+
+    // --- Gen UI ---
+
+    @Binds @Singleton
+    abstract fun bindDashboardLayoutRepository(impl: DashboardLayoutSupabaseRepository): DashboardLayoutRepository
+
+    @Binds @Singleton
+    abstract fun bindDashboardLayoutGenerator(impl: SupabaseDashboardLayoutGenerator): DashboardLayoutGenerator
 }

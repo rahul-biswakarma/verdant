@@ -61,15 +61,6 @@ fun StoryListScreen(
         topBar = {
             TopAppBar(title = { Text("Stories") })
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCreateStory,
-                containerColor = IconTeal,
-                contentColor = Color.White,
-            ) {
-                Icon(TablerIcons.Plus, contentDescription = "Create story")
-            }
-        },
     ) { padding ->
         if (state.isLoading) {
             Box(

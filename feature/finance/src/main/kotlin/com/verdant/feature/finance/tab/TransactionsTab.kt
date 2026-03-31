@@ -186,21 +186,6 @@ fun TransactionsTab(
             }
         }
 
-        // FAB
-        FloatingActionButton(
-            onClick = onCreateTransaction,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 16.dp, bottom = 100.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Icon(
-                imageVector = TablerIcons.Plus,
-                contentDescription = "Add transaction",
-            )
-        }
     }
 }
 

@@ -8,9 +8,6 @@ import com.verdant.core.ai.AIFeatureUnavailableException
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.ai.WeeklyReportData
 import com.verdant.core.common.HabitDataAggregator
-import com.verdant.core.model.AIInsight
-import com.verdant.core.model.InsightType
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.common.usecase.CalculateStreakUseCase
@@ -21,7 +18,6 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.util.UUID
 
 /**
  * Runs once a week (Sunday ~7 PM via WorkManager).
@@ -43,7 +39,6 @@ class WeeklySummaryWorker @AssistedInject constructor(
     private val habitEntryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
     private val aggregator: HabitDataAggregator,
-    private val insightRepository: AIInsightRepository,
     private val prefs: UserPreferencesDataStore,
 ) : CoroutineWorker(appContext, params) {
 
@@ -103,20 +98,6 @@ class WeeklySummaryWorker @AssistedInject constructor(
 
         // Post notification
         NotificationHelper.postWeeklySummary(applicationContext, summary)
-
-        // Persist to AI Insights feed (7-day TTL)
-        val now = System.currentTimeMillis()
-        insightRepository.insert(
-            AIInsight(
-                id              = UUID.randomUUID().toString(),
-                type            = InsightType.WEEKLY_SUMMARY,
-                content         = summary,
-                relatedHabitIds = emptyList(),
-                generatedAt     = now,
-                expiresAt       = now + 7 * 24 * 60 * 60 * 1_000L,
-                dismissed       = false,
-            )
-        )
 
         return Result.success()
     }

@@ -8,14 +8,12 @@ import com.verdant.core.ai.MonthlyReportData
 import com.verdant.core.ai.VerdantAI
 import com.verdant.core.ai.WeeklyReportData
 import com.verdant.core.common.HabitDataAggregator
-import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.repository.HabitRepository
 import com.verdant.core.common.usecase.CalculateStreakUseCase
 import com.verdant.core.model.DayCell
 import com.verdant.core.model.Habit
 import com.verdant.core.model.HabitEntry
-import com.verdant.core.model.InsightType
 import com.verdant.core.model.TrackingType
 import com.verdant.core.model.isScheduledForDate
 import com.verdant.core.model.toPixelEntry
@@ -37,7 +35,6 @@ class AnalyticsViewModel @Inject constructor(
     private val habitRepository: HabitRepository,
     private val entryRepository: HabitEntryRepository,
     private val calculateStreak: CalculateStreakUseCase,
-    private val aiInsightRepository: AIInsightRepository,
     private val verdantAI: VerdantAI,
     private val aggregator: HabitDataAggregator,
 ) : ViewModel() {
@@ -455,22 +452,7 @@ class AnalyticsViewModel @Inject constructor(
     }
 
     private fun loadReports(pendingEntry: ReportEntry? = null) {
-        viewModelScope.launch {
-            aiInsightRepository.observeRecent(50).collect { entities ->
-                val reports = entities.filter {
-                    it.type == InsightType.WEEKLY_SUMMARY || it.type == InsightType.MONTHLY_SUMMARY
-                }.map { entity ->
-                    ReportEntry(
-                        id = entity.id,
-                        title = if (entity.type == InsightType.WEEKLY_SUMMARY) "Weekly Report" else "Monthly Report",
-                        content = entity.content,
-                        generatedAt = entity.generatedAt,
-                        isWeekly = entity.type == InsightType.WEEKLY_SUMMARY
-                    )
-                }
-                val all = (if (pendingEntry != null) listOf(pendingEntry) else emptyList()) + reports
-                _state.update { it.copy(reports = ReportsState.Ready(all.sortedByDescending { r -> r.generatedAt })) }
-            }
-        }
+        val all = if (pendingEntry != null) listOf(pendingEntry) else emptyList()
+        _state.update { it.copy(reports = ReportsState.Ready(all.sortedByDescending { r -> r.generatedAt })) }
     }
 }

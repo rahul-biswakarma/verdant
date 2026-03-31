@@ -7,17 +7,16 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.verdant.feature.habits.create.CreateHabitScreen
-import com.verdant.feature.habits.day.DayDetailScreen
-import com.verdant.feature.habits.detail.HabitDetailScreen
-import com.verdant.feature.home.HomeScreen
-import com.verdant.feature.home.SummaryDashboardScreen
-import com.verdant.feature.settings.SettingsScreen
 import com.verdant.feature.finance.FinanceScreen
+import com.verdant.feature.finance.FinanceTab
 import com.verdant.feature.finance.create.TransactionCreateScreen
 import com.verdant.feature.finance.detail.TransactionDetailScreen
+import com.verdant.feature.habits.day.DayDetailScreen
+import com.verdant.feature.habits.detail.HabitDetailScreen
+import com.verdant.feature.home.SummaryDashboardScreen
 import com.verdant.feature.lifedashboard.LIFE_DASHBOARD_ROUTE
 import com.verdant.feature.lifedashboard.LifeDashboardScreen
+import com.verdant.feature.settings.SettingsScreen
 import com.verdant.feature.settings.buddies.BuddyScreen
 import com.verdant.feature.settings.datasources.DataAuditScreen
 import com.verdant.feature.settings.datasources.DataSourcesScreen
@@ -36,6 +35,10 @@ fun VerdantNavHost(
     modifier: Modifier = Modifier,
     webClientId: String = "",
     isDebugBuild: Boolean = false,
+    habitsTab: HabitsTab = HabitsTab.LIST,
+    onHabitsBackFromCreate: () -> Unit = {},
+    financeTab: FinanceNavTab = FinanceNavTab.OVERVIEW,
+    storiesTab: StoriesTab = StoriesTab.LIST,
 ) {
     val startDestination = if (startOnboarding) ONBOARDING_ROUTE
     else HOME_ROUTE
@@ -82,18 +85,28 @@ fun VerdantNavHost(
             )
         }
 
-        // ── Habits (container with top tabs) ─────────────────
+        // ── Habits (container, tab driven by bottom bar) ─────
         composable(route = HABITS_ROUTE) {
             HabitsContainerScreen(
-                onCreateHabit = { navController.navigate("habits/create") },
+                selectedTab = habitsTab,
+                onCreateHabit = { /* handled by bottom bar CREATE tab */ },
                 onHabitDetail = { id -> navController.navigate("habits/detail/$id") },
-                onEditHabit = { navController.navigate("habits/create") },
+                onEditHabit = { /* handled by bottom bar CREATE tab */ },
+                onBackFromCreate = onHabitsBackFromCreate,
             )
         }
 
-        // ── Finance (container with internal tabs) ───────────
+        // ── Finance (container, tab driven by bottom bar) ────
         composable(route = FINANCE_ROUTE) {
+            // Map FinanceNavTab → feature FinanceTab
+            val featureTab = when (financeTab) {
+                FinanceNavTab.OVERVIEW -> FinanceTab.OVERVIEW
+                FinanceNavTab.TRANSACTIONS -> FinanceTab.TRANSACTIONS
+                FinanceNavTab.TRENDS -> FinanceTab.TRENDS
+                FinanceNavTab.CREATE -> FinanceTab.OVERVIEW // fallback
+            }
             FinanceScreen(
+                selectedTab = featureTab,
                 onNavigateToTransactionDetail = { id ->
                     navController.navigate("finance/transaction/$id")
                 },
@@ -125,7 +138,6 @@ fun VerdantNavHost(
         }
 
         // ── Finance sub-screens ─────────────────────────────
-        // Static routes must come before parameterized routes to avoid shadowing
         composable(route = "finance/transaction/create") {
             TransactionCreateScreen(
                 onNavigateBack = { navController.popBackStack() },
@@ -202,10 +214,7 @@ fun VerdantNavHost(
             BuddyScreen(onBack = { navController.popBackStack() })
         }
 
-        // ── Habit detail screens (top-level for bottom bar visibility) ──
-        composable(route = "habits/create") {
-            CreateHabitScreen(onNavigateBack = { navController.popBackStack() })
-        }
+        // ── Habit detail screens ────────────────────────────
         composable(
             route = "habits/detail/{habitId}",
             arguments = listOf(navArgument("habitId") { type = NavType.StringType }),

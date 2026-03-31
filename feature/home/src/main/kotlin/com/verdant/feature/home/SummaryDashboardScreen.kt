@@ -114,6 +114,8 @@ fun SummaryDashboardScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val user by viewModel.currentUser.collectAsStateWithLifecycle()
     val profileSheetState by viewModel.profileSheetState.collectAsStateWithLifecycle()
+    val genUiEnabled by viewModel.genUiEnabled.collectAsStateWithLifecycle()
+    val layout by viewModel.dashboardLayout.collectAsStateWithLifecycle()
 
     var showProfileSheet by rememberSaveable { mutableStateOf(false) }
 
@@ -124,6 +126,76 @@ fun SummaryDashboardScreen(
         return
     }
 
+    if (genUiEnabled) {
+        // ── Dynamic Gen UI Dashboard ─────────────────────────
+        Column(modifier = modifier.fillMaxSize()) {
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Spacer(modifier = Modifier.height(16.dp))
+                DashboardHeader(
+                    user = user,
+                    onAvatarClick = { showProfileSheet = true },
+                    onNavigateToSettings = onNavigateToSettings,
+                )
+            }
+            com.verdant.feature.home.genui.DynamicDashboard(
+                layout = layout,
+                dataResolver = viewModel.dataResolver,
+                onNavigate = { route ->
+                    when (route) {
+                        "life_dashboard" -> onNavigateToLifeDashboard()
+                        else -> if (route.startsWith("habit/")) {
+                            onNavigateToHabitDetail(route.removePrefix("habit/"))
+                        }
+                    }
+                },
+            )
+        }
+    } else {
+        // ── Static Dashboard (original) ──────────────────────
+        StaticDashboard(
+            state = state,
+            user = user,
+            onAvatarClick = { showProfileSheet = true },
+            onNavigateToSettings = onNavigateToSettings,
+            onNavigateToLifeDashboard = onNavigateToLifeDashboard,
+            onNavigateToHabitDetail = onNavigateToHabitDetail,
+            viewModel = viewModel,
+            modifier = modifier,
+        )
+    }
+
+    // ── Profile Bottom Sheet ─────────────────────────────────
+    if (showProfileSheet) {
+        ProfileBottomSheet(
+            user = user,
+            profileState = profileSheetState,
+            onDismiss = { showProfileSheet = false },
+            onUpdateName = viewModel::updateDisplayName,
+            onNavigateToSettings = {
+                showProfileSheet = false
+                onNavigateToSettings()
+            },
+            onSignOut = {
+                showProfileSheet = false
+                viewModel.signOut()
+                onSignedOut()
+            },
+            onClearError = viewModel::clearProfileError,
+        )
+    }
+}
+
+@Composable
+private fun StaticDashboard(
+    state: SummaryDashboardUiState,
+    user: AuthUser?,
+    onAvatarClick: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToLifeDashboard: () -> Unit,
+    onNavigateToHabitDetail: (String) -> Unit,
+    viewModel: SummaryDashboardViewModel,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -132,26 +204,22 @@ fun SummaryDashboardScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Header ───────────────────────────────────────────
         DashboardHeader(
             user = user,
-            onAvatarClick = { showProfileSheet = true },
+            onAvatarClick = onAvatarClick,
             onNavigateToSettings = onNavigateToSettings,
         )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ── Today's Habits Summary Card (rose) ───────────────
         TodayHabitsCard(state = state)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Your Progress Card (lavender) ────────────────────
         ProgressCard(state = state)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Category Cards Grid (2×2) ────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -204,7 +272,6 @@ fun SummaryDashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Activity Recap + Stats row ───────────────────────
         ActivityRecapCard(state = state, onNavigateToHabitDetail = onNavigateToHabitDetail)
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -235,12 +302,10 @@ fun SummaryDashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── Finance Card (rose) ──────────────────────────────
         FinanceCard(state = state)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ── AI Predictions Card ──────────────────────────────
         if (state.predictions.isNotEmpty() || state.isRefreshingPredictions) {
             AIPredictionsCard(
                 predictions = state.predictions,
@@ -250,30 +315,9 @@ fun SummaryDashboardScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // ── Life Dashboard Quick Access ──────────────────────
         LifeDashboardCard(onNavigateToLifeDashboard = onNavigateToLifeDashboard)
 
         Spacer(modifier = Modifier.height(100.dp))
-    }
-
-    // ── Profile Bottom Sheet ─────────────────────────────────
-    if (showProfileSheet) {
-        ProfileBottomSheet(
-            user = user,
-            profileState = profileSheetState,
-            onDismiss = { showProfileSheet = false },
-            onUpdateName = viewModel::updateDisplayName,
-            onNavigateToSettings = {
-                showProfileSheet = false
-                onNavigateToSettings()
-            },
-            onSignOut = {
-                showProfileSheet = false
-                viewModel.signOut()
-                onSignedOut()
-            },
-            onClearError = viewModel::clearProfileError,
-        )
     }
 }
 
@@ -852,17 +896,6 @@ private fun ActivityRecapCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
-
-            if (state.latestInsight != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = state.latestInsight,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
