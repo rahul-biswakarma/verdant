@@ -21,6 +21,8 @@ import com.verdant.core.model.repository.PredictionRepository
 import com.verdant.core.model.repository.QuestRepository
 import com.verdant.core.model.repository.RecurringTransactionRepository
 import com.verdant.core.model.repository.StreakCacheRepository
+import com.verdant.core.model.repository.StoryEventRepository
+import com.verdant.core.model.repository.StoryRepository
 import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.repository.WeatherRepository
 import com.verdant.core.supabase.repository.AchievementSupabaseRepository
@@ -44,6 +46,8 @@ import com.verdant.core.supabase.repository.PredictionSupabaseRepository
 import com.verdant.core.supabase.repository.QuestSupabaseRepository
 import com.verdant.core.supabase.repository.RecurringTransactionSupabaseRepository
 import com.verdant.core.supabase.repository.StreakCacheSupabaseRepository
+import com.verdant.core.supabase.repository.StoryEventSupabaseRepository
+import com.verdant.core.supabase.repository.StorySupabaseRepository
 import com.verdant.core.supabase.repository.TransactionSupabaseRepository
 import com.verdant.core.supabase.repository.WeatherSupabaseRepository
 import dagger.Binds
@@ -130,4 +134,12 @@ abstract class SupabaseRepositoryModule {
 
     @Binds @Singleton
     abstract fun bindStreakCacheRepository(impl: StreakCacheSupabaseRepository): StreakCacheRepository
+
+    // --- Stories ---
+
+    @Binds @Singleton
+    abstract fun bindStoryRepository(impl: StorySupabaseRepository): StoryRepository
+
+    @Binds @Singleton
+    abstract fun bindStoryEventRepository(impl: StoryEventSupabaseRepository): StoryEventRepository
 }

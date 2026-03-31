@@ -2,6 +2,9 @@ package com.verdant.core.ai
 
 import com.verdant.core.ai.habit.ParsedHabit
 import com.verdant.core.common.AggregatedHabitData
+import com.verdant.core.common.PredictionContext
+import com.verdant.core.common.PredictionItem
+import com.verdant.core.common.PredictionResult
 import com.verdant.core.network.ApiErrorBody
 import com.verdant.core.network.InsightRequest
 import com.verdant.core.network.ReportRequest
@@ -152,6 +155,18 @@ class CloudAI @Inject constructor(
             insight = response.content,
             relatedHabitIds = response.relatedHabitIds,
         )
+    }
+
+    override suspend fun generatePredictions(context: PredictionContext): PredictionResult {
+        val dataJson = buildPredictionContextJson(context)
+        val response = callInsight("daily_predictions", dataJson)
+        return parsePredictionResponse(response.content, response.confidence)
+    }
+
+    override suspend fun analyzeStory(context: StoryAnalysisContext): StoryAnalysisResult {
+        val dataJson = buildStoryAnalysisJson(context)
+        val response = callInsight("story_analysis", dataJson)
+        return parseStoryAnalysisResponse(response.content)
     }
 
     // ── Internal helpers ──────────────────────────────────────────────────────
@@ -323,6 +338,116 @@ class CloudAI @Inject constructor(
           "periodDays":${data.periodDays}
         }"""
         return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /** Builds a compact JSON payload from [PredictionContext] for the daily_predictions call. */
+    private fun buildPredictionContextJson(context: PredictionContext): JsonObject {
+        val topCats = context.financeSummary.topCategories.joinToString(",") { (cat, amt) ->
+            """{"category":"${cat.sanitise()}","amount":$amt}"""
+        }
+        val habitSust = context.statisticalPredictions.habitSustainability.entries
+            .sortedByDescending { it.value }
+            .take(5)
+            .joinToString(",") { (id, score) ->
+                val name = context.habitData.habits.firstOrNull { it.id == id }?.name ?: id
+                """{"name":"${name.sanitise()}","score":$score}"""
+            }
+        val moodDist = context.emotionalSummary.moodDistribution.entries.joinToString(",") { (mood, count) ->
+            """"$mood":$count"""
+        }
+        val actBreakdown = context.activitySummary.activityBreakdown.entries.joinToString(",") { (type, count) ->
+            """"$type":$count"""
+        }
+        val raw = """{
+          "habits":{"completionToday":${context.habitData.overallCompletionToday},"completionWeek":${context.habitData.overallCompletionThisWeek},"completionMonth":${context.habitData.overallCompletionThisMonth},"topStreaks":[${context.habitData.topStreaks.joinToString(",") { """{"name":"${it.habitName.sanitise()}","streak":${it.currentStreak}}""" }}],"sustainability":[$habitSust]},
+          "finance":{"monthlySpent":${context.financeSummary.monthlySpent},"monthlyIncome":${context.financeSummary.monthlyIncome},"topCategories":[$topCats],"trend":"${context.financeSummary.spendingTrend}","predictedNextMonth":${context.financeSummary.predictedNextMonth ?: 0}},
+          "health":{"avgSteps":${context.healthSummary.avgSteps7d},"avgSleep":${context.healthSummary.avgSleepHours7d},"avgHeartRate":${context.healthSummary.avgHeartRate7d},"exerciseMin":${context.healthSummary.exerciseMinutes7d},"weightTrend":"${context.healthSummary.weightTrend}"},
+          "emotional":{"dominantMood":"${context.emotionalSummary.dominantMood7d}","avgEnergy":${context.emotionalSummary.avgEnergy7d},"avgStress":${context.emotionalSummary.avgStress7d},"moodDist":{$moodDist}},
+          "activity":{"dominant":"${context.activitySummary.dominantActivity}","total7d":${context.activitySummary.totalActivities7d},"breakdown":{$actBreakdown}},
+          "device":{"avgScreenTimeMin":${context.deviceStats.avgScreenTimeMinutes7d},"avgNotifications":${context.deviceStats.avgNotifications7d}},
+          "scores":{"spendingForecast":${context.statisticalPredictions.spendingForecast},"spendingConfidence":${context.statisticalPredictions.spendingConfidence},"stressIndex":${context.statisticalPredictions.stressIndex ?: -1},"financialHealth":${context.statisticalPredictions.financialHealthScore ?: -1},"lifestyleScore":${context.statisticalPredictions.lifestyleScore ?: -1}}
+        }"""
+        return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /**
+     * Parses a prediction response from Claude into a structured [PredictionResult].
+     * Claude returns a JSON-like response; we extract four sections.
+     */
+    private fun parsePredictionResponse(content: String, confidence: Float): PredictionResult {
+        // Try JSON parse first; fall back to single-text split
+        return try {
+            val parsed = json.parseToJsonElement(content).jsonObject
+            PredictionResult(
+                spending = extractPredictionItem(parsed, "spending", confidence),
+                habits = extractPredictionItem(parsed, "habits", confidence),
+                health = extractPredictionItem(parsed, "health", confidence),
+                life = extractPredictionItem(parsed, "life", confidence),
+            )
+        } catch (_: Exception) {
+            // Fallback: wrap entire content as a life prediction
+            val item = PredictionItem(
+                summary = content.take(200),
+                details = content,
+                confidence = confidence,
+                keyInsights = emptyList(),
+            )
+            PredictionResult(spending = item, habits = item, health = item, life = item)
+        }
+    }
+
+    private fun extractPredictionItem(obj: JsonObject, key: String, fallbackConfidence: Float): PredictionItem {
+        val section = obj[key]?.jsonObject
+        return PredictionItem(
+            summary = section?.get("summary")?.toString()?.trim('"') ?: "",
+            details = section?.get("details")?.toString()?.trim('"') ?: "",
+            confidence = section?.get("confidence")?.toString()?.toFloatOrNull() ?: fallbackConfidence,
+            keyInsights = section?.get("keyInsights")?.let { arr ->
+                try {
+                    json.decodeFromString<List<String>>(arr.toString())
+                } catch (_: Exception) { emptyList() }
+            } ?: emptyList(),
+        )
+    }
+
+    /** Builds a compact JSON payload from [StoryAnalysisContext] for story_analysis calls. */
+    private fun buildStoryAnalysisJson(context: StoryAnalysisContext): JsonObject {
+        val eventsArray = context.events.joinToString(",") { event ->
+            """{"type":"${event.type}","title":"${event.title.sanitise()}","timestamp":${event.timestamp}}"""
+        }
+        val raw = """{
+          "storyTitle":"${context.storyTitle.sanitise()}",
+          "template":"${context.template ?: "CUSTOM"}",
+          "durationMinutes":${context.durationMinutes},
+          "events":[$eventsArray]
+        }"""
+        return json.parseToJsonElement(raw.trimIndent()).jsonObject
+    }
+
+    /** Parses a story analysis response from Claude. */
+    private fun parseStoryAnalysisResponse(content: String): StoryAnalysisResult {
+        return try {
+            val parsed = json.parseToJsonElement(content).jsonObject
+            StoryAnalysisResult(
+                summary = parsed["summary"]?.toString()?.trim('"') ?: content.take(200),
+                behavioralInsights = parsed["behavioralInsights"]?.let {
+                    json.decodeFromString<List<String>>(it.toString())
+                } ?: emptyList(),
+                patterns = parsed["patterns"]?.let {
+                    json.decodeFromString<List<String>>(it.toString())
+                } ?: emptyList(),
+                suggestedActions = parsed["suggestedActions"]?.let {
+                    json.decodeFromString<List<String>>(it.toString())
+                } ?: emptyList(),
+            )
+        } catch (_: Exception) {
+            StoryAnalysisResult(
+                summary = content.take(200),
+                behavioralInsights = listOf(content),
+                patterns = emptyList(),
+                suggestedActions = emptyList(),
+            )
+        }
     }
 
     /** Escapes double-quotes inside a string so it is safe to embed in a JSON literal. */

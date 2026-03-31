@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.verdant.core.ai.habit.ParsedHabit
+import com.verdant.core.common.PredictionContext
+import com.verdant.core.common.PredictionResult
 import com.verdant.core.datastore.UserPreferencesDataStore
 import com.verdant.core.model.ChatMessage
 import com.verdant.core.model.Habit
@@ -144,6 +146,18 @@ class VerdantAIRouter @Inject constructor(
         requireDataSharing()
         requireNetwork()
         return guardedCloudCall { cloudAI.chatWithCoach(messages, habitData) }
+    }
+
+    override suspend fun generatePredictions(context: PredictionContext): PredictionResult {
+        requireDataSharing()
+        requireNetwork()
+        return guardedCloudCall { cloudAI.generatePredictions(context) }
+    }
+
+    override suspend fun analyzeStory(context: StoryAnalysisContext): StoryAnalysisResult {
+        requireDataSharing()
+        requireNetwork()
+        return guardedCloudCall { cloudAI.analyzeStory(context) }
     }
 
     // ── Circuit breaker wrapper ────────────────────────────────────────────────

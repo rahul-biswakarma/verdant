@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.Google
+import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.IDToken
 import io.github.jan.supabase.auth.status.SessionStatus
 import kotlinx.coroutines.CoroutineScope
@@ -81,6 +82,51 @@ class AuthRepository @Inject constructor(
 
             val user = supabase.auth.currentUserOrNull()
                 ?: throw IllegalStateException("Supabase sign-in succeeded but user is null")
+
+            AuthUser(
+                uid = user.id,
+                displayName = user.userMetadata?.get("full_name")?.toString()
+                    ?.removeSurrounding("\""),
+                email = user.email,
+                photoUrl = user.userMetadata?.get("avatar_url")?.toString()
+                    ?.removeSurrounding("\""),
+            )
+        }
+
+    /**
+     * Signs in with email and password via Supabase Auth.
+     * If the user doesn't exist, signs them up first then retries sign-in.
+     * Only intended for development/testing with dummy accounts.
+     */
+    suspend fun signInWithEmail(email: String, password: String): Result<AuthUser> =
+        runCatching {
+            try {
+                supabase.auth.signInWith(Email) {
+                    this.email = email
+                    this.password = password
+                }
+            } catch (signInError: Exception) {
+                // User may not exist yet — try signing up
+                try {
+                    supabase.auth.signUpWith(Email) {
+                        this.email = email
+                        this.password = password
+                    }
+                } catch (_: Exception) {
+                    // Signup may fail if user already exists — ignore
+                }
+                // After signup, session may not exist if email confirmation is required.
+                // Retry sign-in now that the user is created.
+                if (supabase.auth.currentUserOrNull() == null) {
+                    supabase.auth.signInWith(Email) {
+                        this.email = email
+                        this.password = password
+                    }
+                }
+            }
+
+            val user = supabase.auth.currentUserOrNull()
+                ?: throw IllegalStateException("Sign-in failed. If you just signed up, confirm your email first.")
 
             AuthUser(
                 uid = user.id,

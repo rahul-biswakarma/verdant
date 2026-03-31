@@ -1,6 +1,8 @@
 package com.verdant.core.ai
 
 import com.verdant.core.ai.habit.ParsedHabit
+import com.verdant.core.common.PredictionContext
+import com.verdant.core.common.PredictionResult
 import com.verdant.core.model.ChatMessage
 import com.verdant.core.model.Habit
 import kotlinx.coroutines.flow.Flow
@@ -237,5 +239,26 @@ interface VerdantAI {
      * @throws AIFeatureUnavailableException if offline or rate-limited.
      */
     suspend fun findCrossDomainCorrelations(data: CrossDomainData): List<com.verdant.core.model.CrossCorrelation> =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Generates comprehensive daily predictions from all-domain data.
+     *
+     * Receives a [PredictionContext] containing compact summaries from every domain
+     * (habits, finance, health, emotional, activity, device) plus pre-computed
+     * statistical predictions. Claude interprets these to produce rich,
+     * personalised prediction narratives.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun generatePredictions(context: PredictionContext): PredictionResult =
+        throw AIFeatureUnavailableException.noNetwork()
+
+    /**
+     * Analyses a story (linked collection of events) and returns behavioural insights.
+     *
+     * @throws AIFeatureUnavailableException if offline or rate-limited.
+     */
+    suspend fun analyzeStory(context: StoryAnalysisContext): StoryAnalysisResult =
         throw AIFeatureUnavailableException.noNetwork()
 }

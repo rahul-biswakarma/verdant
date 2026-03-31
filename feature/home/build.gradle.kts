@@ -30,6 +30,9 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:datastore"))
     implementation(project(":core:voice"))
+    implementation(project(":work"))
+
+    implementation(libs.workmanager)
 
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

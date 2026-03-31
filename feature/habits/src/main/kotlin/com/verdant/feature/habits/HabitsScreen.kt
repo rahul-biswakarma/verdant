@@ -129,7 +129,7 @@ fun HabitsScreen(
                 }
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 100.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(displayHabits, key = { it.id }) { habit ->

@@ -52,6 +52,7 @@ include(":feature:analytics")
 include(":feature:insights")
 include(":feature:settings")
 include(":feature:finance")
+include(":feature:stories")
 include(":feature:lifedashboard")
 
 include(":widget")

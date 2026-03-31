@@ -30,11 +30,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -98,11 +105,14 @@ fun OnboardingScreen(
     onComplete: () -> Unit,
     modifier: Modifier = Modifier,
     webClientId: String = "",
+    isDebugBuild: Boolean = false,
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
     val isDark = isSystemInDarkTheme()
     val isSignedIn by viewModel.isSignedIn.collectAsStateWithLifecycle()
+    val emailError by viewModel.emailSignInError.collectAsStateWithLifecycle()
+    val isSigningIn by viewModel.isSigningIn.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -154,8 +164,15 @@ fun OnboardingScreen(
             currentPage = pagerState.currentPage,
             pageCount = PAGE_COUNT,
             isSignedIn = isSignedIn,
+            isDebugBuild = isDebugBuild,
+            isSigningIn = isSigningIn,
+            emailError = emailError,
             onNext = { scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) } },
             onSignIn = { viewModel.signInWithGoogle(context, webClientId) },
+            onEmailSignIn = { email, password ->
+                viewModel.clearEmailError()
+                viewModel.signInWithEmail(email, password)
+            },
             onGetStarted = { viewModel.markOnboardingDone(); onComplete() },
         )
     }
@@ -252,10 +269,18 @@ private fun BottomBar(
     currentPage: Int,
     pageCount: Int,
     isSignedIn: Boolean,
+    isDebugBuild: Boolean,
+    isSigningIn: Boolean,
+    emailError: String?,
     onNext: () -> Unit,
     onSignIn: () -> Unit,
+    onEmailSignIn: (String, String) -> Unit,
     onGetStarted: () -> Unit,
 ) {
+    var showEmailForm by rememberSaveable { mutableStateOf(false) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -270,21 +295,92 @@ private fun BottomBar(
             label = "bottomAction",
         ) { last ->
             if (last) {
-                Button(
-                    onClick = if (isSignedIn) onGetStarted else onSignIn,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                    ),
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(
-                        text = if (isSignedIn) "Get Started" else "Sign in to get started",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    Button(
+                        onClick = if (isSignedIn) onGetStarted else onSignIn,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                        ),
+                    ) {
+                        Text(
+                            text = if (isSignedIn) "Get Started" else "Sign in with Google",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+
+                    // Dev-only email sign-in
+                    if (isDebugBuild && !isSignedIn) {
+                        Spacer(Modifier.height(12.dp))
+
+                        if (showEmailForm) {
+                            OutlinedTextField(
+                                value = email,
+                                onValueChange = { email = it },
+                                label = { Text("Email") },
+                                singleLine = true,
+                                enabled = !isSigningIn,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = password,
+                                onValueChange = { password = it },
+                                label = { Text("Password") },
+                                singleLine = true,
+                                enabled = !isSigningIn,
+                                visualTransformation = PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (emailError != null) {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = emailError,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    if (email.isNotBlank() && password.isNotBlank()) {
+                                        onEmailSignIn(email.trim(), password)
+                                    }
+                                },
+                                enabled = email.isNotBlank() && password.isNotBlank() && !isSigningIn,
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(14.dp),
+                            ) {
+                                if (isSigningIn) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Sign in with Email (Dev)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        } else {
+                            TextButton(onClick = { showEmailForm = true }) {
+                                Text(
+                                    text = "Dev: Sign in with email",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
                 }
             } else {
                 Button(

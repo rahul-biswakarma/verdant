@@ -91,7 +91,7 @@ fun CoachChatTab(
                         start  = 16.dp,
                         end    = 16.dp,
                         top    = 12.dp,
-                        bottom = 12.dp,
+                        bottom = 100.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {

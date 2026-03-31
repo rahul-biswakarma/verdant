@@ -50,6 +50,7 @@ fun VerdantApp(
                 navController = navController,
                 startOnboarding = appState.onboardingCompleted == false,
                 webClientId = BuildConfig.GOOGLE_WEB_CLIENT_ID,
+                isDebugBuild = BuildConfig.DEBUG,
             )
 
             if (showBottomBar) {

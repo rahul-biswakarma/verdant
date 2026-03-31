@@ -23,6 +23,7 @@ import com.verdant.feature.finance.tab.TrendsTab
 @Composable
 fun FinanceScreen(
     onNavigateToTransactionDetail: (String) -> Unit = {},
+    onNavigateToCreateTransaction: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: FinanceViewModel = hiltViewModel(),
 ) {
@@ -30,7 +31,10 @@ fun FinanceScreen(
 
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         if (!state.financeOnboardingCompleted) {
-            FinanceOnboardingContent()
+            FinanceOnboardingContent(
+                onPermissionGranted = { viewModel.completeSmsOnboarding() },
+                onSkip = { viewModel.completeFinanceOnboarding() },
+            )
             return@Surface
         }
 
@@ -50,7 +54,7 @@ fun FinanceScreen(
                 tabs.forEach { tab ->
                     Tab(
                         selected = state.selectedTab == tab,
-                        onClick = { /* update selected tab via viewmodel */ },
+                        onClick = { viewModel.selectTab(tab) },
                         text = { Text(tab.label) },
                     )
                 }
@@ -66,10 +70,19 @@ fun FinanceScreen(
                     monthOverMonthChange = state.monthOverMonthChange,
                 )
                 FinanceTab.TRANSACTIONS -> TransactionsTab(
-                    transactions = state.recentTransactions,
+                    transactions = state.filteredTransactions,
+                    searchQuery = state.searchQuery,
+                    activeFilters = state.activeFilters,
                     onTransactionClick = onNavigateToTransactionDetail,
+                    onSearchQueryChange = viewModel::setSearchQuery,
+                    onFiltersChange = viewModel::setFilters,
+                    onCreateTransaction = onNavigateToCreateTransaction,
                 )
-                FinanceTab.TRENDS -> TrendsTab()
+                FinanceTab.TRENDS -> TrendsTab(
+                    monthlyTotals = state.monthlyTotals,
+                    categoryBreakdown = state.categoryBreakdown,
+                    monthOverMonthChange = state.monthOverMonthChange,
+                )
             }
         }
     }

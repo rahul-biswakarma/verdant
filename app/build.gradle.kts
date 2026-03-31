@@ -52,6 +52,7 @@ dependencies {
     implementation(project(":feature:insights"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:finance"))
+    implementation(project(":feature:stories"))
     implementation(project(":feature:lifedashboard"))
 
     // Widget + background work modules

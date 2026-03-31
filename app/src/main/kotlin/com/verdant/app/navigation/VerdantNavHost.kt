@@ -14,6 +14,8 @@ import com.verdant.feature.home.HomeScreen
 import com.verdant.feature.home.SummaryDashboardScreen
 import com.verdant.feature.settings.SettingsScreen
 import com.verdant.feature.finance.FinanceScreen
+import com.verdant.feature.finance.create.TransactionCreateScreen
+import com.verdant.feature.finance.detail.TransactionDetailScreen
 import com.verdant.feature.lifedashboard.LIFE_DASHBOARD_ROUTE
 import com.verdant.feature.lifedashboard.LifeDashboardScreen
 import com.verdant.feature.settings.buddies.BuddyScreen
@@ -21,6 +23,9 @@ import com.verdant.feature.settings.datasources.DataAuditScreen
 import com.verdant.feature.settings.datasources.DataSourcesScreen
 import com.verdant.feature.settings.devices.DeviceManagementScreen
 import com.verdant.feature.settings.onboarding.OnboardingScreen
+import com.verdant.feature.stories.CreateStoryScreen
+import com.verdant.feature.stories.StoryDetailScreen
+import com.verdant.feature.stories.StoryListScreen
 
 const val ONBOARDING_ROUTE = "onboarding"
 
@@ -30,6 +35,7 @@ fun VerdantNavHost(
     startOnboarding: Boolean,
     modifier: Modifier = Modifier,
     webClientId: String = "",
+    isDebugBuild: Boolean = false,
 ) {
     val startDestination = if (startOnboarding) ONBOARDING_ROUTE
     else HOME_ROUTE
@@ -48,6 +54,7 @@ fun VerdantNavHost(
                     }
                 },
                 webClientId = webClientId,
+                isDebugBuild = isDebugBuild,
             )
         }
 
@@ -86,7 +93,62 @@ fun VerdantNavHost(
 
         // ── Finance (container with internal tabs) ───────────
         composable(route = FINANCE_ROUTE) {
-            FinanceScreen()
+            FinanceScreen(
+                onNavigateToTransactionDetail = { id ->
+                    navController.navigate("finance/transaction/$id")
+                },
+                onNavigateToCreateTransaction = {
+                    navController.navigate("finance/transaction/create")
+                },
+            )
+        }
+
+        // ── Stories ──────────────────────────────────────────
+        composable(route = STORIES_ROUTE) {
+            StoryListScreen(
+                onCreateStory = { navController.navigate("stories/create") },
+                onStoryDetail = { id -> navController.navigate("stories/detail/$id") },
+            )
+        }
+        composable(route = "stories/create") {
+            CreateStoryScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "stories/detail/{storyId}",
+            arguments = listOf(navArgument("storyId") { type = NavType.StringType }),
+        ) {
+            StoryDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Finance sub-screens ─────────────────────────────
+        // Static routes must come before parameterized routes to avoid shadowing
+        composable(route = "finance/transaction/create") {
+            TransactionCreateScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "finance/transaction/edit/{transactionId}",
+            arguments = listOf(navArgument("transactionId") { type = NavType.StringType }),
+        ) {
+            TransactionCreateScreen(
+                onNavigateBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = "finance/transaction/{transactionId}",
+            arguments = listOf(navArgument("transactionId") { type = NavType.StringType }),
+        ) {
+            TransactionDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToEdit = { id ->
+                    navController.navigate("finance/transaction/edit/$id")
+                },
+            )
         }
 
         // ── Life Dashboard ──────────────────────────────────

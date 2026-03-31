@@ -62,9 +62,11 @@ import com.verdant.core.common.auth.AuthUser
 import com.verdant.core.designsystem.component.CompletionRing
 import com.verdant.core.model.InferredMood
 import compose.icons.TablerIcons
+import com.verdant.core.model.PredictionType
 import compose.icons.tablericons.ArrowRight
 import compose.icons.tablericons.Bell
 import compose.icons.tablericons.ChartBar
+import compose.icons.tablericons.CurrencyRupee
 import compose.icons.tablericons.Edit
 import compose.icons.tablericons.Flame
 import compose.icons.tablericons.Heart
@@ -73,9 +75,11 @@ import compose.icons.tablericons.Logout
 import compose.icons.tablericons.MoodHappy
 import compose.icons.tablericons.MoodNeutral
 import compose.icons.tablericons.MoodSad
+import compose.icons.tablericons.Refresh
 import compose.icons.tablericons.Search
 import compose.icons.tablericons.Settings
 import compose.icons.tablericons.Stars
+import compose.icons.tablericons.Target
 import compose.icons.tablericons.Trophy
 import compose.icons.tablericons.User
 import compose.icons.tablericons.Wallet
@@ -236,10 +240,20 @@ fun SummaryDashboardScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // ── AI Predictions Card ──────────────────────────────
+        if (state.predictions.isNotEmpty() || state.isRefreshingPredictions) {
+            AIPredictionsCard(
+                predictions = state.predictions,
+                isRefreshing = state.isRefreshingPredictions,
+                onRefresh = viewModel::refreshPredictions,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         // ── Life Dashboard Quick Access ──────────────────────
         LifeDashboardCard(onNavigateToLifeDashboard = onNavigateToLifeDashboard)
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(100.dp))
     }
 
     // ── Profile Bottom Sheet ─────────────────────────────────
@@ -1093,6 +1107,128 @@ private fun LifeDashboardCard(onNavigateToLifeDashboard: () -> Unit) {
                 modifier = Modifier.size(20.dp),
             )
         }
+    }
+}
+
+// ── AI Predictions Card ───────────────────────────────────────────
+
+private val PastelViolet = Color(0xFFEDE4F7)
+private val IconViolet = Color(0xFF7C4DFF)
+
+@Composable
+private fun AIPredictionsCard(
+    predictions: List<PredictionUiItem>,
+    isRefreshing: Boolean,
+    onRefresh: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = PastelViolet),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(IconViolet.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = TablerIcons.Stars,
+                            contentDescription = null,
+                            tint = IconViolet,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "AI Predictions",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF2E2D2B),
+                    )
+                }
+
+                IconButton(
+                    onClick = onRefresh,
+                    enabled = !isRefreshing,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    if (isRefreshing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = IconViolet,
+                        )
+                    } else {
+                        Icon(
+                            imageVector = TablerIcons.Refresh,
+                            contentDescription = "Refresh predictions",
+                            tint = IconViolet,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            predictions.forEach { prediction ->
+                PredictionRow(prediction)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PredictionRow(prediction: PredictionUiItem) {
+    val (icon, label) = when (prediction.type) {
+        PredictionType.SPENDING_FORECAST -> TablerIcons.CurrencyRupee to "Spending"
+        PredictionType.HABIT_SUSTAINABILITY -> TablerIcons.Target to "Habits"
+        PredictionType.HEALTH_TRAJECTORY -> TablerIcons.Heart to "Health"
+        PredictionType.LIFE_FORECAST -> TablerIcons.Stars to "Life"
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = IconViolet.copy(alpha = 0.7f),
+            modifier = Modifier.size(16.dp).padding(top = 2.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF5C5A57),
+            )
+            Text(
+                text = prediction.content,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF2E2D2B),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = "${(prediction.confidence * 100).toInt()}%",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color(0xFF5C5A57),
+        )
     }
 }
 

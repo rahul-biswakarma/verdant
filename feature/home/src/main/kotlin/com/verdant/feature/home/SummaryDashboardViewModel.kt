@@ -3,16 +3,23 @@ package com.verdant.feature.home
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.verdant.core.common.auth.AuthRepository
 import com.verdant.core.common.auth.AuthUser
+import com.verdant.core.model.Prediction
+import com.verdant.core.model.PredictionType
 import com.verdant.core.model.repository.AIInsightRepository
 import com.verdant.core.model.repository.EmotionalContextRepository
 import com.verdant.core.model.repository.HabitEntryRepository
 import com.verdant.core.model.repository.HabitRepository
+import com.verdant.core.model.repository.PredictionRepository
 import com.verdant.core.model.repository.StreakCacheRepository
 import com.verdant.core.model.repository.TransactionRepository
 import com.verdant.core.model.EmotionalContext
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +32,12 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
+data class PredictionUiItem(
+    val type: PredictionType,
+    val content: String,
+    val confidence: Float,
+)
+
 data class SummaryDashboardUiState(
     val totalHabits: Int = 0,
     val completedHabits: Int = 0,
@@ -35,6 +48,8 @@ data class SummaryDashboardUiState(
     val monthlyIncome: Double = 0.0,
     val bestCurrentStreak: Int = 0,
     val latestInsight: String? = null,
+    val predictions: List<PredictionUiItem> = emptyList(),
+    val isRefreshingPredictions: Boolean = false,
     val isLoading: Boolean = true,
 )
 
@@ -59,7 +74,9 @@ class SummaryDashboardViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     streakCacheRepository: StreakCacheRepository,
     aiInsightRepository: AIInsightRepository,
+    predictionRepository: PredictionRepository,
     private val authRepository: AuthRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val today = LocalDate.now()
@@ -81,12 +98,16 @@ class SummaryDashboardViewModel @Inject constructor(
         val mood: EmotionalContext?,
     )
 
+    private val _isRefreshingPredictions = MutableStateFlow(false)
+
     private data class FinanceAndExtra(
         val monthlySpent: Double,
         val monthlyIncome: Double,
         val bestCurrentStreak: Int,
         val latestInsight: String?,
     )
+
+    private val predictionsFlow = predictionRepository.observeActive(System.currentTimeMillis())
 
     private val coreData = combine(
         habitRepository.observeActiveHabits(),
@@ -139,7 +160,9 @@ class SummaryDashboardViewModel @Inject constructor(
     val uiState: StateFlow<SummaryDashboardUiState> = combine(
         coreData,
         financeAndExtra,
-    ) { core, extra ->
+        predictionsFlow,
+        _isRefreshingPredictions,
+    ) { core, extra, predictions, isRefreshing ->
         SummaryDashboardUiState(
             totalHabits = core.totalHabits,
             completedHabits = core.completedHabits,
@@ -150,6 +173,14 @@ class SummaryDashboardViewModel @Inject constructor(
             monthlyIncome = extra.monthlyIncome,
             bestCurrentStreak = extra.bestCurrentStreak,
             latestInsight = extra.latestInsight,
+            predictions = predictions.map { prediction ->
+                PredictionUiItem(
+                    type = prediction.predictionType,
+                    content = prediction.predictionData.lines().firstOrNull() ?: prediction.predictionData,
+                    confidence = prediction.confidence,
+                )
+            },
+            isRefreshingPredictions = isRefreshing,
             isLoading = false,
         )
     }.stateIn(
@@ -157,6 +188,23 @@ class SummaryDashboardViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = SummaryDashboardUiState(),
     )
+
+    fun refreshPredictions() {
+        _isRefreshingPredictions.value = true
+        val workRequest = OneTimeWorkRequestBuilder<com.verdant.work.worker.PredictionWorker>().build()
+        val workManager = WorkManager.getInstance(appContext)
+        workManager.enqueueUniqueWork(
+            "verdant_predictions_refresh",
+            ExistingWorkPolicy.KEEP,
+            workRequest,
+        )
+        // Observe work completion to clear refreshing state
+        viewModelScope.launch {
+            // Simple timeout-based approach: predictions typically complete in a few seconds
+            kotlinx.coroutines.delay(3_000)
+            _isRefreshingPredictions.value = false
+        }
+    }
 
     fun updateDisplayName(newName: String) {
         viewModelScope.launch {
