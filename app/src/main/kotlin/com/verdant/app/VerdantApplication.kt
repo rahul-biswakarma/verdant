@@ -28,6 +28,7 @@ import com.verdant.work.worker.WeeklySummaryWorker
 import com.verdant.work.worker.CrossDeviceSyncWorker
 import com.verdant.work.worker.PendingAIRetryWorker
 import com.verdant.work.worker.XPComputeWorker
+import com.verdant.work.worker.DashboardLayoutWorker
 import com.verdant.work.worker.DataRetentionWorker
 import dagger.hilt.android.HiltAndroidApp
 import java.time.DayOfWeek
@@ -72,6 +73,7 @@ class VerdantApplication : Application(), Configuration.Provider {
         scheduleCrossDeviceSync()
         schedulePendingAIRetry()
         scheduleDataRetention()
+        scheduleDashboardLayout()
     }
 
 
@@ -375,6 +377,28 @@ class VerdantApplication : Application(), Configuration.Provider {
             .build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             DataRetentionWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            request,
+        )
+    }
+
+    /** Dashboard layout generation daily at 5:30 AM. */
+    private fun scheduleDashboardLayout() {
+        val initialDelay = calculateInitialDelay(5, 30)
+        val request = PeriodicWorkRequestBuilder<DashboardLayoutWorker>(
+            repeatInterval = 24, repeatIntervalTimeUnit = TimeUnit.HOURS,
+        )
+            .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .setRequiresBatteryNotLow(true)
+                    .build()
+            )
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.MINUTES)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            DashboardLayoutWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
             request,
         )

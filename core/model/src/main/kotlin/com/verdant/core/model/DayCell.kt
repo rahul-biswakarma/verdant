@@ -8,4 +8,5 @@ data class DayCell(
     val intensity: Float,
     val entryCount: Int,
     val completedCount: Int,
+    val isSkipped: Boolean = false,
 )

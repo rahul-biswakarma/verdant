@@ -51,12 +51,16 @@ class DeviceSignalSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("device-signals-device-range")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@DeviceSignalSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("device-signals-device-range")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@DeviceSignalSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }
@@ -75,12 +79,16 @@ class DeviceSignalSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("device-signals-range")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@DeviceSignalSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("device-signals-range")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@DeviceSignalSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

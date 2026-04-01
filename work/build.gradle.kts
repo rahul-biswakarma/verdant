@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":core:ai"))
     implementation(project(":core:datastore"))
     implementation(project(":core:common"))
+    implementation(project(":core:genui"))
     implementation(project(":core:sms"))
     implementation(project(":core:health"))
     implementation(project(":core:devicestats"))

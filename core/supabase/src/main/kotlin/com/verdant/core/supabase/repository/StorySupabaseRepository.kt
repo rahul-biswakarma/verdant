@@ -28,49 +28,87 @@ class StorySupabaseRepository @Inject constructor(
         ?: error("User not authenticated")
 
     override fun observeAll(): Flow<List<Story>> = callbackFlow {
-        suspend fun fetch() = supabase.postgrest[table]
-            .select { order("start_time", Order.DESCENDING) }
-            .decodeList<StoryDto>()
-            .map { it.toDomain() }
+        val initial = try {
+            supabase.postgrest[table]
+                .select { order("start_time", Order.DESCENDING) }
+                .decodeList<StoryDto>()
+                .map { it.toDomain() }
+        } catch (_: Exception) {
+            emptyList()
+        }
+        send(initial)
 
-        send(fetch())
-
-        val channel = supabase.realtime.channel("stories-all")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@StorySupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("stories-all")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@StorySupabaseRepository.table
+                }.collect {
+                    val updated = try {
+                        supabase.postgrest[this@StorySupabaseRepository.table]
+                            .select { order("start_time", Order.DESCENDING) }
+                            .decodeList<StoryDto>()
+                            .map { it.toDomain() }
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                    send(updated)
+                }
+            }
+        } catch (_: Exception) {
+            // Realtime not available — initial fetch is enough
         }
         awaitClose { }
     }
 
     override fun observeRecent(limit: Int): Flow<List<Story>> = callbackFlow {
-        suspend fun fetch() = supabase.postgrest[table]
-            .select {
-                order("start_time", Order.DESCENDING)
-                limit(limit.toLong())
-            }
-            .decodeList<StoryDto>()
-            .map { it.toDomain() }
-
-        send(fetch())
-
-        val channel = supabase.realtime.channel("stories-recent")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@StorySupabaseRepository.table
-            }.collect { send(fetch()) }
+        val initial = try {
+            supabase.postgrest[table]
+                .select {
+                    order("start_time", Order.DESCENDING)
+                    limit(limit.toLong())
+                }
+                .decodeList<StoryDto>()
+                .map { it.toDomain() }
+        } catch (_: Exception) {
+            emptyList()
         }
+        send(initial)
+
+        try {
+            val channel = supabase.realtime.channel("stories-recent")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@StorySupabaseRepository.table
+                }.collect {
+                    val updated = try {
+                        supabase.postgrest[this@StorySupabaseRepository.table]
+                            .select {
+                                order("start_time", Order.DESCENDING)
+                                limit(limit.toLong())
+                            }
+                            .decodeList<StoryDto>()
+                            .map { it.toDomain() }
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                    send(updated)
+                }
+            }
+        } catch (_: Exception) { }
         awaitClose { }
     }
 
-    override suspend fun getById(id: String): Story? =
+    override suspend fun getById(id: String): Story? = try {
         supabase.postgrest[table]
             .select { filter { eq("id", id) } }
             .decodeSingleOrNull<StoryDto>()
             ?.toDomain()
+    } catch (_: Exception) {
+        null
+    }
 
     override suspend fun insert(story: Story) {
         supabase.postgrest[table].insert(story.toDto(userId()))
@@ -88,7 +126,7 @@ class StorySupabaseRepository @Inject constructor(
         }
     }
 
-    override suspend fun getStoriesInRange(start: Long, end: Long): List<Story> =
+    override suspend fun getStoriesInRange(start: Long, end: Long): List<Story> = try {
         supabase.postgrest[table]
             .select {
                 filter {
@@ -99,6 +137,9 @@ class StorySupabaseRepository @Inject constructor(
             }
             .decodeList<StoryDto>()
             .map { it.toDomain() }
+    } catch (_: Exception) {
+        emptyList()
+    }
 
     override suspend fun deleteAll() {
         supabase.postgrest[table].delete {

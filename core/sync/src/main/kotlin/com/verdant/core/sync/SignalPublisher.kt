@@ -44,13 +44,13 @@ class SignalPublisher @Inject constructor(
     }
 
     suspend fun publishHabitCompletion(habitName: String) {
-        // Anonymize habit name before sending to Firebase — only a short hash is published
+        // Anonymize habit name — only a short hash is published
         val anonymized = "habit_${habitName.sha256Short()}"
         syncManager.publishSignal(deviceId, ROLE_PHONE, "habit_completed", 1.0, anonymized)
     }
 
     suspend fun publishTransaction(amount: Double, category: String) {
-        // Anonymize transaction category before sending to Firebase
+        // Anonymize transaction category
         val anonymized = "cat_${category.sha256Short()}"
         syncManager.publishSignal(deviceId, ROLE_PHONE, "transaction", amount, anonymized)
     }

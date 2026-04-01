@@ -5,8 +5,8 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Social module — FirebaseAuth is already provided by SyncModule,
- * so no duplicate binding here.
+ * Social module — SocialRepository is constructor-injected with SupabaseClient
+ * from SupabaseModule in :core:supabase.
  */
 @Module
 @InstallIn(SingletonComponent::class)

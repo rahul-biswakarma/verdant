@@ -34,12 +34,16 @@ class LabelSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("labels-all")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@LabelSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("labels-all")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@LabelSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

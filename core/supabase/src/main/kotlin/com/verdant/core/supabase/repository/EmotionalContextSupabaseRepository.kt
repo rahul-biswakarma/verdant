@@ -38,12 +38,16 @@ class EmotionalContextSupabaseRepository @Inject constructor(
     override fun observeLatest(): Flow<EmotionalContext?> = callbackFlow {
         send(getLatest())
 
-        val channel = supabase.realtime.channel("emotional-latest")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@EmotionalContextSupabaseRepository.table
-            }.collect { send(getLatest()) }
+        try {
+            val channel = supabase.realtime.channel("emotional-latest")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@EmotionalContextSupabaseRepository.table
+                }.collect { send(getLatest()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }
@@ -61,12 +65,16 @@ class EmotionalContextSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("emotional-range")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@EmotionalContextSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("emotional-range")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@EmotionalContextSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

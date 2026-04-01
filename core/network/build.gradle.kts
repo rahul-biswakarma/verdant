@@ -27,8 +27,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    implementation(project(":core:supabase"))
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)

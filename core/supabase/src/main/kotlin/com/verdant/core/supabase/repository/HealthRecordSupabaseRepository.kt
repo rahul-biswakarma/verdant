@@ -43,12 +43,16 @@ class HealthRecordSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("health-records-type-range")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HealthRecordSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("health-records-type-range")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HealthRecordSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }
@@ -67,12 +71,16 @@ class HealthRecordSupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("health-records-range")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HealthRecordSupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("health-records-range")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HealthRecordSupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

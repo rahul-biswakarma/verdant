@@ -24,8 +24,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * [VerdantAI] implementation that calls the Verdant Firebase Functions backend
- * proxy, which in turn calls Claude (Haiku model) for deep analysis.
+ * [VerdantAI] implementation that calls the Verdant Supabase Edge Functions
+ * backend, which in turn calls Claude (Haiku model) for deep analysis.
  *
  * Responsibilities:
  *  - Serialises [AggregatedHabitData] to compact [JsonObject] for the API payload.

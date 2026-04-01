@@ -28,27 +28,45 @@ class StoryEventSupabaseRepository @Inject constructor(
         ?: error("User not authenticated")
 
     override fun observeByStoryId(storyId: String): Flow<List<StoryEvent>> = callbackFlow {
-        suspend fun fetch() = supabase.postgrest[table]
-            .select {
-                filter { eq("story_id", storyId) }
-                order("sort_order", Order.ASCENDING)
-            }
-            .decodeList<StoryEventDto>()
-            .map { it.toDomain() }
-
-        send(fetch())
-
-        val channel = supabase.realtime.channel("story-events-$storyId")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@StoryEventSupabaseRepository.table
-            }.collect { send(fetch()) }
+        val initial = try {
+            supabase.postgrest[table]
+                .select {
+                    filter { eq("story_id", storyId) }
+                    order("sort_order", Order.ASCENDING)
+                }
+                .decodeList<StoryEventDto>()
+                .map { it.toDomain() }
+        } catch (_: Exception) {
+            emptyList()
         }
+        send(initial)
+
+        try {
+            val channel = supabase.realtime.channel("story-events-$storyId")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@StoryEventSupabaseRepository.table
+                }.collect {
+                    val updated = try {
+                        supabase.postgrest[this@StoryEventSupabaseRepository.table]
+                            .select {
+                                filter { eq("story_id", storyId) }
+                                order("sort_order", Order.ASCENDING)
+                            }
+                            .decodeList<StoryEventDto>()
+                            .map { it.toDomain() }
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                    send(updated)
+                }
+            }
+        } catch (_: Exception) { }
         awaitClose { }
     }
 
-    override suspend fun getByStoryId(storyId: String): List<StoryEvent> =
+    override suspend fun getByStoryId(storyId: String): List<StoryEvent> = try {
         supabase.postgrest[table]
             .select {
                 filter { eq("story_id", storyId) }
@@ -56,6 +74,9 @@ class StoryEventSupabaseRepository @Inject constructor(
             }
             .decodeList<StoryEventDto>()
             .map { it.toDomain() }
+    } catch (_: Exception) {
+        emptyList()
+    }
 
     override suspend fun insert(event: StoryEvent) {
         supabase.postgrest[table].insert(event.toDto(userId()))

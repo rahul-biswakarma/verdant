@@ -45,12 +45,16 @@ class HabitEntrySupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("entries-$habitId")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HabitEntrySupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("entries-$habitId")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HabitEntrySupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }
@@ -71,12 +75,16 @@ class HabitEntrySupabaseRepository @Inject constructor(
 
         send(fetch())
 
-        val channel = supabase.realtime.channel("entries-all")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HabitEntrySupabaseRepository.table
-            }.collect { send(fetch()) }
+        try {
+            val channel = supabase.realtime.channel("entries-all")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HabitEntrySupabaseRepository.table
+                }.collect { send(fetch()) }
+            }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

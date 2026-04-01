@@ -8,9 +8,9 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 /**
- * Retrofit interface for the Verdant Firebase Functions backend proxy.
+ * Retrofit interface for the Verdant Supabase Edge Functions backend.
  *
- * Base URL is the Cloud Functions HTTPS endpoint configured in [di.NetworkModule].
+ * Base URL is the Supabase Edge Functions endpoint configured in [di.NetworkModule].
  *
  * All methods return [Response] wrappers so callers can inspect HTTP error
  * codes directly and map them to [VerdantApiException] subtypes.
@@ -22,7 +22,7 @@ interface VerdantApiService {
     /**
      * Generates a short AI insight (motivation, pattern, nudge, or coach reply).
      *
-     * Maps to the `generateInsight` Firebase Function.
+     * Maps to the `generateInsight` Supabase Edge Function.
      */
     @POST("generateInsight")
     suspend fun generateInsight(
@@ -32,7 +32,7 @@ interface VerdantApiService {
     /**
      * Generates a structured weekly or monthly habit report.
      *
-     * Maps to the `generateReport` Firebase Function.
+     * Maps to the `generateReport` Supabase Edge Function.
      */
     @POST("generateReport")
     suspend fun generateReport(

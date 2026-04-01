@@ -1,24 +1,14 @@
 package com.verdant.core.sync.di
 
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
+/**
+ * Sync module — DeviceSyncManager and SignalPublisher are constructor-injected
+ * singletons; no manual @Provides needed. The SupabaseClient comes from
+ * SupabaseModule in :core:supabase.
+ */
 @Module
 @InstallIn(SingletonComponent::class)
-object SyncModule {
-
-    @Provides
-    @Singleton
-    fun provideFirebaseAuth(): FirebaseAuth =
-        FirebaseAuth.getInstance()
-
-    @Provides
-    @Singleton
-    fun provideFirebaseDatabase(): FirebaseDatabase =
-        FirebaseDatabase.getInstance()
-}
+object SyncModule

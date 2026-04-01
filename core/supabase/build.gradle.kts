@@ -36,11 +36,13 @@ android {
 
 dependencies {
     implementation(project(":core:model"))
+    implementation(project(":core:genui"))
 
-    implementation(platform(libs.supabase.bom))
-    implementation(libs.supabase.postgrest)
-    implementation(libs.supabase.auth)
-    implementation(libs.supabase.realtime)
+    api(platform(libs.supabase.bom))
+    api(libs.supabase.postgrest)
+    api(libs.supabase.auth)
+    api(libs.supabase.realtime)
+    api(libs.supabase.functions)
     implementation(libs.ktor.client.android)
 
     implementation(libs.kotlinx.serialization.json)

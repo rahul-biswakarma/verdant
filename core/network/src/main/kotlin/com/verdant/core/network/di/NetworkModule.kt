@@ -23,23 +23,24 @@ import javax.inject.Singleton
 annotation class AnthropicRetrofit
 
 /**
- * Tags the Retrofit instance / OkHttpClient that targets the Verdant Firebase
- * Functions backend proxy.
- *
- * Before deploying, replace [FIREBASE_FUNCTIONS_BASE_URL] with your project URL:
- *   https://us-central1-{YOUR_PROJECT_ID}.cloudfunctions.net/
+ * Tags the Retrofit instance / OkHttpClient that targets the Verdant Supabase
+ * Edge Functions backend.
  */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class FirebaseFunctionsRetrofit
+annotation class SupabaseEdgeFunctionsRetrofit
 
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val FIREBASE_FUNCTIONS_BASE_URL =
-        "https://us-central1-verdant-app.cloudfunctions.net/"
+    /**
+     * Base URL for Supabase Edge Functions.
+     * Endpoints are invoked as POST {BASE_URL}/{functionName}.
+     */
+    private const val SUPABASE_FUNCTIONS_BASE_URL =
+        "https://iktudbhdorbnmniwikhm.supabase.co/functions/v1/"
 
     private const val ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/"
 
@@ -85,8 +86,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @FirebaseFunctionsRetrofit
-    fun provideFirebaseFunctionsOkHttpClient(
+    @SupabaseEdgeFunctionsRetrofit
+    fun provideSupabaseEdgeFunctionsOkHttpClient(
         authInterceptor: AuthInterceptor,
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
@@ -99,12 +100,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @FirebaseFunctionsRetrofit
-    fun provideFirebaseFunctionsRetrofit(
-        @FirebaseFunctionsRetrofit okHttpClient: OkHttpClient,
+    @SupabaseEdgeFunctionsRetrofit
+    fun provideSupabaseEdgeFunctionsRetrofit(
+        @SupabaseEdgeFunctionsRetrofit okHttpClient: OkHttpClient,
         json: Json,
     ): Retrofit = Retrofit.Builder()
-        .baseUrl(FIREBASE_FUNCTIONS_BASE_URL)
+        .baseUrl(SUPABASE_FUNCTIONS_BASE_URL)
         .client(okHttpClient)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
@@ -112,6 +113,6 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideVerdantApiService(
-        @FirebaseFunctionsRetrofit retrofit: Retrofit,
+        @SupabaseEdgeFunctionsRetrofit retrofit: Retrofit,
     ): VerdantApiService = retrofit.create(VerdantApiService::class.java)
 }

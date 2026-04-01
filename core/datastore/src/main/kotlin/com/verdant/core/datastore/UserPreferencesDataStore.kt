@@ -107,6 +107,9 @@ class UserPreferencesDataStore @Inject constructor(
         // Player system
         val EVOLUTION_PATH = stringPreferencesKey("evolution_path")
         val PLAYER_LEVEL_SHOWN = intPreferencesKey("player_level_shown")
+
+        // Gen UI
+        val GEN_UI_ENABLED = booleanPreferencesKey("gen_ui_enabled")
     }
     val useDynamicColor: Flow<Boolean> = context.dataStore.data.map { prefs ->
         prefs[Keys.USE_DYNAMIC_COLOR] ?: true
@@ -385,6 +388,15 @@ class UserPreferencesDataStore @Inject constructor(
 
     suspend fun setPlayerLevelShown(value: Int) {
         context.dataStore.edit { it[Keys.PLAYER_LEVEL_SHOWN] = value }
+    }
+
+    /** Whether the LLM-generated dynamic dashboard is enabled. Default: true. */
+    val genUiEnabled: Flow<Boolean> = context.dataStore.data.map { prefs ->
+        prefs[Keys.GEN_UI_ENABLED] ?: true
+    }
+
+    suspend fun setGenUiEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.GEN_UI_ENABLED] = value }
     }
 
     /** Resets all preferences to defaults (used by "Delete all data"). */

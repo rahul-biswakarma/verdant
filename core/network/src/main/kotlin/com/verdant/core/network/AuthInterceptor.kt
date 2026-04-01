@@ -1,31 +1,25 @@
 package com.verdant.core.network
 
-import com.google.android.gms.tasks.Tasks
-import com.google.firebase.auth.FirebaseAuth
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import okhttp3.Interceptor
 import okhttp3.Response
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * OkHttp interceptor that attaches the current Firebase Auth ID token as a
+ * OkHttp interceptor that attaches the current Supabase Auth access token as a
  * `Authorization: Bearer <token>` header on every outgoing request.
  *
- * If no user is signed in, or fetching the token fails, the request is forwarded
- * without the header. The backend will respond with 401 in that case, which
- * [VerdantApiService] maps to [VerdantApiException.AuthException].
- *
- * Token refresh is handled by Firebase: `getIdToken(false)` returns the cached
- * token if it is still valid (expires every hour), and fetches a new one
- * automatically when needed.
- *
- * This interceptor runs on OkHttp's background thread pool — blocking via
- * [Tasks.await] is intentional and safe here.
+ * If no user is signed in, the request is forwarded without the header.
+ * The backend will respond with 401 in that case, which [VerdantApiService]
+ * maps to [VerdantApiException.AuthException].
  */
-class AuthInterceptor @Inject constructor() : Interceptor {
+class AuthInterceptor @Inject constructor(
+    private val supabase: SupabaseClient,
+) : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = fetchIdToken()
+        val token = supabase.auth.currentAccessTokenOrNull()
 
         val request = if (token != null) {
             chain.request().newBuilder()
@@ -36,21 +30,5 @@ class AuthInterceptor @Inject constructor() : Interceptor {
         }
 
         return chain.proceed(request)
-    }
-
-    private fun fetchIdToken(): String? {
-        return try {
-            val user = FirebaseAuth.getInstance().currentUser ?: return null
-            Tasks.await(user.getIdToken(/* forceRefresh = */ false), TOKEN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                .token
-        } catch (e: Exception) {
-            // Log in debug builds; don't crash — the backend will reject the request if auth
-            // is truly required, and the caller maps 401 → AuthException.
-            null
-        }
-    }
-
-    private companion object {
-        const val TOKEN_TIMEOUT_SECONDS = 5L
     }
 }

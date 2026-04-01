@@ -27,17 +27,20 @@ class HabitSupabaseRepository @Inject constructor(
         ?: error("User not authenticated")
 
     override fun observeActiveHabits(): Flow<List<Habit>> = callbackFlow {
-        val initial = fetchActiveHabits()
-        send(initial)
+        send(fetchActiveHabits())
 
-        val channel = supabase.realtime.channel("habits-active")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HabitSupabaseRepository.table
-            }.collect {
-                send(fetchActiveHabits())
+        try {
+            val channel = supabase.realtime.channel("habits-active")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HabitSupabaseRepository.table
+                }.collect {
+                    send(fetchActiveHabits())
+                }
             }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }
@@ -54,23 +57,27 @@ class HabitSupabaseRepository @Inject constructor(
             .map { it.toDomain() }
         send(initial)
 
-        val channel = supabase.realtime.channel("habits-label-$label")
-        channel.subscribe()
-        launch {
-            channel.postgresChangeFlow<PostgresAction>("public") {
-                table = this@HabitSupabaseRepository.table
-            }.collect {
-                val updated = supabase.postgrest[table]
-                    .select {
-                        filter {
-                            eq("is_archived", false)
-                            eq("label", label)
+        try {
+            val channel = supabase.realtime.channel("habits-label-$label")
+            channel.subscribe()
+            launch {
+                channel.postgresChangeFlow<PostgresAction>("public") {
+                    table = this@HabitSupabaseRepository.table
+                }.collect {
+                    val updated = supabase.postgrest[table]
+                        .select {
+                            filter {
+                                eq("is_archived", false)
+                                eq("label", label)
+                            }
                         }
-                    }
-                    .decodeList<HabitDto>()
-                    .map { it.toDomain() }
-                send(updated)
+                        .decodeList<HabitDto>()
+                        .map { it.toDomain() }
+                    send(updated)
+                }
             }
+        } catch (_: Exception) {
+            // Realtime unavailable — initial fetch is sufficient
         }
         awaitClose { }
     }

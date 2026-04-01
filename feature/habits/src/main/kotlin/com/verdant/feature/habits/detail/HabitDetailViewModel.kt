@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import com.verdant.core.common.combine
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
@@ -42,6 +43,7 @@ data class HabitDetailUiState(
     val retroDate: LocalDate? = null,   // date for which bottom sheet is open
     val moodYear: Int = LocalDate.now().year,
     val isLoading: Boolean = true,
+    val showAllEntries: Boolean = false,
 )
 
 @HiltViewModel
@@ -59,6 +61,7 @@ class HabitDetailViewModel @Inject constructor(
     private val _retroDate = MutableStateFlow<LocalDate?>(null)
     private val _stats = MutableStateFlow(Triple(0, 0, 0f)) // current, longest, rate
     private val _moodYear = MutableStateFlow(LocalDate.now().year)
+    private val _showAllEntries = MutableStateFlow(false)
 
     // Cover a full year for the mood grid; 12-week contribution grid uses the same entries
     private val gridStart = LocalDate.now().withDayOfYear(1)
@@ -86,7 +89,7 @@ class HabitDetailViewModel @Inject constructor(
         }
         HabitDetailUiState(
             habit = habit,
-            entries = entries.sortedByDescending { it.date }.take(14),
+            entries = entries.sortedByDescending { it.date }, // all entries, trimmed below
             cells = cells,
             currentStreak = stats.first,
             longestStreak = stats.second,
@@ -99,6 +102,11 @@ class HabitDetailViewModel @Inject constructor(
             retroDate = retroDate,
             moodYear = _moodYear.value,
             isLoading = false,
+        )
+    }.combine(_showAllEntries) { state, showAll ->
+        state.copy(
+            entries = if (showAll) state.entries else state.entries.take(14),
+            showAllEntries = showAll,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HabitDetailUiState())
 
@@ -114,9 +122,21 @@ class HabitDetailViewModel @Inject constructor(
 
     fun onTabSelected(index: Int) = _selectedTab.update { index }
 
+    fun toggleShowAllEntries() = _showAllEntries.update { !it }
+
     fun onMonthChanged(month: LocalDate) = _selectedMonth.update { month }
 
-    fun onCellTapped(date: LocalDate) = _retroDate.update { date }
+    fun onCellTapped(date: LocalDate) {
+        val habit = habitFlow.value
+        if (habit == null || habit.trackingType != TrackingType.BINARY) {
+            _retroDate.update { date }
+            return
+        }
+        viewModelScope.launch {
+            val existing = entriesFlow.first().firstOrNull { it.date == date }
+            logEntryUseCase.logBinary(habitId, date, !(existing?.completed == true))
+        }
+    }
 
     fun onEntryTapped(entry: HabitEntry) = _retroDate.update { entry.date }
 
@@ -185,6 +205,7 @@ class HabitDetailViewModel @Inject constructor(
                 },
                 entryCount = if (entry != null) 1 else 0,
                 completedCount = if (entry?.completed == true) 1 else 0,
+                isSkipped = entry?.skipped == true,
             )
         }
     }

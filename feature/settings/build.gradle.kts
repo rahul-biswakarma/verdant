@@ -50,9 +50,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Auth (Firebase + Credential Manager)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
+    // Auth (Supabase + Credential Manager)
     implementation(libs.credentials)
     implementation(libs.credentials.play.services)
     implementation(libs.googleid)
